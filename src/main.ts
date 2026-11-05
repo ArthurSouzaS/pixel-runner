@@ -1,0 +1,64 @@
+import '@fontsource/press-start-2p/latin.css';
+import Phaser from 'phaser';
+import { sfx } from './audio/Sfx';
+import { GAME_HEIGHT, GAME_WIDTH } from './gfx/textures';
+import { BootScene } from './scenes/BootScene';
+import { GameOverScene } from './scenes/GameOverScene';
+import { HUDScene } from './scenes/HUDScene';
+import { LevelScene } from './scenes/LevelScene';
+import { LevelSelectScene } from './scenes/LevelSelectScene';
+import { MenuScene } from './scenes/MenuScene';
+import { PauseScene } from './scenes/PauseScene';
+import { touchState } from './input/touchState';
+import { saveManager } from './systems/saveManager';
+
+const config: Phaser.Types.Core.GameConfig = {
+  type: Phaser.AUTO,
+  parent: 'game',
+  width: GAME_WIDTH,
+  height: GAME_HEIGHT,
+  backgroundColor: '#1a1c2c',
+  pixelArt: true,
+  roundPixels: true,
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { x: 0, y: 950 },
+      debug: false,
+      tileBias: 20,
+    },
+  },
+  input: {
+    activePointers: 4,
+  },
+  scene: [BootScene, MenuScene, LevelSelectScene, LevelScene, HUDScene, PauseScene, GameOverScene],
+};
+
+// O AudioContext só pode começar após um gesto do usuário.
+const unlockAudio = (): void => sfx.unlock();
+window.addEventListener('pointerdown', unlockAudio);
+window.addEventListener('keydown', unlockAudio);
+window.addEventListener('touchstart', unlockAudio, { passive: true });
+
+// Tecla M liga/desliga o som em qualquer tela.
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'm' || event.key === 'M') saveManager.toggleMute();
+});
+
+async function start(): Promise<void> {
+  // Espera a fonte pixel carregar (com limite de tempo) para os textos não piscarem.
+  try {
+    await Promise.race([document.fonts.load('8px "Press Start 2P"'), new Promise((resolve) => setTimeout(resolve, 1500))]);
+  } catch {
+    // Segue com a fonte reserva.
+  }
+  const game = new Phaser.Game(config);
+  // Em desenvolvimento, expõe o jogo para depuração e testes automatizados no navegador.
+  if (import.meta.env.DEV) Object.assign(window, { game, touchState });
+}
+
+void start();
