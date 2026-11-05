@@ -20,9 +20,9 @@ export class TutorialScene extends Phaser.Scene {
     panel.add(pixelText(this, 0, -66, 'NOVA HABILIDADE!', { size: 8, color: COLORS.yellow }).setOrigin(0.5));
     panel.add(this.add.image(-118, -40, 'orb').setTint(info.color).setScale(1.5));
     panel.add(pixelText(this, 10, -40, info.name.toUpperCase(), { size: 14, color: info.color }).setOrigin(0.5));
-    panel.add(pixelText(this, 0, -6, info.description, { size: 8, align: 'center', wrap: 330 }).setOrigin(0.5).setLineSpacing(4));
+    panel.add(pixelText(this, 0, -6, info.description, { size: 8, align: 'center', wrap: 330, scalable: true }).setOrigin(0.5).setLineSpacing(4));
     const how = isTouchDevice() ? info.touch : info.keyboard;
-    panel.add(pixelText(this, 0, 36, how, { size: 8, color: COLORS.cyan, align: 'center', wrap: 330 }).setOrigin(0.5).setLineSpacing(4));
+    panel.add(pixelText(this, 0, 36, how, { size: 8, color: COLORS.cyan, align: 'center', wrap: 330, scalable: true }).setOrigin(0.5).setLineSpacing(4));
     const cont = pixelText(this, 0, 70, 'Toque ou aperte uma tecla', { size: 8, color: COLORS.gray }).setOrigin(0.5).setAlpha(0);
     panel.add(cont);
     panel.setScale(0.5).setAlpha(0);

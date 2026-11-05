@@ -104,7 +104,7 @@ export class HUDScene extends Phaser.Scene {
     const c = this.add.container(cx, GAME_HEIGHT / 2).setDepth(50);
     c.add(this.add.rectangle(0, 0, 300, 150, COLORS.ink, 0.88).setStrokeStyle(2, data.color));
     c.add(pixelText(this, 0, -57, data.title, { size: 14, color: data.color }).setOrigin(0.5));
-    c.add(pixelText(this, 0, -3, data.lines.join('\n'), { size: 8 }).setOrigin(0.5).setLineSpacing(6));
+    c.add(pixelText(this, 0, -3, data.lines.join('\n'), { size: 8, scalable: true }).setOrigin(0.5).setLineSpacing(6));
     c.add(pixelText(this, 0, 45, data.footer, { size: 8, color: COLORS.lightGreen }).setOrigin(0.5));
     c.setAlpha(0);
     this.tweens.add({ targets: c, alpha: 1, duration: 300, delay: 300 });
@@ -116,7 +116,7 @@ export class HUDScene extends Phaser.Scene {
     card.add(this.add.rectangle(0, 0, 320, 56, COLORS.ink, 0.8).setStrokeStyle(2, COLORS.yellow));
     card.add(pixelText(this, 0, -14, n, { size: 8, color: COLORS.cyan }).setOrigin(0.5));
     card.add(pixelText(this, 0, 2, name.toUpperCase(), { size: 12, color: COLORS.yellow }).setOrigin(0.5));
-    card.add(pixelText(this, 0, 18, subtitle, { size: 8 }).setOrigin(0.5));
+    card.add(pixelText(this, 0, 18, subtitle, { size: 8, scalable: true }).setOrigin(0.5));
     card.setScale(0.6).setAlpha(0);
     this.tweens.add({ targets: card, scale: 1, alpha: 1, duration: 300, ease: 'Back.easeOut' });
     this.tweens.add({ targets: card, alpha: 0, y: card.y - 20, delay: 2200, duration: 400, onComplete: () => card.destroy() });

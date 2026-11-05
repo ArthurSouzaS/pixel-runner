@@ -142,7 +142,7 @@ export class HubScene extends Phaser.Scene {
     cam.startFollow(this.player, true, 0.15, 0.15);
     cam.fadeIn(400, 26, 28, 44);
 
-    this.inputs = new InputHub(this, 'single');
+    this.inputs = new InputHub(this, 'single', { ...saveManager.get().access.keys });
     this.inputs.extraSources.push(new GamepadSource('single'));
     this.inputs.reset();
 

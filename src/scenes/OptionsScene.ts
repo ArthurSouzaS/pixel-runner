@@ -6,6 +6,7 @@ import { isTouchDevice } from '../input/touchState';
 import { type VolumeChannel, volumeBar } from '../logic/audioSettings';
 import { saveManager } from '../systems/saveManager';
 import { pixelText } from '../ui/text';
+import { t } from '../i18n';
 import { createMenuBackdrop } from './menuBackdrop';
 
 interface Row {
@@ -45,11 +46,12 @@ export class OptionsScene extends Phaser.Scene {
       volumeRow('music', 'Música'),
       volumeRow('sfx', 'Efeitos'),
       { label: () => `Som: ${sfx.isMuted() ? 'Desligado' : 'Ligado'}`, activate: () => saveManager.toggleMute(), adjust: () => saveManager.toggleMute() },
+      { label: () => t('options.access'), activate: () => this.scene.start('Accessibility') },
       { label: () => 'Ver controles', activate: () => this.toggleControls(true) },
       { label: () => 'Voltar', activate: () => this.scene.start('Menu') },
     ];
     this.texts = this.rows.map((row, i) => {
-      const t = pixelText(this, GAME_WIDTH / 2, 66 + i * 26, '', { size: 10 }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      const t = pixelText(this, GAME_WIDTH / 2, 60 + i * 24, '', { size: 10 }).setOrigin(0.5).setInteractive({ useHandCursor: true });
       t.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
         this.index = i;
         if (row.adjust && !row.activate) row.adjust(pointer.x < t.x ? -1 : 1);

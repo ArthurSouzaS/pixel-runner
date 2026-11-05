@@ -44,8 +44,8 @@ export class DialogueBox {
     this.root.add(scene.add.rectangle(6, 0, GAME_WIDTH - 12, BOX_H, COLORS.ink, 0.94).setOrigin(0).setStrokeStyle(2, COLORS.yellow));
     this.root.add(scene.add.rectangle(14, 8, 52, 52, COLORS.darkGray).setOrigin(0).setStrokeStyle(1, COLORS.white, 0.5));
     this.portrait = scene.add.sprite(40, 34, 'pix', 0).setScale(3);
-    this.nameText = pixelText(scene, 76, 8, '', { size: 8, color: COLORS.yellow });
-    this.body = pixelText(scene, 76, 22, '', { size: 8, wrap: GAME_WIDTH - 100 }).setLineSpacing(4);
+    this.nameText = pixelText(scene, 76, 8, '', { size: 8, color: COLORS.yellow, scalable: true });
+    this.body = pixelText(scene, 76, 22, '', { size: 8, wrap: GAME_WIDTH - 100, scalable: true }).setLineSpacing(4);
     this.arrow = pixelText(scene, GAME_WIDTH - 20, BOX_H - 12, '▼', { size: 8, color: COLORS.yellow }).setOrigin(0.5);
     scene.tweens.add({ targets: this.arrow, y: BOX_H - 9, duration: 300, yoyo: true, repeat: -1 });
     this.root.add([this.portrait, this.nameText, this.body, this.arrow]);

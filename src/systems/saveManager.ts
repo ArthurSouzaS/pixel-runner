@@ -7,6 +7,7 @@ import { type Mission, type MissionEvent, accept, applyEvent, claim } from '../l
 import { type InfiniteEntry, addInfiniteEntry } from '../logic/powerups';
 import { addAttempt, addDailyEntry, rollDaily, todayString } from '../logic/daily';
 import { finishRun, recordSegments } from '../logic/speedrun';
+import type { AccessSettings } from '../logic/accessibility';
 import { type StatKey, addStat, maxStat } from '../logic/stats';
 import { type VolumeChannel, stepVolume } from '../logic/audioSettings';
 import { type SaveData, type StorageLike, loadSave, recordLevelClear, saveWithAbility, submitScore, writeSave } from '../logic/save';
@@ -30,6 +31,7 @@ class SaveManager {
   private dirty = false;
   private listeners = new Set<(achievement: Achievement) => void>();
   private missionListeners = new Set<(mission: Mission) => void>();
+  private accessListeners = new Set<(a: AccessSettings) => void>();
 
   constructor() {
     sfx.setMuted(this.data.muted);
@@ -202,6 +204,17 @@ class SaveManager {
   speedrunSegments(category: string, segments: number[]): void {
     if (segments.length === 0) return;
     this.commit({ ...this.data, speedrun: { ...this.data.speedrun, [category]: recordSegments(this.data.speedrun[category], segments) } });
+  }
+
+  /** Atualiza opções de acessibilidade e avisa quem estiver ouvindo. */
+  setAccess(change: Partial<AccessSettings>): void {
+    this.commit({ ...this.data, access: { ...this.data.access, ...change } });
+    this.accessListeners.forEach((fn) => fn(this.data.access));
+  }
+
+  onAccessChange(listener: (a: AccessSettings) => void): () => void {
+    this.accessListeners.add(listener);
+    return () => this.accessListeners.delete(listener);
   }
 
   /** Marca uma cena de história como vista. */

@@ -117,6 +117,7 @@ export class LevelScene extends Phaser.Scene {
   private ghost: Player | null = null;
   private ghostPlayback: GhostPlayback | null = null;
   private ghostClock = 0;
+  private speed = 1;
   private shield = false;
   private magnet = false;
   private enemyScale = 1;
@@ -249,7 +250,14 @@ export class LevelScene extends Phaser.Scene {
     const worldW = this.parsed.width * TILE_SIZE;
     const worldH = this.parsed.height * TILE_SIZE;
     if (this.infinite?.daily) saveManager.dailyAttempt(this.infinite.daily);
-    this.inputs = new InputHub(this, this.mode);
+    const access = saveManager.get().access;
+    this.inputs = new InputHub(this, this.mode, { ...access.keys });
+    // Velocidade do jogo (acessibilidade). Speedrun e desafio diário rodam sempre a 100% para serem justos.
+    this.speed = this.speedrun || this.infinite?.daily ? 1 : access.speed;
+    this.time.timeScale = this.speed;
+    this.tweens.timeScale = this.speed;
+    this.physics.world.timeScale = 1 / this.speed;
+    this.anims.globalTimeScale = this.speed;
     this.inputs.extraSources.push(new GamepadSource(this.mode));
     this.inputs.extraPause = () => gamepads.consumePause();
     this.inputs.reset();
@@ -285,6 +293,7 @@ export class LevelScene extends Phaser.Scene {
     // Os eventos da cena sobrevivem a reinícios: tudo que é registrado aqui é removido no shutdown.
     this.events.on(Phaser.Scenes.Events.RESUME, this.onResume, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.anims.globalTimeScale = 1;
       this.game.events.off(Phaser.Core.Events.BLUR, this.autoPause, this);
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.autoPause, this);
       this.events.off(Phaser.Scenes.Events.RESUME, this.onResume, this);
@@ -716,6 +725,7 @@ export class LevelScene extends Phaser.Scene {
     for (const hint of this.level.hints ?? []) {
       const text = pixelText(this, hint.x * TILE_SIZE, hint.y * TILE_SIZE, touch && hint.touchText ? hint.touchText : hint.text, {
         size: 8,
+        scalable: true,
         align: 'center',
         wrap: 170,
         color: COLORS.white,
@@ -780,8 +790,8 @@ export class LevelScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    // Limita o delta para evitar "teletransportes" após travadas.
-    const dt = Math.min(delta, 50);
+    // Limita o delta para evitar "teletransportes" após travadas (e aplica a velocidade do jogo).
+    const dt = Math.min(delta, 50) * this.speed;
     this.updateCamera();
     this.updateBackground(dt);
     // A cada 10 quadros, liga só os efeitos de água/vento visíveis na câmera.

@@ -61,8 +61,12 @@ export class InputHub {
   private readonly bindings: KeyBinding[];
   extraSources: InputSource[] = [];
 
-  constructor(scene: Phaser.Scene, mode: GameMode) {
-    this.bindings = bindingsFor(mode);
+  private readonly pauseCodes: string[];
+
+  /** `custom`: teclas remapeadas pelo jogador (valem no modo de um jogador). */
+  constructor(scene: Phaser.Scene, mode: GameMode, custom?: KeyBinding & { pause: string[] }) {
+    this.bindings = mode === 'single' && custom ? [custom] : bindingsFor(mode);
+    this.pauseCodes = mode === 'single' && custom ? custom.pause : PAUSE_CODES;
     this.queued = this.bindings.map(() => ({ jump: false, dash: false }));
     const kb = scene.input.keyboard;
     if (!kb) return;
@@ -71,7 +75,7 @@ export class InputHub {
     kb.on('keydown', (event: KeyboardEvent) => {
       this.held.add(event.code);
       if (event.repeat) return;
-      if (PAUSE_CODES.includes(event.code)) this.pauseQueued = true;
+      if (this.pauseCodes.includes(event.code)) this.pauseQueued = true;
       this.bindings.forEach((b, i) => {
         if (b.jump.includes(event.code)) this.queued[i].jump = true;
         if (b.dash.includes(event.code)) this.queued[i].dash = true;

@@ -11,6 +11,7 @@ import { type MissionState, emptyMissionState, sanitizeMissions } from './missio
 import { type InfiniteEntry, sanitizeInfiniteBoard } from './powerups';
 import { type DailyState, emptyDaily, sanitizeDaily } from './daily';
 import { type SpeedrunRecords, sanitizeSpeedrun } from './speedrun';
+import { type AccessSettings, defaultAccess, sanitizeAccess } from './accessibility';
 import { type PlayerStats, emptyStats, sanitizeStats } from './stats';
 
 export const SAVE_KEY = 'pixel-runner:save';
@@ -41,6 +42,8 @@ export interface SaveData extends ShopState {
   playerName: string;
   /** Recordes pessoais do speedrun, por categoria. */
   speedrun: SpeedrunRecords;
+  /** Opções de acessibilidade e controles remapeados. */
+  access: AccessSettings;
 }
 
 export interface StorageLike {
@@ -49,7 +52,7 @@ export interface StorageLike {
 }
 
 export function defaultSave(): SaveData {
-  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [], volumes: defaultVolumes(), storySeen: [], missions: emptyMissionState(), infinite: [], daily: emptyDaily(), playerName: 'PIX', speedrun: {} };
+  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [], volumes: defaultVolumes(), storySeen: [], missions: emptyMissionState(), infinite: [], daily: emptyDaily(), playerName: 'PIX', speedrun: {}, access: defaultAccess() };
 }
 
 function toNonNegative(value: unknown, fallback: number): number {
@@ -92,6 +95,7 @@ export function sanitizeSave(raw: unknown, totalLevels: number): SaveData {
     infinite: sanitizeInfiniteBoard(data.infinite),
     daily: sanitizeDaily(data.daily),
     speedrun: sanitizeSpeedrun(data.speedrun),
+    access: sanitizeAccess(data.access),
     playerName: typeof data.playerName === 'string' && data.playerName.trim() ? data.playerName.trim().slice(0, 8).toUpperCase() : 'PIX',
     storySeen: Array.isArray(data.storySeen) ? [...new Set(data.storySeen.filter((v): v is string => typeof v === 'string'))] : [],
   };

@@ -5,6 +5,7 @@
  * 8 = Select (voltar), 9 = Start (pausa), 12-15 = direcional.
  */
 import type { GameMode } from './controls';
+import { DEFAULT_PAD, type PadMap } from '../logic/accessibility';
 
 export const STICK_DEADZONE = 0.4;
 
@@ -30,8 +31,9 @@ export function emptyButtons(): PadButtons {
 }
 
 /** Converte botões e eixos crus em ações do jogo. */
-export function readPadButtons(buttons: readonly RawButton[], axes: readonly number[]): PadButtons {
+export function readPadButtons(buttons: readonly RawButton[], axes: readonly number[], map: PadMap = DEFAULT_PAD): PadButtons {
   const b = (i: number): boolean => !!buttons[i]?.pressed || (buttons[i]?.value ?? 0) > 0.5;
+  const any = (list: number[]): boolean => list.some(b);
   const ax = axes[0] ?? 0;
   const ay = axes[1] ?? 0;
   return {
@@ -39,10 +41,10 @@ export function readPadButtons(buttons: readonly RawButton[], axes: readonly num
     right: b(15) || ax > STICK_DEADZONE,
     up: b(12) || ay < -STICK_DEADZONE,
     down: b(13) || ay > STICK_DEADZONE,
-    jump: b(0),
-    dash: b(2) || b(3) || b(5),
-    charge: b(1) || b(4),
-    start: b(9),
+    jump: any(map.jump),
+    dash: any(map.dash),
+    charge: any(map.charge),
+    start: any(map.pause),
     back: b(8),
   };
 }

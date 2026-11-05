@@ -1,12 +1,14 @@
 import type { PlayerInput } from '../objects/Player';
 import type { GameMode, InputSource } from './controls';
 import { MENU_KEYS, type PadButtons, emptyButtons, justPressed, padForPlayer, readPadButtons } from './gamepadMapping';
+import { DEFAULT_PAD, type PadMap } from '../logic/accessibility';
 
 interface PadState {
   now: PadButtons;
   before: PadButtons;
   /** Pressionamentos ainda não consumidos pela fase. */
   queued: { jump: boolean; dash: boolean; start: boolean };
+  raw: boolean[];
   /** Repetição de direção segurada nos menus. */
   repeatAt: number;
 }
@@ -21,6 +23,17 @@ const REPEAT_RATE = 140;
 class GamepadManager {
   private pads = new Map<number, PadState>();
   private order: number[] = [];
+  /** Botões configurados pelo jogador. */
+  mapping: PadMap = DEFAULT_PAD;
+  /** Chamado com o índice do botão apertado (tela de remapear). */
+  onAnyButton?: (button: number) => void;
+  private primed = false;
+
+  /** Captura o próximo botão apertado (remapear). Passe `undefined` para parar. */
+  capture(callback?: (button: number) => void): void {
+    this.onAnyButton = callback;
+    this.primed = false;
+  }
   onConnect?: (name: string, connected: boolean) => void;
 
   constructor() {
@@ -38,14 +51,25 @@ class GamepadManager {
 
   /** Chamado uma vez por quadro. `gameplay` = a fase está rodando (sem pausa). */
   update(gameplay: boolean, now: number): void {
+    const wasPrimed = this.primed;
     const list = typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : [];
     this.order = [];
     for (const gp of list) {
       if (!gp || !gp.connected) continue;
       this.order.push(gp.index);
-      const state = this.pads.get(gp.index) ?? { now: emptyButtons(), before: emptyButtons(), queued: { jump: false, dash: false, start: false }, repeatAt: 0 };
+      const state = this.pads.get(gp.index) ?? { now: emptyButtons(), before: emptyButtons(), queued: { jump: false, dash: false, start: false }, repeatAt: 0, raw: [] };
       state.before = state.now;
-      state.now = readPadButtons(gp.buttons, gp.axes);
+      state.now = readPadButtons(gp.buttons, gp.axes, this.mapping);
+      if (this.onAnyButton) {
+        // Na primeira leitura só memoriza o que já estava apertado.
+        const pressed = this.primed ? gp.buttons.findIndex((b, i) => b.pressed && !state.raw[i]) : -1;
+        state.raw = gp.buttons.map((b) => b.pressed);
+        this.pads.set(gp.index, state);
+        if (pressed >= 0 && pressed < 12) {
+          this.onAnyButton(pressed);
+          continue;
+        }
+      }
       const edge = justPressed(state.now, state.before);
       if (gameplay) {
         state.queued.jump ||= edge.jump;
@@ -57,6 +81,7 @@ class GamepadManager {
       }
       this.pads.set(gp.index, state);
     }
+    if (this.onAnyButton && !wasPrimed) this.primed = true;
   }
 
   private emulateMenuKeys(state: PadState, edge: PadButtons, now: number): void {

@@ -44,11 +44,11 @@ Decisões tomadas sem consulta ficam em [DECISOES.md](DECISOES.md) (a partir da 
 - [x] Fantasma da melhor corrida (gravar e reproduzir comandos)
 
 ## Fase 7 — Acessibilidade
-- [ ] Modo daltônico
-- [ ] Desligar tremida de câmera e flashes
-- [ ] Velocidade do jogo (75%/100%)
-- [ ] Remapear teclas e controles
-- [ ] Tamanho do texto
+- [x] Modo daltônico
+- [x] Desligar tremida de câmera e flashes
+- [x] Velocidade do jogo (75%/100%)
+- [x] Remapear teclas e controles
+- [x] Tamanho do texto
 
 ## Fase 8 — Idiomas
 - [ ] Português e inglês em todos os textos (inclusive diálogos)

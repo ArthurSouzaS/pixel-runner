@@ -12,6 +12,8 @@ import { InfiniteScene } from './scenes/InfiniteScene';
 import { ModesScene } from './scenes/ModesScene';
 import { DailyScene } from './scenes/DailyScene';
 import { SpeedrunScene } from './scenes/SpeedrunScene';
+import { AccessibilityScene } from './scenes/AccessibilityScene';
+import { RemapScene } from './scenes/RemapScene';
 import { PowerUpScene } from './scenes/PowerUpScene';
 import { MissionLogScene } from './scenes/MissionLogScene';
 import { EndingScene } from './scenes/EndingScene';
@@ -29,6 +31,8 @@ import { TwoPlayerScene } from './scenes/TwoPlayerScene';
 import { gamepads } from './input/gamepad';
 import { touchState } from './input/touchState';
 import { saveManager } from './systems/saveManager';
+import { installAccessibility } from './systems/accessibility';
+import { textSettings } from './ui/text';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -53,7 +57,7 @@ const config: Phaser.Types.Core.GameConfig = {
   input: {
     activePointers: 4,
   },
-  scene: [BootScene, MenuScene, HubScene, CutsceneScene, MissionLogScene, ModesScene, InfiniteScene, PowerUpScene, DailyScene, SpeedrunScene, WorldMapScene, OptionsScene, TwoPlayerScene, EditorScene, ShopScene, AchievementsScene, CreditsScene, LevelScene, HUDScene, PauseScene, TutorialScene, GameOverScene, EndingScene, ToastScene],
+  scene: [BootScene, MenuScene, HubScene, CutsceneScene, MissionLogScene, ModesScene, InfiniteScene, PowerUpScene, DailyScene, SpeedrunScene, AccessibilityScene, RemapScene, WorldMapScene, OptionsScene, TwoPlayerScene, EditorScene, ShopScene, AchievementsScene, CreditsScene, LevelScene, HUDScene, PauseScene, TutorialScene, GameOverScene, EndingScene, ToastScene],
 };
 
 // O AudioContext só pode começar após um gesto do usuário.
@@ -81,7 +85,15 @@ async function start(): Promise<void> {
   } catch {
     // Segue com a fonte reserva.
   }
+  const access = saveManager.get().access;
+  textSettings.scale = access.textScale;
+  gamepads.mapping = access.pad;
+  saveManager.onAccessChange((a) => {
+    textSettings.scale = a.textScale;
+    gamepads.mapping = a.pad;
+  });
   const game = new Phaser.Game(config);
+  installAccessibility(game);
   // Gamepads: lidos a cada quadro; fora da fase (ou com ela pausada) navegam pelos menus.
   game.events.on(Phaser.Core.Events.PRE_STEP, (time: number) => {
     gamepads.update(game.scene.isActive('Level') || game.scene.isActive('Hub'), time);
