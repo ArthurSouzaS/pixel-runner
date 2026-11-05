@@ -25,7 +25,25 @@ export const PLAYER_TUNING = {
   dashMs: 150,
   dashCooldownMs: 380,
   invulnerableMs: 1500,
+  // Gelo
+  iceAccel: 380,
+  iceDecel: 140,
+  // Água
+  swimVelocity: 175,
+  waterGravityScale: 0.32,
+  waterMaxFall: 85,
+  waterSpeedScale: 0.62,
 };
+
+/** Condições do ambiente onde o jogador está, atualizadas pela cena a cada frame. */
+export interface PlayerEnvironment {
+  onIce: boolean;
+  inWater: boolean;
+  /** Deslocamento horizontal do vento (px/s). */
+  windX: number;
+  /** Aceleração vertical do vento (px/s², negativa = para cima). */
+  windY: number;
+}
 
 /** Pix, o protagonista. Corre, pula, faz pulo duplo e dash. */
 export class Player extends Phaser.Physics.Arcade.Sprite {
@@ -49,6 +67,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private wasOnGround = false;
   /** Verdadeiro durante um pulo iniciado pelo jogador (permite altura variável). */
   private jumping = false;
+
+  env: PlayerEnvironment = { onIce: false, inWater: false, windX: 0, windY: 0 };
+  private wasInWater = false;
 
   /** Disparados para a cena criar partículas/efeitos. */
   onLand?: () => void;
@@ -93,6 +114,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   /** Quique ao pisar num inimigo. */
   bounce(strong = false, jumpHeld = false): void {
     this.setVelocityY(-(strong ? 380 : jumpHeld ? 330 : 250));
+    this.jumping = false;
+    this.canDoubleJump = true;
+    this.canDash = true;
+    this.dashTimer = 0;
+    this.body.setAllowGravity(true);
+  }
+
+  /** Lançamento vertical (mola). */
+  launch(velocity: number): void {
+    this.setVelocityY(-velocity);
     this.jumping = false;
     this.canDoubleJump = true;
     this.canDash = true;
@@ -154,6 +185,21 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
     if (dir !== 0) this.facing = dir as 1 | -1;
 
+    // Água: gravidade reduzida, queda lenta e braçadas ilimitadas.
+    const env = this.env;
+    if (env.inWater !== this.wasInWater) {
+      this.wasInWater = env.inWater;
+      if (env.inWater) body.setVelocityY(body.velocity.y * 0.35);
+    }
+    const gravity = this.scene.physics.world.gravity.y;
+    body.setGravityY(env.inWater ? -gravity * (1 - T.waterGravityScale) : 0);
+    body.setMaxVelocityY(env.inWater ? T.waterMaxFall : T.maxFall);
+    if (env.inWater) {
+      this.canDoubleJump = true;
+      this.canDash = true;
+    }
+    if (env.windY !== 0 && !this.isDashing) body.setVelocityY(body.velocity.y + env.windY * dt);
+
     // Dash ---------------------------------------------------------------
     if (input.dashPressed && this.canDash && this.dashCooldown <= 0 && !this.isDashing) {
       this.dashDir = dir !== 0 ? (dir as 1 | -1) : this.facing;
@@ -182,16 +228,25 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     // Corrida horizontal com aceleração ------------------------------------
-    const target = dir * T.runSpeed;
+    const speedScale = env.inWater ? T.waterSpeedScale : env.onIce && onGround ? 1.15 : 1;
+    const target = dir * T.runSpeed * speedScale + env.windX;
     const vx = body.velocity.x;
-    const accel = dir !== 0 ? (onGround ? T.groundAccel : T.airAccel) : onGround ? T.groundDecel : T.airAccel * 0.4;
+    let accel = dir !== 0 ? (onGround ? T.groundAccel : T.airAccel) : onGround ? T.groundDecel : T.airAccel * 0.4;
+    if (onGround && env.onIce) accel = dir !== 0 ? T.iceAccel : T.iceDecel;
     let next = vx;
     if (vx < target) next = Math.min(target, vx + accel * dt);
     else if (vx > target) next = Math.max(target, vx - accel * dt);
     body.setVelocityX(next);
 
     // Pulo, pulo duplo e altura variável ----------------------------------
-    if (this.jumpBuffer > 0) {
+    if (env.inWater && input.jumpPressed) {
+      // Braçada: dá para "nadar" para cima quantas vezes quiser.
+      body.setVelocityY(-T.swimVelocity);
+      this.jumpBuffer = 0;
+      this.jumping = false;
+      sfx.play('swim');
+      this.onJump?.(false);
+    } else if (this.jumpBuffer > 0) {
       if (this.coyoteTimer > 0) {
         body.setVelocityY(-T.jumpVelocity);
         this.jumping = true;

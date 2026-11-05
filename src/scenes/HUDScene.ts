@@ -25,6 +25,7 @@ export class HUDScene extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.Text;
   private bossBar!: Phaser.GameObjects.Container;
   private bossFill!: Phaser.GameObjects.Rectangle;
+  private bossLabel!: Phaser.GameObjects.Text;
   private buttons: TouchButton[] = [];
   private last = { lives: -1, score: -1, coins: -1, time: -1 };
 
@@ -72,7 +73,8 @@ export class HUDScene extends Phaser.Scene {
   private createBossBar(): void {
     const w = 200;
     this.bossBar = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT - 14).setVisible(false);
-    const label = pixelText(this, 0, -10, 'NÚCLEO ANCESTRAL', { size: 8, color: COLORS.orange }).setOrigin(0.5);
+    const label = pixelText(this, 0, -10, '', { size: 8, color: COLORS.orange }).setOrigin(0.5);
+    this.bossLabel = label;
     const bg = this.add.rectangle(0, 2, w + 4, 8, COLORS.ink).setStrokeStyle(1, COLORS.white);
     this.bossFill = this.add.rectangle(-w / 2, 2, w, 4, COLORS.red).setOrigin(0, 0.5);
     this.bossBar.add([label, bg, this.bossFill]);
@@ -148,6 +150,7 @@ export class HUDScene extends Phaser.Scene {
 
     this.bossBar.setVisible(s.bossVisible);
     if (s.bossVisible) {
+      if (this.bossLabel.text !== s.bossName) this.bossLabel.setText(s.bossName);
       const target = Math.max(0, s.bossHp / s.bossMax);
       this.bossFill.scaleX += (target - this.bossFill.scaleX) * 0.2;
     }

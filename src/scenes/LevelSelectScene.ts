@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
 import { GAME_WIDTH } from '../gfx/textures';
-import { LEVELS } from '../levels';
+import { LEVELS, LEVELS_PER_WORLD } from '../levels';
 import { isLevelUnlocked } from '../logic/progress';
 import { formatTime } from '../logic/score';
 import { saveManager } from '../systems/saveManager';
@@ -27,16 +27,19 @@ export class LevelSelectScene extends Phaser.Scene {
     this.index = Math.min(save.unlockedLevels - 1, LEVELS.length - 1);
 
     this.add.rectangle(0, 0, GAME_WIDTH, 270, 0x1a1c2c, 0.45).setOrigin(0);
-    pixelText(this, GAME_WIDTH / 2, 34, 'SELECIONAR FASE', { size: 14, color: COLORS.yellow }).setOrigin(0.5);
+    pixelText(this, GAME_WIDTH / 2, 22, 'SELECIONAR FASE', { size: 14, color: COLORS.yellow }).setOrigin(0.5);
 
     const spacing = 82;
     const startX = GAME_WIDTH / 2 - spacing * 2;
     LEVELS.forEach((level, i) => {
       const unlocked = isLevelUnlocked(i, save.unlockedLevels);
-      const card = this.add.container(startX + i * spacing, 112);
-      const box = this.add.rectangle(0, 0, 66, 66, COLORS.ink, 0.85).setStrokeStyle(2, COLORS.white, 0.5);
+      const col = i % LEVELS_PER_WORLD;
+      const row = Math.floor(i / LEVELS_PER_WORLD);
+      if (col === 0) pixelText(this, 14, 50 + row * 76, `MUNDO ${row + 1}`, { size: 8, color: COLORS.cyan });
+      const card = this.add.container(startX + col * spacing, 86 + row * 76);
+      const box = this.add.rectangle(0, 0, 58, 58, COLORS.ink, 0.85).setStrokeStyle(2, COLORS.white, 0.5);
       card.add(box);
-      card.add(this.add.rectangle(0, 0, 58, 58, level.theme.skyTop, unlocked ? 0.9 : 0.25));
+      card.add(this.add.rectangle(0, 0, 50, 50, level.theme.skyTop, unlocked ? 0.9 : 0.25));
       if (unlocked) {
         card.add(pixelText(this, 0, -2, String(level.id), { size: 20, color: COLORS.white, strokeThickness: 4 }).setOrigin(0.5));
         const best = save.bestTimes[i];
@@ -44,7 +47,7 @@ export class LevelSelectScene extends Phaser.Scene {
       } else {
         card.add(this.add.image(0, 0, 'lock').setScale(2));
       }
-      card.setSize(66, 66).setInteractive({ useHandCursor: unlocked });
+      card.setSize(58, 58).setInteractive({ useHandCursor: unlocked });
       card.on('pointerdown', () => {
         if (this.index === i) this.confirm();
         else this.select(i);
@@ -53,8 +56,8 @@ export class LevelSelectScene extends Phaser.Scene {
       this.cards.push(card);
     });
 
-    this.info = pixelText(this, GAME_WIDTH / 2, 176, '', { size: 8, align: 'center' }).setOrigin(0.5).setLineSpacing(6);
-    const back = pixelText(this, GAME_WIDTH / 2, 236, '< Voltar', { size: 8, color: COLORS.gray }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    this.info = pixelText(this, GAME_WIDTH / 2, 216, '', { size: 8, align: 'center' }).setOrigin(0.5).setLineSpacing(6);
+    const back = pixelText(this, GAME_WIDTH / 2, 252, '< Voltar', { size: 8, color: COLORS.gray }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     back.on('pointerdown', () => this.back());
 
     const kb = this.input.keyboard;
@@ -62,6 +65,10 @@ export class LevelSelectScene extends Phaser.Scene {
     kb?.on('keydown-A', () => this.select(this.index - 1));
     kb?.on('keydown-RIGHT', () => this.select(this.index + 1));
     kb?.on('keydown-D', () => this.select(this.index + 1));
+    kb?.on('keydown-UP', () => this.select(this.index - LEVELS_PER_WORLD));
+    kb?.on('keydown-W', () => this.select(this.index - LEVELS_PER_WORLD));
+    kb?.on('keydown-DOWN', () => this.select(this.index + LEVELS_PER_WORLD));
+    kb?.on('keydown-S', () => this.select(this.index + LEVELS_PER_WORLD));
     kb?.on('keydown-ENTER', () => this.confirm());
     kb?.on('keydown-SPACE', () => this.confirm());
     kb?.on('keydown-ESC', () => this.back());

@@ -3,6 +3,7 @@ import type { LevelData } from './types';
 /** Fase 3: Fábrica Enferrujada */
 export const level3: LevelData = {
   id: 3,
+  world: 1,
   name: 'Fábrica Enferrujada',
   subtitle: 'Torretas e engrenagens em movimento',
   par: 130,

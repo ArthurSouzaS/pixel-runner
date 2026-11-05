@@ -38,9 +38,10 @@ describe('parseLevel', () => {
 });
 
 describe('fases do jogo', () => {
-  it('possui 5 fases com ids sequenciais', () => {
-    expect(TOTAL_LEVELS).toBe(5);
-    expect(LEVELS.map((l) => l.id)).toEqual([1, 2, 3, 4, 5]);
+  it('possui 10 fases (2 mundos) com ids sequenciais', () => {
+    expect(TOTAL_LEVELS).toBe(10);
+    expect(LEVELS.map((l) => l.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(LEVELS.map((l) => l.world)).toEqual([1, 1, 1, 1, 1, 2, 2, 2, 2, 2]);
   });
 
   it.each(LEVELS.map((l) => [l.name, l] as const))('%s é válida', (_name, data) => {
@@ -63,16 +64,51 @@ describe('fases do jogo', () => {
       expect(parsed[i].enemies.length).toBeGreaterThanOrEqual(parsed[i - 1].enemies.length);
       expect(parsed[i].width).toBeGreaterThanOrEqual(parsed[i - 1].width);
     }
+    // O Mundo 2 é mais difícil: o tempo de referência médio é maior que o do Mundo 1.
+    const avgPar = (w: number) => LEVELS.filter((l) => l.world === w).reduce((a, l) => a + l.par, 0) / 5;
+    expect(avgPar(2)).toBeGreaterThan(avgPar(1));
   });
 
-  it('apenas a última fase tem chefe e portão', () => {
+  it('apenas a última fase de cada mundo tem chefe e portão', () => {
     const bosses = LEVELS.map((l) => parseLevel(l.map).boss !== null);
-    expect(bosses).toEqual([false, false, false, false, true]);
-    expect(parseLevel(LEVELS[4].map).gate.length).toBeGreaterThan(0);
+    expect(bosses).toEqual([false, false, false, false, true, false, false, false, false, true]);
+    expect(LEVELS.map((l) => l.boss ?? null)).toEqual([null, null, null, null, 'core', null, null, null, null, 'storm']);
+    for (const i of [4, 9]) expect(parseLevel(LEVELS[i].map).gate.length).toBeGreaterThan(0);
   });
 
   it('usa vários tipos de inimigo ao longo do jogo', () => {
     const kinds = new Set(LEVELS.flatMap((l) => parseLevel(l.map).enemies.map((e) => e.kind)));
-    expect([...kinds].sort()).toEqual(['bat', 'hopper', 'turret', 'walker']);
+    expect([...kinds].sort()).toEqual(['bat', 'fish', 'hopper', 'turret', 'walker']);
+  });
+
+  it('o Mundo 2 apresenta as mecânicas novas', () => {
+    const w2 = LEVELS.filter((l) => l.world === 2);
+    const parsed = w2.map((l) => parseLevel(l.map));
+    expect(parsed.some((p) => p.tiles.some((row) => row.includes(TileIndex.Ice)))).toBe(true);
+    expect(parsed.some((p) => p.springs.length > 0)).toBe(true);
+    expect(parsed.some((p) => p.fallers.length > 0)).toBe(true);
+    expect(w2.some((l) => (l.water ?? []).length > 0)).toBe(true);
+    expect(w2.some((l) => (l.winds ?? []).some((w) => w.vx !== 0))).toBe(true);
+    expect(w2.some((l) => (l.winds ?? []).some((w) => w.vy < 0))).toBe(true);
+  });
+
+  it('regiões de água e vento ficam dentro do mapa', () => {
+    for (const l of LEVELS) {
+      const p = parseLevel(l.map);
+      for (const r of [...(l.water ?? []), ...(l.winds ?? [])]) {
+        expect(r.x).toBeGreaterThanOrEqual(0);
+        expect(r.y).toBeGreaterThanOrEqual(0);
+        expect(r.x + r.w).toBeLessThanOrEqual(p.width);
+        expect(r.y + r.h).toBeLessThanOrEqual(p.height);
+      }
+    }
+  });
+
+  it('reconhece gelo, molas, plataformas que caem e peixes', () => {
+    const level = parseLevel(['P.S.F.f', 'IIIIIII']);
+    expect(level.springs).toEqual([{ x: 2, y: 0 }]);
+    expect(level.fallers).toEqual([{ x: 4, y: 0 }]);
+    expect(level.enemies).toEqual([{ kind: 'fish', x: 6, y: 0 }]);
+    expect(level.tiles[1].every((t) => t === TileIndex.Ice)).toBe(true);
   });
 });

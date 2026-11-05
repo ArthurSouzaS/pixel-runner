@@ -3,9 +3,11 @@ import type { LevelData } from './types';
 /** Fase 5: Fortaleza do Núcleo */
 export const level5: LevelData = {
   id: 5,
+  world: 1,
   name: 'Fortaleza do Núcleo',
   subtitle: 'Derrote o Núcleo Ancestral',
   par: 180,
+  boss: 'core',
   theme: {
     key: 'castle',
     skyTop: 0x1a1c2c,

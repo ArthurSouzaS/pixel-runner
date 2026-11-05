@@ -3,6 +3,7 @@ import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
 import { isTouchDevice } from '../input/touchState';
+import { TOTAL_LEVELS } from '../levels';
 import { formatScore } from '../logic/score';
 import { saveManager } from '../systems/saveManager';
 import { MenuList } from '../ui/MenuList';
@@ -46,7 +47,7 @@ export class MenuScene extends Phaser.Scene {
     ]);
 
     pixelText(this, cx, 196, `RECORDE ${formatScore(save.highScore)}`, { size: 8, color: COLORS.cyan }).setOrigin(0.5);
-    pixelText(this, cx, 208, `Fases liberadas: ${save.unlockedLevels}/5`, { size: 8, color: COLORS.white }).setOrigin(0.5);
+    pixelText(this, cx, 208, `Fases liberadas: ${save.unlockedLevels}/${TOTAL_LEVELS}`, { size: 8, color: COLORS.white }).setOrigin(0.5);
 
     this.controls = this.buildControlsPanel();
     this.input.keyboard?.on('keydown-ESC', () => this.toggleControls(false));

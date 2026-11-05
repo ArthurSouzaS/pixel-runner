@@ -53,7 +53,7 @@ export class GameOverScene extends Phaser.Scene {
     title.setScale(0.3);
     this.tweens.add({ targets: title, scale: 1, duration: 500, ease: 'Back.easeOut' });
 
-    const subtitle = data.victory ? 'Você derrotou o Núcleo Ancestral!' : `Você chegou até a fase ${data.levelIndex + 1}`;
+    const subtitle = data.victory ? 'Você salvou os dois mundos!' : `Você chegou até a fase ${data.levelIndex + 1}`;
     pixelText(this, cx, 84, subtitle, { size: 8 }).setOrigin(0.5);
     pixelText(this, cx, 106, `PONTOS  ${formatScore(data.score)}`, { size: 10 }).setOrigin(0.5);
     pixelText(this, cx, 122, `RECORDE ${formatScore(saveManager.get().highScore)}`, { size: 10, color: COLORS.cyan }).setOrigin(0.5);

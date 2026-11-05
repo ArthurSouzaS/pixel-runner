@@ -3,8 +3,8 @@ import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
 import { createBackgroundTextures, createMoverTexture, createTileset, GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
 import { isTouchDevice, touchState } from '../input/touchState';
-import { LEVELS, TOTAL_LEVELS, type LevelData } from '../levels';
-import { TILE_SIZE, TileIndex, parseLevel, tileCenter, type ParsedLevel } from '../logic/levelParser';
+import { LEVELS, TOTAL_LEVELS, worldOfLevel, type LevelData } from '../levels';
+import { SOLID_TILES, TILE_SIZE, TileIndex, parseLevel, tileCenter, type ParsedLevel } from '../logic/levelParser';
 import { nextLevelIndex } from '../logic/progress';
 import {
   POINTS,
@@ -17,7 +17,10 @@ import {
   loseLife,
   type RunState,
 } from '../logic/score';
-import { Boss, BOSS_MAX_HP } from '../objects/Boss';
+import { Boss, BOSS_MAX_HP, type BossHooks, type BossLike } from '../objects/Boss';
+import { FallingPlatform } from '../objects/FallingPlatform';
+import { Spring } from '../objects/Spring';
+import { StormBoss } from '../objects/StormBoss';
 import { createEnemy, type Enemy, type EnemyContext } from '../objects/enemies';
 import { MovingPlatform } from '../objects/MovingPlatform';
 import { Player, type PlayerInput } from '../objects/Player';
@@ -40,6 +43,7 @@ export interface HudState {
   bossHp: number;
   bossMax: number;
   bossVisible: boolean;
+  bossName: string;
 }
 
 type Keys = Record<'left' | 'right' | 'a' | 'd' | 'up' | 'w' | 'space' | 'z', Phaser.Input.Keyboard.Key>;
@@ -65,7 +69,11 @@ export class LevelScene extends Phaser.Scene {
   private spikes!: Phaser.Physics.Arcade.StaticGroup;
   private checkpoints!: Phaser.Physics.Arcade.StaticGroup;
   private goal!: Phaser.Physics.Arcade.Sprite;
-  private boss: Boss | null = null;
+  private boss: BossLike | null = null;
+  private springs: Spring[] = [];
+  private fallers: FallingPlatform[] = [];
+  private waterRects: Phaser.Geom.Rectangle[] = [];
+  private windZones: { rect: Phaser.Geom.Rectangle; vx: number; vy: number }[] = [];
   private bossDefeated = false;
   private gateClosed = false;
 
@@ -75,13 +83,14 @@ export class LevelScene extends Phaser.Scene {
   private moverClock = 0;
   private coinsCollected = 0;
   private finished = false;
-  private bossHud = { hp: BOSS_MAX_HP, visible: false };
+  private bossHud = { hp: BOSS_MAX_HP, max: BOSS_MAX_HP, visible: false, name: '' };
 
   private bg!: { far: Phaser.GameObjects.TileSprite; near: Phaser.GameObjects.TileSprite; clouds: Phaser.GameObjects.Image[] };
   private fx!: {
     dust: Phaser.GameObjects.Particles.ParticleEmitter;
     sparkle: Phaser.GameObjects.Particles.ParticleEmitter;
     pop: Phaser.GameObjects.Particles.ParticleEmitter;
+    splash: Phaser.GameObjects.Particles.ParticleEmitter;
     confetti: Phaser.GameObjects.Particles.ParticleEmitter;
   };
 
@@ -103,7 +112,11 @@ export class LevelScene extends Phaser.Scene {
     this.moverClock = 0;
     this.coinsCollected = 0;
     this.finished = false;
-    this.bossHud = { hp: BOSS_MAX_HP, visible: false };
+    this.bossHud = { hp: BOSS_MAX_HP, max: BOSS_MAX_HP, visible: false, name: '' };
+    this.springs = [];
+    this.fallers = [];
+    this.waterRects = [];
+    this.windZones = [];
   }
 
   create(): void {
@@ -116,6 +129,7 @@ export class LevelScene extends Phaser.Scene {
     this.createMap();
     this.createFx();
     this.createObjects();
+    this.createEnvironment();
     this.createHints();
 
     this.physics.world.setBounds(0, -64, worldW, worldH + 64, true, true, true, false);
@@ -185,7 +199,7 @@ export class LevelScene extends Phaser.Scene {
     const layer = map.createLayer(0, tileset, 0, 0);
     if (!layer) throw new Error('Falha ao criar camada do mapa');
     this.layer = layer;
-    layer.setCollision([TileIndex.Top, TileIndex.Fill, TileIndex.Block, TileIndex.Platform]);
+    layer.setCollision([...SOLID_TILES]);
     // Plataformas finas só colidem por cima.
     layer.forEachTile((tile) => {
       if (tile.index === TileIndex.Platform) tile.setCollision(false, false, true, false);
@@ -198,6 +212,7 @@ export class LevelScene extends Phaser.Scene {
       dust: this.add.particles(0, 0, 'px', { ...base, speed: { min: 15, max: 60 }, angle: { min: 200, max: 340 }, gravityY: 200, scale: { start: 1.2, end: 0 }, tint: [0xf4f4f4, 0x94b0c2] }).setDepth(11),
       sparkle: this.add.particles(0, 0, 'px', { ...base, speed: { min: 30, max: 90 }, scale: { start: 1, end: 0 }, tint: [0xffcd75, 0xf4f4f4, 0xef7d57] }).setDepth(11),
       pop: this.add.particles(0, 0, 'px4', { ...base, lifespan: 500, speed: { min: 60, max: 160 }, gravityY: 400, scale: { start: 1, end: 0.2 }, tint: [0xb13e53, 0xf4f4f4, 0xef7d57, 0x5d275d] }).setDepth(11),
+      splash: this.add.particles(0, 0, 'px', { ...base, lifespan: 500, speed: { min: 40, max: 120 }, angle: { min: 220, max: 320 }, gravityY: 500, tint: [0x73eff7, 0xf4f4f4, 0x41a6f6] }).setDepth(13),
       confetti: this.add.particles(0, 0, 'px4', { ...base, lifespan: 1400, speed: { min: 80, max: 220 }, angle: { min: 220, max: 320 }, gravityY: 260, rotate: { min: 0, max: 360 }, tint: [0xffcd75, 0x38b764, 0x41a6f6, 0xb13e53, 0xf4f4f4] }).setDepth(20),
     };
   }
@@ -264,18 +279,94 @@ export class LevelScene extends Phaser.Scene {
     // Projéteis
     this.bullets = this.physics.add.group({ allowGravity: false });
 
+    // Molas e plataformas que caem
+    for (const sp of p.springs) {
+      const c = tileCenter(sp);
+      this.springs.push(new Spring(this, c.x, c.y));
+    }
+    for (const f of p.fallers) {
+      const c = tileCenter(f);
+      this.fallers.push(new FallingPlatform(this, c.x, c.y - 4));
+    }
+
     // Chefe
     if (p.boss) {
       const c = tileCenter(p.boss);
-      this.boss = new Boss(this, c.x, c.y - 8, {
-        fireBullet: (x, y, vx, vy) => this.fireBullet(x, y, vx, vy),
+      const hooks: BossHooks = {
+        fireBullet: (x, y, vx, vy, texture) => this.fireBullet(x, y, vx, vy, texture),
         shake: (d, i) => this.cameras.main.shake(d, i),
         dust: (x, y, n) => this.fx.pop.explode(n, x, y),
-        onHealthChange: (hp) => {
+        onHealthChange: (hp, max) => {
           this.bossHud.hp = hp;
+          this.bossHud.max = max;
         },
         onDefeated: (x, y) => this.onBossDefeated(x, y),
-      });
+      };
+      if (this.level.boss === 'storm') {
+        const gateX = p.gate.length > 0 ? p.gate[0].x : 0;
+        this.boss = new StormBoss(this, c.x, c.y, { minX: (gateX + 1) * TILE_SIZE, maxX: (p.width - 1) * TILE_SIZE, groundY: (p.height - 2) * TILE_SIZE }, hooks);
+      } else {
+        this.boss = new Boss(this, c.x, c.y - 8, hooks);
+      }
+      this.bossHud.name = this.boss.displayName;
+      this.bossHud.hp = this.bossHud.max = this.boss.maxHp;
+    }
+  }
+
+  /** Água e vento (regiões definidas nos dados da fase). */
+  private createEnvironment(): void {
+    for (const w of this.level.water ?? []) {
+      const rect = new Phaser.Geom.Rectangle(w.x * TILE_SIZE, w.y * TILE_SIZE, w.w * TILE_SIZE, w.h * TILE_SIZE);
+      this.waterRects.push(rect);
+      this.add.rectangle(rect.x, rect.y, rect.width, rect.height, COLORS.blue, 0.42).setOrigin(0).setDepth(12);
+      const surface = this.add.tileSprite(rect.x, rect.y - 2, rect.width, 4, 'px').setOrigin(0).setDepth(12).setTint(COLORS.cyan).setAlpha(0.7);
+      this.tweens.add({ targets: surface, y: rect.y - 1, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      this.add.particles(0, 0, 'px', {
+        emitZone: { type: 'random', source: new Phaser.Geom.Rectangle(rect.x, rect.y + 8, rect.width, rect.height - 8), quantity: 1 } as Phaser.Types.GameObjects.Particles.EmitZoneData,
+        frequency: 380,
+        lifespan: 1400,
+        speedY: { min: -30, max: -12 },
+        alpha: { start: 0.8, end: 0 },
+        tint: 0xf4f4f4,
+      }).setDepth(12);
+    }
+    for (const z of this.level.winds ?? []) {
+      const rect = new Phaser.Geom.Rectangle(z.x * TILE_SIZE, z.y * TILE_SIZE, z.w * TILE_SIZE, z.h * TILE_SIZE);
+      this.windZones.push({ rect, vx: z.vx, vy: z.vy });
+      const updraft = z.vy < 0;
+      this.add.particles(0, 0, 'px', {
+        emitZone: { type: 'random', source: rect, quantity: 1 } as Phaser.Types.GameObjects.Particles.EmitZoneData,
+        frequency: updraft ? 70 : 90,
+        lifespan: 700,
+        speedX: updraft ? { min: -5, max: 5 } : { min: z.vx * 1.6, max: z.vx * 2.4 },
+        speedY: updraft ? { min: -260, max: -160 } : { min: -6, max: 6 },
+        scaleX: updraft ? 0.5 : 3,
+        scaleY: updraft ? 3 : 0.5,
+        alpha: { start: 0.6, end: 0 },
+        tint: this.level.theme.key === 'sky' || this.level.theme.key === 'frost' ? 0x3b5dc9 : 0xf4f4f4,
+      }).setDepth(1);
+    }
+  }
+
+  /** Atualiza gelo, água e vento para o jogador. */
+  private updateEnvironment(): void {
+    const p = this.player;
+    const env = p.env;
+    const under = p.onGround ? this.layer.getTileAtWorldXY(p.x, p.body.bottom + 2) : null;
+    env.onIce = under?.index === TileIndex.Ice;
+    const wasInWater = env.inWater;
+    env.inWater = this.waterRects.some((r) => r.contains(p.x, p.y));
+    if (env.inWater !== wasInWater && !p.dead) {
+      sfx.play('splash');
+      this.fx.splash.explode(10, p.x, p.y);
+    }
+    env.windX = 0;
+    env.windY = 0;
+    for (const z of this.windZones) {
+      if (z.rect.contains(p.x, p.y)) {
+        env.windX += z.vx;
+        env.windY += z.vy;
+      }
     }
   }
 
@@ -298,6 +389,14 @@ export class LevelScene extends Phaser.Scene {
     const solidEnemies = this.enemies.filter((e) => e.solid);
     this.physics.add.collider(this.player, this.layer);
     this.physics.add.collider(this.player, this.movers);
+    this.physics.add.collider(this.player, this.fallers, (_p, f) => {
+      const faller = f as FallingPlatform;
+      if (faller.body.touching.up) {
+        if (faller.visible) sfx.play('crumble');
+        faller.trigger();
+      }
+    });
+    this.physics.add.overlap(this.player, this.springs, (_p, s) => this.touchSpring(s as Spring));
     this.physics.add.collider(solidEnemies, this.layer);
     this.physics.add.collider(this.bullets, this.layer, (bullet) => this.popBullet(bullet as Phaser.Physics.Arcade.Image));
 
@@ -369,6 +468,10 @@ export class LevelScene extends Phaser.Scene {
     this.moverClock += dt / 1000;
     for (const mover of this.movers) mover.step(this.moverClock, dt);
 
+    const worldBottom = this.parsed.height * TILE_SIZE;
+    for (const f of this.fallers) f.step(dt, worldBottom);
+
+    this.updateEnvironment();
     const input = this.readInput();
     if (!this.finished && !this.player.dead) this.elapsed += dt / 1000;
     this.player.update(input, dt);
@@ -461,13 +564,22 @@ export class LevelScene extends Phaser.Scene {
     }
   }
 
+  private touchSpring(spring: Spring): void {
+    const pb = this.player.body;
+    if (this.player.dead || pb.velocity.y < 0 || pb.bottom > spring.body.top + 8) return;
+    this.player.launch(Spring.LAUNCH_VELOCITY);
+    spring.boing();
+    sfx.play('spring');
+    this.fx.dust.explode(8, spring.x, spring.y);
+  }
+
   private readHeldJump(): boolean {
     const k = this.keys;
     return (k?.space.isDown || k?.up.isDown || k?.w.isDown || k?.z.isDown || touchState.jump) ?? false;
   }
 
-  private fireBullet(x: number, y: number, vx: number, vy: number): void {
-    const bullet = this.bullets.create(x, y, 'bullet') as Phaser.Physics.Arcade.Image;
+  private fireBullet(x: number, y: number, vx: number, vy: number, texture = 'bullet'): void {
+    const bullet = this.bullets.create(x, y, texture) as Phaser.Physics.Arcade.Image;
     bullet.setDepth(7).setData('age', 0);
     bullet.setVelocity(vx, vy);
     (bullet.body as Phaser.Physics.Arcade.Body).setSize(4, 4).setOffset(1, 1);
@@ -601,7 +713,9 @@ export class LevelScene extends Phaser.Scene {
       `Tempo ${formatTime(this.elapsed).padStart(5, ' ')} ...... +${bonus.time}`,
       `Todas as moedas ... +${bonus.coins}`,
     ];
-    const title = pixelText(this, cx, 78, 'FASE CONCLUÍDA!', { size: 14, color: COLORS.yellow }).setOrigin(0.5).setScrollFactor(0).setDepth(51);
+    const next = nextLevelIndex(this.levelIndex, TOTAL_LEVELS);
+    const worldClear = next === null || worldOfLevel(next).id !== worldOfLevel(this.levelIndex).id;
+    const title = pixelText(this, cx, 78, worldClear ? 'MUNDO CONCLUÍDO!' : 'FASE CONCLUÍDA!', { size: 14, color: COLORS.yellow }).setOrigin(0.5).setScrollFactor(0).setDepth(51);
     const body = pixelText(this, cx, 132, lines.join('\n'), { size: 8, align: 'left' }).setOrigin(0.5).setScrollFactor(0).setDepth(51).setLineSpacing(6);
     const extra = [bestTime ? 'Novo melhor tempo!' : '', isNewRecord ? 'Novo recorde!' : ''].filter(Boolean).join('  ');
     const footer = pixelText(this, cx, 180, extra, { size: 8, color: COLORS.lightGreen }).setOrigin(0.5).setScrollFactor(0).setDepth(51);
@@ -611,7 +725,6 @@ export class LevelScene extends Phaser.Scene {
     }
 
     this.time.delayedCall(3400, () => {
-      const next = nextLevelIndex(this.levelIndex, TOTAL_LEVELS);
       this.cameras.main.fadeOut(400, 26, 28, 44);
       this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
         if (next === null) {
@@ -662,8 +775,9 @@ export class LevelScene extends Phaser.Scene {
       coinsTotal: this.parsed.coins.length,
       time: this.elapsed,
       bossHp: this.bossHud.hp,
-      bossMax: BOSS_MAX_HP,
+      bossMax: this.bossHud.max,
       bossVisible: this.bossHud.visible,
+      bossName: this.bossHud.name,
     };
   }
 

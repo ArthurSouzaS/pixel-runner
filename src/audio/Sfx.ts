@@ -42,7 +42,12 @@ export type SfxName =
   | 'gate'
   | 'levelClear'
   | 'gameOver'
-  | 'victory';
+  | 'victory'
+  | 'spring'
+  | 'swim'
+  | 'splash'
+  | 'crumble'
+  | 'thunder';
 
 // Notas (Hz) usadas nas melodias.
 const N: Record<string, number> = {
@@ -243,6 +248,24 @@ class SoundEngine {
       case 'victory':
         this.arpeggio(['C5', 'C5', 'C5', 'C5', 'A4', 'B4', 'C5', 'B4', 'C5'], 0.12, 0.18, 'square', 0.18);
         this.arpeggio(['C3', 'F3', 'G3', 'C4'], 0.3, 0.4, 'triangle', 0.25);
+        break;
+      case 'spring':
+        this.tone({ freq: 200, to: 900, duration: 0.25, type: 'square', volume: 0.18, slide: 'linear' });
+        this.tone({ freq: 400, to: 1400, duration: 0.2, type: 'triangle', volume: 0.12, delay: 0.04 });
+        break;
+      case 'swim':
+        this.noise({ duration: 0.12, volume: 0.12, filter: 900, filterTo: 300 });
+        this.tone({ freq: 300, to: 500, duration: 0.1, type: 'sine', volume: 0.12 });
+        break;
+      case 'splash':
+        this.noise({ duration: 0.3, volume: 0.22, filter: 2500, filterTo: 400 });
+        break;
+      case 'crumble':
+        this.noise({ duration: 0.25, volume: 0.18, filter: 900, filterTo: 150 });
+        break;
+      case 'thunder':
+        this.noise({ duration: 1, volume: 0.45, filter: 1200, filterTo: 40 });
+        this.tone({ freq: 70, to: 30, duration: 0.9, type: 'sawtooth', volume: 0.2 });
         break;
     }
   }

@@ -4,14 +4,14 @@ Checklist de desenvolvimento da versão 2. Ao fim de cada fase: testes, build, c
 Decisões tomadas sem consulta ficam registradas em [DECISOES.md](DECISOES.md).
 
 ## Fase 1 — Mundo 2
-- [ ] 5 novas fases (6 a 10) em arquivos de dados
-- [ ] Gelo escorregadio
-- [ ] Molas
-- [ ] Plataformas que caem
-- [ ] Vento
-- [ ] Água com nado
-- [ ] Chefe novo com 3 fases de ataque
-- [ ] Testes das fases novas
+- [x] 5 novas fases (6 a 10) em arquivos de dados
+- [x] Gelo escorregadio
+- [x] Molas
+- [x] Plataformas que caem
+- [x] Vento
+- [x] Água com nado
+- [x] Chefe novo com 3 fases de ataque
+- [x] Testes das fases novas
 
 ## Fase 2 — Habilidades desbloqueáveis
 - [ ] Escalar paredes

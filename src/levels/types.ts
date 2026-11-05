@@ -1,6 +1,8 @@
 /** Tipos das fases. As fases em si ficam em arquivos de dados (level1.ts ... level5.ts). */
 
-export type ThemeKey = 'grass' | 'cave' | 'factory' | 'ice' | 'castle';
+export type ThemeKey = 'grass' | 'cave' | 'factory' | 'ice' | 'castle' | 'frost' | 'reef' | 'ruins' | 'sky' | 'storm';
+
+export type BossKind = 'core' | 'storm';
 
 export interface LevelTheme {
   key: ThemeKey;
@@ -23,6 +25,23 @@ export interface MoverData {
   period: number;
 }
 
+/** Retângulo em coordenadas de tile. */
+export interface TileRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * Zona de vento: empurra o jogador. `vx` desloca a velocidade horizontal (px/s)
+ * e `vy` é uma aceleração vertical (negativa = corrente de ar para cima).
+ */
+export interface WindZone extends TileRect {
+  vx: number;
+  vy: number;
+}
+
 /** Texto de tutorial exibido no cenário (coordenadas de tile). */
 export interface HintData {
   x: number;
@@ -34,6 +53,8 @@ export interface HintData {
 
 export interface LevelData {
   id: number;
+  /** Mundo ao qual a fase pertence (1 ou 2). */
+  world: number;
   name: string;
   subtitle: string;
   /** Tempo de referência para o bônus de tempo, em segundos. */
@@ -43,11 +64,18 @@ export interface LevelData {
    * Mapa ASCII. Legenda:
    *  `#` chão  `X` bloco de pedra  `-` plataforma atravessável  `^` espinhos
    *  `o` moeda  `P` início  `K` checkpoint  `G` chegada
-   *  `w` andarilho  `h` saltador  `b` morcego  `t` torreta  `B` chefe
+   *  `w` andarilho  `h` saltador  `b` morcego  `t` torreta  `f` peixe  `B` chefe
+   *  `I` bloco de gelo (escorregadio)  `S` mola  `F` plataforma que cai
    *  `|` portão da arena do chefe (fecha quando o jogador entra)
    *  `.` vazio
    */
   map: string[];
   movers?: MoverData[];
   hints?: HintData[];
+  /** Regiões de água (nado). */
+  water?: TileRect[];
+  /** Zonas de vento. */
+  winds?: WindZone[];
+  /** Tipo de chefe, se a fase tiver um (`B` no mapa). */
+  boss?: BossKind;
 }

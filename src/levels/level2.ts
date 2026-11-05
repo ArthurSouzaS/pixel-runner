@@ -3,6 +3,7 @@ import type { LevelData } from './types';
 /** Fase 2: Caverna de Cristal */
 export const level2: LevelData = {
   id: 2,
+  world: 1,
   name: 'Caverna de Cristal',
   subtitle: 'Cuidado com os morcegos',
   par: 110,

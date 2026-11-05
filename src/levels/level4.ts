@@ -3,6 +3,7 @@ import type { LevelData } from './types';
 /** Fase 4: Picos Gelados */
 export const level4: LevelData = {
   id: 4,
+  world: 1,
   name: 'Picos Gelados',
   subtitle: 'Pulo duplo e dash serão essenciais',
   par: 150,

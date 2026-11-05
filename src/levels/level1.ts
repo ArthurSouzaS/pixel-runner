@@ -3,6 +3,7 @@ import type { LevelData } from './types';
 /** Fase 1: Campos Verdes */
 export const level1: LevelData = {
   id: 1,
+  world: 1,
   name: 'Campos Verdes',
   subtitle: 'Aprenda a correr, pular e dar dash',
   par: 90,

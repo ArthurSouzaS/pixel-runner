@@ -164,6 +164,34 @@ export class Turret extends Enemy {
   }
 }
 
+/** Peixe-espinho: patrulha a água de um lado para o outro, ondulando. */
+export class Fish extends Enemy {
+  readonly kind = 'fish';
+  override readonly solid = false;
+  private t = Math.random() * Math.PI * 2;
+  private readonly homeX: number;
+  private readonly homeY: number;
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, 'fish');
+    this.homeX = x;
+    this.homeY = y;
+    this.body.setAllowGravity(false);
+    this.body.setSize(14, 8).setOffset(1, 5);
+    this.anims.play('fish-swim');
+  }
+
+  think(ctx: EnemyContext, delta: number): void {
+    if (this.dead) return;
+    const dt = Math.max(delta / 1000, 0.001);
+    this.t += dt * 0.8 * ctx.difficulty;
+    const tx = this.homeX + Math.sin(this.t) * 56;
+    const ty = this.homeY + Math.sin(this.t * 3) * 4;
+    this.body.setVelocity((tx - this.x) / dt, (ty - this.y) / dt);
+    this.setFlipX(Math.cos(this.t) > 0);
+  }
+}
+
 export function createEnemy(scene: Phaser.Scene, kind: EnemyKind, x: number, y: number): Enemy {
   switch (kind) {
     case 'walker':
@@ -174,5 +202,7 @@ export function createEnemy(scene: Phaser.Scene, kind: EnemyKind, x: number, y: 
       return new Bat(scene, x, y);
     case 'turret':
       return new Turret(scene, x, y);
+    case 'fish':
+      return new Fish(scene, x, y);
   }
 }

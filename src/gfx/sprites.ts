@@ -411,3 +411,128 @@ export const LOCK_ART: PixelArt = [
 ];
 
 export const STAR_ART: PixelArt = ['..k..', '.kyk.', 'kyyyk', '.kyk.', '..k..'];
+
+// ---------------------------------------------------------------------------
+// Mundo 2
+// ---------------------------------------------------------------------------
+
+/** Mola: 0 parada, 1 comprimida. */
+export const SPRING_FRAMES: PixelArt[] = [
+  [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '..kkkkkkkkkkkk..',
+    '..krrrrrrrrrrk..',
+    '..kkkkkkkkkkkk..',
+    '....kgk..kgk....',
+    '.....kgkkgk.....',
+    '....kgk..kgk....',
+    '.....kgkkgk.....',
+    '....kgk..kgk....',
+    '..kGGGGGGGGGGk..',
+    '..kkkkkkkkkkkk..',
+  ],
+  [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '..kkkkkkkkkkkk..',
+    '..koooooooooork.',
+    '..kkkkkkkkkkkk..',
+    '....kgkkkkgk....',
+    '....kgkggkgk....',
+    '..kGGGGGGGGGGk..',
+    '..kkkkkkkkkkkk..',
+  ],
+];
+
+/** Plataforma que desmorona (16x8). */
+export const FALLER_ART: PixelArt = [
+  'kkkkkkkkkkkkkkkk',
+  'kyyyoyyyykyyoyyk',
+  'kouuuouuukuouuuk',
+  'kuUuukuuUkuuuUuk',
+  'kkuUkkkuUkkuUkkk',
+  '.kkk..kkk..kkk..',
+  '..k....k....k...',
+  '................',
+];
+
+/** Peixe-espinho: nada de um lado para o outro na água. */
+export const FISH_FRAMES: PixelArt[] = [
+  [
+    '................',
+    '................',
+    '................',
+    '........k.k.....',
+    '.......kok.k....',
+    '.kk...koooook...',
+    'kook.kooooowkk..',
+    'koookoooooookwk.',
+    '.kooooooooooooky',
+    'koookoooooookkk.',
+    'kook.kyoooyokk..',
+    '.kk...kkyyykk...',
+    '........kkk.....',
+    '................',
+    '................',
+    '................',
+  ],
+  [
+    '................',
+    '................',
+    '................',
+    '........k.k.....',
+    '.......kok.k....',
+    '......koooook...',
+    '.kk..kooooowkk..',
+    'kookkoooooookwk.',
+    'koooooooooooooky',
+    'kookkoooooookkk.',
+    '.kk..kyoooyokk..',
+    '......kkyyykk...',
+    '........kkk.....',
+    '................',
+    '................',
+    '................',
+  ],
+];
+
+/** Chefe "Tempestade Rubra" (16x16 em escala 2x): 0 normal, 1 furioso, 2 atingido. */
+const STORM_BASE = [
+  '....kkkkkkkk....',
+  '..kkggwwwwggkk..',
+  '.kgwwwggggwwwgk.',
+  'kgwwgkkkkkkgwwgk',
+  'kgwgkrrrrrrkgwgk',
+  'kwwkrryyyyrrkwwk',
+  'kwgkryywwyyrkgwk',
+  'kwgkryywkyyrkgwk',
+  'kwgkrryyyyrrkgwk',
+  'kgwgkrrrrrrkgwgk',
+  'kgwwgkkkkkkgwwgk',
+  '.kgwwwggggwwwgk.',
+  '..kkgwwgwwgkk...',
+  '...k.kyk.kyk....',
+  '.....kyk..kyk...',
+  '......k....k....',
+];
+
+export const STORM_FRAMES: PixelArt[] = [
+  STORM_BASE,
+  STORM_BASE.map((row) => row.replace(/g/g, 'G').replace(/w/g, 'g').replace(/y/g, 'o')),
+  STORM_BASE.map((row) => row.replace(/[rGgyo]/g, 'w')),
+];
+
+/** Fragmento de gelo (projétil do chefe do Mundo 2). */
+export const SHARD_ART: PixelArt = ['..kk..', '.kwck.', '.kcBk.', 'kcBBbk', '.kBbk.', '..kk..'];

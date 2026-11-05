@@ -7,11 +7,25 @@ export const BOSS_MAX_HP = 8;
 type BossState = 'sleep' | 'intro' | 'walk' | 'windup' | 'leap' | 'shoot' | 'charge' | 'stunned' | 'dying';
 
 export interface BossHooks {
-  fireBullet: (x: number, y: number, vx: number, vy: number) => void;
+  fireBullet: (x: number, y: number, vx: number, vy: number, texture?: string) => void;
   shake: (duration: number, intensity: number) => void;
   dust: (x: number, y: number, amount: number) => void;
   onHealthChange: (hp: number, max: number) => void;
   onDefeated: (x: number, y: number) => void;
+}
+
+/** O que a cena da fase precisa de qualquer chefe. */
+export interface BossLike extends Phaser.Physics.Arcade.Sprite {
+  body: Phaser.Physics.Arcade.Body;
+  hp: number;
+  readonly maxHp: number;
+  readonly displayName: string;
+  readonly isVulnerable: boolean;
+  readonly isActive: boolean;
+  wake(): void;
+  reset(): void;
+  hit(): boolean;
+  think(player: Player, delta: number): void;
 }
 
 /**
@@ -20,9 +34,11 @@ export interface BossHooks {
  * e, na segunda metade da vida, investidas rápidas de um lado ao outro.
  * Só recebe dano ao ser pisado.
  */
-export class Boss extends Phaser.Physics.Arcade.Sprite {
+export class Boss extends Phaser.Physics.Arcade.Sprite implements BossLike {
   declare body: Phaser.Physics.Arcade.Body;
 
+  readonly maxHp = BOSS_MAX_HP;
+  readonly displayName = 'NÚCLEO ANCESTRAL';
   hp = BOSS_MAX_HP;
   state: BossState = 'sleep';
   private timer = 0;

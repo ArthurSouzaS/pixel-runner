@@ -18,6 +18,11 @@ import {
   STAR_ART,
   TURRET_FRAMES,
   WALKER_FRAMES,
+  SPRING_FRAMES,
+  FALLER_ART,
+  FISH_FRAMES,
+  STORM_FRAMES,
+  SHARD_ART,
 } from './sprites';
 
 export const GAME_WIDTH = 480;
@@ -39,6 +44,11 @@ export function createSpriteTextures(scene: Phaser.Scene): void {
   createSheet(scene, 'heart', [HEART_ART]);
   createSheet(scene, 'lock', [LOCK_ART]);
   createSheet(scene, 'star', [STAR_ART]);
+  createSheet(scene, 'spring', SPRING_FRAMES);
+  createSheet(scene, 'faller', [FALLER_ART]);
+  createSheet(scene, 'fish', FISH_FRAMES);
+  createSheet(scene, 'storm', STORM_FRAMES, 2);
+  createSheet(scene, 'shard', [SHARD_ART]);
 
   // Partícula: quadradinho branco que é colorido com tint.
   createCanvasTexture(scene, 'px', 2, 2, (ctx) => {
@@ -133,6 +143,31 @@ const TILE_COLORS: Record<ThemeKey, TileColors> = {
     fill: PALETTE.p, fillDark: PALETTE.k, fillLight: PALETTE.r,
     block: PALETTE.d, blockLight: PALETTE.G, blockDark: PALETTE.k,
   },
+  frost: {
+    top: PALETTE.w, topLight: '#ffffff', topDark: PALETTE.c,
+    fill: PALETTE.n, fillDark: PALETTE.k, fillLight: PALETTE.b,
+    block: PALETTE.b, blockLight: PALETTE.B, blockDark: PALETTE.n,
+  },
+  reef: {
+    top: PALETTE.y, topLight: PALETTE.w, topDark: PALETTE.o,
+    fill: '#c9a26b', fillDark: PALETTE.u, fillLight: PALETTE.y,
+    block: PALETTE.r, blockLight: PALETTE.o, blockDark: PALETTE.p,
+  },
+  ruins: {
+    top: PALETTE.l, topLight: '#d8ffb0', topDark: PALETTE.t,
+    fill: PALETTE.g, fillDark: PALETTE.G, fillLight: PALETTE.w,
+    block: PALETTE.G, blockLight: PALETTE.g, blockDark: PALETTE.d,
+  },
+  sky: {
+    top: PALETTE.w, topLight: '#ffffff', topDark: PALETTE.g,
+    fill: PALETTE.c, fillDark: PALETTE.B, fillLight: PALETTE.w,
+    block: PALETTE.y, blockLight: PALETTE.w, blockDark: PALETTE.o,
+  },
+  storm: {
+    top: PALETTE.B, topLight: PALETTE.c, topDark: PALETTE.b,
+    fill: PALETTE.d, fillDark: PALETTE.k, fillLight: PALETTE.G,
+    block: PALETTE.p, blockLight: PALETTE.r, blockDark: PALETTE.k,
+  },
 };
 
 function px(ctx: CanvasRenderingContext2D, color: string, x: number, y: number, w = 1, h = 1): void {
@@ -149,12 +184,12 @@ function drawFill(ctx: CanvasRenderingContext2D, ox: number, c: TileColors, rand
   }
 }
 
-/** Tileset com 4 tiles: topo, preenchimento, bloco e plataforma atravessável. */
+/** Tileset com 5 tiles: topo, preenchimento, bloco, plataforma atravessável e gelo. */
 export function createTileset(scene: Phaser.Scene, theme: ThemeKey): string {
   const key = `tiles-${theme}`;
   const c = TILE_COLORS[theme];
   const rand = seededRandom(theme.length * 977);
-  createCanvasTexture(scene, key, TILE_SIZE * 4, TILE_SIZE, (ctx) => {
+  createCanvasTexture(scene, key, TILE_SIZE * 5, TILE_SIZE, (ctx) => {
     // 0: topo (superfície)
     drawFill(ctx, 0, c, rand);
     px(ctx, c.top, 0, 0, 16, 5);
@@ -206,6 +241,18 @@ export function createTileset(scene: Phaser.Scene, theme: ThemeKey): string {
     px(ctx, c.blockDark, pxo, 5, 16, 1);
     px(ctx, PALETTE.k, pxo + 4, 1, 1, 4);
     px(ctx, PALETTE.k, pxo + 12, 1, 1, 4);
+
+    // 4: gelo (escorregadio)
+    const ix = 64;
+    px(ctx, PALETTE.c, ix, 0, 16, 16);
+    px(ctx, PALETTE.w, ix, 0, 16, 2);
+    px(ctx, PALETTE.B, ix, 14, 16, 2);
+    px(ctx, PALETTE.B, ix + 15, 0, 1, 16);
+    px(ctx, PALETTE.w, ix + 2, 4, 1, 4);
+    px(ctx, PALETTE.w, ix + 3, 3, 3, 1);
+    px(ctx, PALETTE.w, ix + 9, 9, 4, 1);
+    px(ctx, PALETTE.w, ix + 12, 6, 1, 3);
+    px(ctx, PALETTE.b, ix + 6, 11, 2, 1);
   });
   return key;
 }
@@ -259,6 +306,11 @@ const STYLE_BY_THEME: Record<ThemeKey, [SilhouetteStyle, SilhouetteStyle]> = {
   factory: ['blocks', 'towers'],
   ice: ['peaks', 'peaks'],
   castle: ['towers', 'blocks'],
+  frost: ['peaks', 'round'],
+  reef: ['round', 'stalactites'],
+  ruins: ['towers', 'round'],
+  sky: ['round', 'round'],
+  storm: ['peaks', 'towers'],
 };
 
 function drawSilhouette(
