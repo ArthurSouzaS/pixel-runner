@@ -47,7 +47,11 @@ export class MenuScene extends Phaser.Scene {
       cx,
       88,
       [
-        { label: save.unlockedLevels > 1 ? 'Continuar' : 'Novo jogo', action: () => this.scene.start('WorldMap') },
+        {
+          label: save.unlockedLevels > 1 ? 'Continuar' : 'Novo jogo',
+          action: () =>
+            save.storySeen.includes('intro') ? this.scene.start('Hub') : this.scene.start('Cutscene', { id: 'intro', next: { scene: 'Hub' } }),
+        },
         { label: '2 jogadores', action: () => this.scene.start('TwoPlayer') },
         { label: 'Editor de fases', action: () => this.scene.start('Editor') },
         { label: 'Loja', action: () => this.scene.start('Shop') },

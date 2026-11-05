@@ -33,6 +33,9 @@ import {
   ECLIPSE_FRAMES,
   STARBOLT_ART,
   NPC_ELDER_FRAMES,
+  NPC_LUMI_FRAMES,
+  NPC_CAPTAIN_FRAMES,
+  NPC_ASTRO_FRAMES,
 } from './sprites';
 
 export const GAME_WIDTH = 480;
@@ -71,6 +74,9 @@ export function createSpriteTextures(scene: Phaser.Scene): void {
   createSheet(scene, 'eclipse', ECLIPSE_FRAMES, 2);
   createSheet(scene, 'starbolt', [STARBOLT_ART]);
   createSheet(scene, 'npc-elder', NPC_ELDER_FRAMES);
+  createSheet(scene, 'npc-lumi', NPC_LUMI_FRAMES);
+  createSheet(scene, 'npc-captain', NPC_CAPTAIN_FRAMES);
+  createSheet(scene, 'npc-astro', NPC_ASTRO_FRAMES);
 
   // Partícula: quadradinho branco que é colorido com tint.
   createCanvasTexture(scene, 'px', 2, 2, (ctx) => {

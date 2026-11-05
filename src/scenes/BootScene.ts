@@ -28,6 +28,9 @@ export class BootScene extends Phaser.Scene {
     anims.create({ key: 'drone-fly', frames: frames('drone', [0, 1]), frameRate: 8, repeat: -1 });
     anims.create({ key: 'warp-spin', frames: frames('warp', [0, 1, 2]), frameRate: 8, repeat: -1 });
     anims.create({ key: 'flipper-pulse', frames: frames('flipper', [0, 1]), frameRate: 3, repeat: -1 });
+    for (const npc of ['elder', 'lumi', 'captain', 'astro']) {
+      anims.create({ key: `npc-${npc}-idle`, frames: frames(`npc-${npc}`, [0, 0, 0, 1]), frameRate: 3, repeat: -1 });
+    }
     anims.create({ key: 'portal-glow', frames: frames('portal', [0, 1, 2]), frameRate: 6, repeat: -1 });
   }
 }

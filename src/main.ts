@@ -6,6 +6,8 @@ import { AchievementsScene } from './scenes/AchievementsScene';
 import { BootScene } from './scenes/BootScene';
 import { CreditsScene } from './scenes/CreditsScene';
 import { EditorScene } from './scenes/EditorScene';
+import { CutsceneScene } from './scenes/CutsceneScene';
+import { HubScene } from './scenes/HubScene';
 import { EndingScene } from './scenes/EndingScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { HUDScene } from './scenes/HUDScene';
@@ -45,7 +47,7 @@ const config: Phaser.Types.Core.GameConfig = {
   input: {
     activePointers: 4,
   },
-  scene: [BootScene, MenuScene, WorldMapScene, OptionsScene, TwoPlayerScene, EditorScene, ShopScene, AchievementsScene, CreditsScene, LevelScene, HUDScene, PauseScene, TutorialScene, GameOverScene, EndingScene, ToastScene],
+  scene: [BootScene, MenuScene, HubScene, CutsceneScene, WorldMapScene, OptionsScene, TwoPlayerScene, EditorScene, ShopScene, AchievementsScene, CreditsScene, LevelScene, HUDScene, PauseScene, TutorialScene, GameOverScene, EndingScene, ToastScene],
 };
 
 // O AudioContext só pode começar após um gesto do usuário.
@@ -76,7 +78,7 @@ async function start(): Promise<void> {
   const game = new Phaser.Game(config);
   // Gamepads: lidos a cada quadro; fora da fase (ou com ela pausada) navegam pelos menus.
   game.events.on(Phaser.Core.Events.PRE_STEP, (time: number) => {
-    gamepads.update(game.scene.isActive('Level'), time);
+    gamepads.update(game.scene.isActive('Level') || game.scene.isActive('Hub'), time);
   });
   // Em desenvolvimento, expõe o jogo para depuração e testes automatizados no navegador.
   if (import.meta.env.DEV) Object.assign(window, { game, touchState });

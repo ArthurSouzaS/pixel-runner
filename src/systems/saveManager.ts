@@ -124,6 +124,12 @@ class SaveManager {
     this.commit(equip(this.data, category, id));
   }
 
+  /** Marca uma cena de história como vista. */
+  markStory(id: string): void {
+    if (this.data.storySeen.includes(id)) return;
+    this.commit({ ...this.data, storySeen: [...this.data.storySeen, id] });
+  }
+
   grantAbility(id: AbilityId): void {
     this.commit(saveWithAbility(this.data, id));
   }

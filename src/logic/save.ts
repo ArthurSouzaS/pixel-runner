@@ -26,6 +26,8 @@ export interface SaveData extends ShopState {
   /** Ids das conquistas desbloqueadas. */
   achievements: string[];
   volumes: VolumeSettings;
+  /** Cenas de história já vistas. */
+  storySeen: string[];
 }
 
 export interface StorageLike {
@@ -34,7 +36,7 @@ export interface StorageLike {
 }
 
 export function defaultSave(): SaveData {
-  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [], volumes: defaultVolumes() };
+  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [], volumes: defaultVolumes(), storySeen: [] };
 }
 
 function toNonNegative(value: unknown, fallback: number): number {
@@ -73,6 +75,7 @@ export function sanitizeSave(raw: unknown, totalLevels: number): SaveData {
     stats: sanitizeStats(data.stats),
     achievements: sanitizeAchievements(data.achievements),
     volumes: sanitizeVolumes(data.volumes),
+    storySeen: Array.isArray(data.storySeen) ? [...new Set(data.storySeen.filter((v): v is string => typeof v === 'string'))] : [],
   };
 }
 

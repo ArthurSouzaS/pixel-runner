@@ -24,7 +24,10 @@ export class ShopScene extends Phaser.Scene {
     super('Shop');
   }
 
-  create(): void {
+  private from = 'Menu';
+
+  create(data: { from?: string } = {}): void {
+    this.from = data.from ?? 'Menu';
     this.tick = createMenuBackdrop(this, 0);
     this.rows = [];
     this.tabs = [];
@@ -58,9 +61,9 @@ export class ShopScene extends Phaser.Scene {
     kb?.on('keydown-RIGHT', () => this.setCategory('trail'));
     kb?.on('keydown-ENTER', () => this.activate());
     kb?.on('keydown-SPACE', () => this.activate());
-    kb?.on('keydown-ESC', () => this.scene.start('Menu'));
+    kb?.on('keydown-ESC', () => this.scene.start(this.from));
     const back = pixelText(this, GAME_WIDTH - 20, 46, '< VOLTAR', { size: 8, color: COLORS.gray }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
-    back.on('pointerdown', () => this.scene.start('Menu'));
+    back.on('pointerdown', () => this.scene.start(this.from));
 
     this.setCategory('skin');
   }

@@ -16,10 +16,10 @@ Decisões tomadas sem consulta ficam em [DECISOES.md](DECISOES.md) (a partir da 
 - [x] Migração de save (quem zerou a v2 libera o Mundo 3)
 
 ## Fase 2 — Modo história
-- [ ] Caixa de diálogo com retrato e texto digitado
-- [ ] NPCs originais
-- [ ] Cenas curtas entre os mundos
-- [ ] Vila central (hub) ligando os 3 mundos
+- [x] Caixa de diálogo com retrato e texto digitado
+- [x] NPCs originais
+- [x] Cenas curtas entre os mundos
+- [x] Vila central (hub) ligando os 3 mundos
 
 ## Fase 3 — Missões
 - [ ] Missões principais e secundárias dadas pelos NPCs

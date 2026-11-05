@@ -44,11 +44,16 @@ export class WorldMapScene extends Phaser.Scene {
     super('WorldMap');
   }
 
-  create(): void {
+  create(data: { world?: number } = {}): void {
     const save = saveManager.get();
     this.nodes = [];
     this.starting = false;
     this.index = Math.min(save.unlockedLevels - 1, LEVELS.length - 1);
+    if (data.world !== undefined && WORLDS[data.world]) {
+      // Vindo de um portal da vila: começa na última fase liberada daquele mundo.
+      const w = WORLDS[data.world];
+      this.index = Math.max(w.firstLevel, Math.min(w.firstLevel + LEVELS_PER_WORLD - 1, save.unlockedLevels - 1));
+    }
     sfx.playMusic('worldmap');
     this.cameras.main.fadeIn(300, 26, 28, 44);
 
@@ -75,7 +80,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.info = pixelText(this, 10, GAME_HEIGHT - 28, '', { size: 8 }).setDepth(31).setLineSpacing(4);
     this.hint = pixelText(this, GAME_WIDTH - 10, GAME_HEIGHT - 16, '', { size: 8, color: COLORS.lightGreen }).setOrigin(1, 0.5).setDepth(31);
     this.hint.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.play());
-    pixelText(this, GAME_WIDTH - 10, GAME_HEIGHT - 38, 'Esc: menu', { size: 8, color: COLORS.gray })
+    pixelText(this, GAME_WIDTH - 10, GAME_HEIGHT - 38, 'Esc: vila', { size: 8, color: COLORS.gray })
       .setOrigin(1, 0.5)
       .setDepth(31)
       .setInteractive({ useHandCursor: true })
@@ -258,6 +263,6 @@ export class WorldMapScene extends Phaser.Scene {
 
   private back(): void {
     sfx.play('select');
-    this.scene.start('Menu');
+    this.scene.start('Hub');
   }
 }

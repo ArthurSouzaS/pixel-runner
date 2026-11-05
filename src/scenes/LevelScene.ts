@@ -34,6 +34,7 @@ import { EclipseBoss } from '../objects/EclipseBoss';
 import { Asteroid, Laser } from '../objects/spaceHazards';
 import { BASE_GRAVITY } from '../gfx/textures';
 import { saveManager } from '../systems/saveManager';
+import { cutsceneAfterLevel } from '../story/story';
 import { pixelText } from '../ui/text';
 
 export interface LevelSceneData {
@@ -1108,8 +1109,16 @@ export class LevelScene extends Phaser.Scene {
 
     this.time.delayedCall(3400, () =>
       this.fadeTo(() => {
+        const cutscene = cutsceneAfterLevel(this.levelIndex);
         if (next === null) {
           this.scene.start('Ending', { score: this.run.score, isNewRecord, mode: this.mode });
+        } else if (cutscene) {
+          // Fim de mundo: cena de história. No modo solo volta para a vila; no cooperativo segue jogando.
+          const after =
+            this.mode === 'coop'
+              ? { scene: 'Level', data: { levelIndex: next, run: { ...this.run, levelIndex: next }, mode: this.mode } }
+              : { scene: 'Hub' };
+          this.scene.start('Cutscene', { id: cutscene, next: after });
         } else {
           this.scene.restart({ levelIndex: next, run: { ...this.run, levelIndex: next }, mode: this.mode } satisfies LevelSceneData);
         }
