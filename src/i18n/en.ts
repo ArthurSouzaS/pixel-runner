@@ -53,6 +53,7 @@ export const en: Dictionary = {
   "hub.locked": "This portal is still dark. Clear the previous world first!",
   "hub.shop": "Shop",
   "hub.menu": "Esc: menu",
+  "hub.menuTouch": "Menu",
   "dialog.next": "Continue",
   "cutscene.skip": "Esc: skip",
   "mission.complete": "MISSION COMPLETE",

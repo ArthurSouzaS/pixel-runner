@@ -63,4 +63,4 @@ Decisões tomadas sem consulta ficam em [DECISOES.md](DECISOES.md) (a partir da 
 - [x] Revisão do código: bugs e desempenho (60 FPS no celular)
 
 ## Fase 11 — Documentação
-- [ ] README com as novidades das partes 2 e 3, controles, modos de jogo e link do site
+- [x] README com as novidades das partes 2 e 3, controles, modos de jogo e link do site

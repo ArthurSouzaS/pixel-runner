@@ -151,7 +151,16 @@ export class HubScene extends Phaser.Scene {
     pixelText(this, 8, 6, t('hub.title'), { size: 8, color: COLORS.yellow }).setScrollFactor(0).setDepth(101);
     this.add.image(GAME_WIDTH - 130, 10, 'coin', 0).setScrollFactor(0).setDepth(101);
     pixelText(this, GAME_WIDTH - 122, 6, String(save.wallet), { size: 8, color: COLORS.yellow }).setScrollFactor(0).setDepth(101);
-    pixelText(this, GAME_WIDTH - 8, 6, t('hub.menu'), { size: 8, color: COLORS.gray }).setOrigin(1, 0).setScrollFactor(0).setDepth(101);
+    // No celular não há Esc: o rótulo vira um botão de toque para voltar ao menu.
+    const touch = isTouchDevice();
+    const menuLabel = pixelText(this, GAME_WIDTH - 8, touch ? 3 : 6, t(touch ? 'hub.menuTouch' : 'hub.menu'), { size: 8, color: touch ? COLORS.white : COLORS.gray })
+      .setOrigin(1, 0)
+      .setScrollFactor(0)
+      .setDepth(101);
+    if (touch) menuLabel.setPadding(4, 3, 4, 3).setBackgroundColor('#333c57');
+    menuLabel.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+      if (!this.dialogue.busy) this.leave('Menu');
+    });
     this.prompt = pixelText(this, 0, 0, '', { size: 8, color: COLORS.yellow }).setOrigin(0.5).setDepth(50).setVisible(false);
     this.prompt.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.interact());
 

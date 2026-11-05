@@ -53,6 +53,7 @@ export const pt: Dictionary = {
   "hub.locked": "Este portal ainda está apagado. Conclua o mundo anterior!",
   "hub.shop": "Loja",
   "hub.menu": "Esc: menu",
+  "hub.menuTouch": "Menu",
   "dialog.next": "Continuar",
   "cutscene.skip": "Esc: pular",
   "mission.complete": "MISSÃO CONCLUÍDA",

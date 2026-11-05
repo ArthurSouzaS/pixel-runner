@@ -38,7 +38,7 @@ export class DailyScene extends Phaser.Scene {
 
     // Placar do dia
     pixelText(this, 30, 66, t('daily.board'), { size: 8, color: COLORS.yellow });
-    if (state.entries.length === 0) pixelText(this, 30, 82, t('daily.noEntries'), { size: 8, color: COLORS.gray });
+    if (state.entries.length === 0) pixelText(this, 30, 82, t('daily.noEntries'), { size: 8, color: COLORS.gray, wrap: 250 });
     state.entries.forEach((e, i) => {
       const highlight = data.result?.rank === i;
       pixelText(this, 30, 80 + i * 13, `${String(i + 1).padStart(2, ' ')}. ${e.name.padEnd(8, ' ')} ${formatTimePrecise(e.time)}  ${e.coins}c`, {
