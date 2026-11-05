@@ -47,7 +47,7 @@ Decisões tomadas sem consulta ficam registradas em [DECISOES.md](DECISOES.md).
 - [x] Opções de volume
 
 ## Fase 8 — Gamepad
-- [ ] Controles por gamepad (jogo e menus), junto com teclado e toque
+- [x] Controles por gamepad (jogo e menus), junto com teclado e toque
 
 ## Fase 9 — Testes e revisão
 - [ ] Testes do editor (validar e serializar), conquistas, loja e save

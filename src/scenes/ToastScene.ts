@@ -2,13 +2,13 @@ import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
 import { GAME_WIDTH } from '../gfx/textures';
-import type { Achievement } from '../logic/achievements';
+import { gamepads } from '../input/gamepad';
 import { saveManager } from '../systems/saveManager';
 import { pixelText } from '../ui/text';
 
 /** Camada sempre ativa que mostra avisos de conquistas desbloqueadas. */
 export class ToastScene extends Phaser.Scene {
-  private queue: Achievement[] = [];
+  private queue: { title: string; text: string; icon: string }[] = [];
   private showing = false;
 
   constructor() {
@@ -16,26 +16,33 @@ export class ToastScene extends Phaser.Scene {
   }
 
   create(): void {
-    const off = saveManager.onAchievement((a) => {
-      this.queue.push(a);
-      this.next();
+    const off = saveManager.onAchievement((a) => this.notify('CONQUISTA!', a.name, 'star'));
+    gamepads.onConnect = (_name, connected) => this.notify('CONTROLE', connected ? 'Conectado!' : 'Desconectado', 'heart');
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      off();
+      gamepads.onConnect = undefined;
     });
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, off);
+  }
+
+  /** Mostra um aviso no canto da tela (fila). */
+  notify(title: string, text: string, icon = 'star'): void {
+    this.queue.push({ title, text, icon });
+    this.next();
   }
 
   private next(): void {
     if (this.showing) return;
-    const achievement = this.queue.shift();
-    if (!achievement) return;
+    const item = this.queue.shift();
+    if (!item) return;
     this.showing = true;
     this.scene.bringToTop();
     sfx.play('checkpoint');
     const w = 200;
     const c = this.add.container(GAME_WIDTH + w / 2, 40).setDepth(100);
     c.add(this.add.rectangle(0, 0, w, 34, COLORS.ink, 0.92).setStrokeStyle(2, COLORS.yellow));
-    c.add(this.add.image(-w / 2 + 16, 0, 'star').setScale(2));
-    c.add(pixelText(this, -w / 2 + 30, -9, 'CONQUISTA!', { size: 8, color: COLORS.yellow }));
-    c.add(pixelText(this, -w / 2 + 30, 3, achievement.name, { size: 8 }));
+    c.add(this.add.image(-w / 2 + 16, 0, item.icon).setScale(2));
+    c.add(pixelText(this, -w / 2 + 30, -9, item.title, { size: 8, color: COLORS.yellow }));
+    c.add(pixelText(this, -w / 2 + 30, 3, item.text, { size: 8 }));
     this.tweens.add({
       targets: c,
       x: GAME_WIDTH - w / 2 - 6,

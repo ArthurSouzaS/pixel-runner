@@ -101,10 +101,13 @@ export class InputHub {
   }
 
   consumePause(): boolean {
-    const value = this.pauseQueued || touchState.consume('pauseQueued');
+    const value = this.pauseQueued || touchState.consume('pauseQueued') || this.extraPause();
     this.pauseQueued = false;
     return value;
   }
+
+  /** Verificação extra de pausa (Start do gamepad). */
+  extraPause: () => boolean = () => false;
 
   private any(codes: string[]): boolean {
     return codes.some((c) => this.held.has(c));

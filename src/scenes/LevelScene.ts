@@ -6,6 +6,7 @@ import { findSkin, findTrail } from '../logic/shop';
 import { createTrailEmitter } from './ShopScene';
 import { createBackgroundTextures, createMoverTexture, createTileset, GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
 import { InputHub, type GameMode } from '../input/controls';
+import { GamepadSource, gamepads } from '../input/gamepad';
 import { isTouchDevice } from '../input/touchState';
 import { LEVELS, TOTAL_LEVELS, worldOfLevel, type LevelData } from '../levels';
 import { ABILITIES, type AbilityId } from '../logic/abilities';
@@ -162,6 +163,8 @@ export class LevelScene extends Phaser.Scene {
     const worldW = this.parsed.width * TILE_SIZE;
     const worldH = this.parsed.height * TILE_SIZE;
     this.inputs = new InputHub(this, this.mode);
+    this.inputs.extraSources.push(new GamepadSource(this.mode));
+    this.inputs.extraPause = () => gamepads.consumePause();
     this.inputs.reset();
 
     this.createBackground();

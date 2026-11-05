@@ -17,6 +17,7 @@ import { ShopScene } from './scenes/ShopScene';
 import { ToastScene } from './scenes/ToastScene';
 import { TutorialScene } from './scenes/TutorialScene';
 import { TwoPlayerScene } from './scenes/TwoPlayerScene';
+import { gamepads } from './input/gamepad';
 import { touchState } from './input/touchState';
 import { saveManager } from './systems/saveManager';
 
@@ -72,6 +73,10 @@ async function start(): Promise<void> {
     // Segue com a fonte reserva.
   }
   const game = new Phaser.Game(config);
+  // Gamepads: lidos a cada quadro; fora da fase (ou com ela pausada) navegam pelos menus.
+  game.events.on(Phaser.Core.Events.PRE_STEP, (time: number) => {
+    gamepads.update(game.scene.isActive('Level'), time);
+  });
   // Em desenvolvimento, expõe o jogo para depuração e testes automatizados no navegador.
   if (import.meta.env.DEV) Object.assign(window, { game, touchState });
 }
