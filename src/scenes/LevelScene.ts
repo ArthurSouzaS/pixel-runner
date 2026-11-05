@@ -40,6 +40,9 @@ import { itemsToSpawn, type MissionItem } from '../logic/missions';
 import { generateDaily, generateRoom } from '../logic/procgen';
 import { type PowerUpId, powerUpEffects } from '../logic/powerups';
 import { todayString } from '../logic/daily';
+import { GhostPlayback, GhostRecorder } from '../logic/ghost';
+import { categoryFor, splitDelta } from '../logic/speedrun';
+import { ghostStore } from '../systems/ghostStore';
 import { t } from '../i18n';
 import { pixelText } from '../ui/text';
 
@@ -52,6 +55,17 @@ export interface LevelSceneData {
   custom?: LevelData;
   /** Modo Infinito / Desafio diário: sala gerada por seed. */
   infinite?: InfiniteRunData;
+  /** Modo speedrun. */
+  speedrun?: SpeedrunRunData;
+}
+
+export interface SpeedrunRunData {
+  category: string;
+  /** Posição da fase atual dentro da categoria. */
+  position: number;
+  /** Tempos das fases já concluídas nesta corrida. */
+  segments: number[];
+  ghost: boolean;
 }
 
 export interface InfiniteRunData {
@@ -76,6 +90,8 @@ export interface HudState {
   bossMax: number;
   bossVisible: boolean;
   bossName: string;
+  /** Speedrun: tempo total da corrida e atraso em relação ao recorde. */
+  speedrun: { total: number; delta: number | null } | null;
   /** Corrida: progresso (0..1) e moedas de cada jogador. */
   raceProgress: number[];
   raceCoins: number[];
@@ -96,6 +112,11 @@ export class LevelScene extends Phaser.Scene {
   private mode: GameMode = 'single';
   private custom: LevelData | null = null;
   private infinite: InfiniteRunData | null = null;
+  private speedrun: SpeedrunRunData | null = null;
+  private recorder: GhostRecorder | null = null;
+  private ghost: Player | null = null;
+  private ghostPlayback: GhostPlayback | null = null;
+  private ghostClock = 0;
   private shield = false;
   private magnet = false;
   private enemyScale = 1;
@@ -171,6 +192,11 @@ export class LevelScene extends Phaser.Scene {
     this.levelIndex = Phaser.Math.Clamp(data.levelIndex ?? 0, 0, TOTAL_LEVELS - 1);
     this.custom = data.custom ?? null;
     this.infinite = data.infinite ?? null;
+    this.speedrun = data.speedrun ?? null;
+    this.recorder = this.speedrun ? new GhostRecorder() : null;
+    this.ghost = null;
+    this.ghostPlayback = null;
+    this.ghostClock = 0;
     this.level =
       this.custom ??
       (this.infinite
@@ -391,7 +417,7 @@ export class LevelScene extends Phaser.Scene {
     // Moedas
     this.coins = this.physics.add.group({ allowGravity: false, immovable: true });
     // Itens de missão ocupam o lugar de algumas moedas (só com a missão ativa).
-    const missionItems = this.custom || this.infinite || this.mode === 'race' ? [] : itemsToSpawn(saveManager.get().missions, this.levelIndex);
+    const missionItems = this.custom || this.infinite || this.speedrun || this.mode === 'race' ? [] : itemsToSpawn(saveManager.get().missions, this.levelIndex);
     p.coins.forEach((coin, index) => {
       const c = tileCenter(coin);
       const item = missionItems.find((i) => i.coin === index);
@@ -440,6 +466,18 @@ export class LevelScene extends Phaser.Scene {
       this.players.push(pl);
       this.respawnPoints.push({ x, y: start.y });
       this.raceCoins.push(0);
+    }
+
+    // Fantasma do speedrun: reproduz os comandos gravados na melhor corrida desta fase.
+    const ghostData = this.speedrun?.ghost ? ghostStore.get(this.levelIndex) : null;
+    if (ghostData) {
+      const ghost = new Player(this, start.x, start.y, 'pix', 9);
+      ghost.silent = true;
+      ghost.setTint(0x73eff7).setAlpha(0.4).setDepth(9);
+      for (const a of saveManager.get().abilities) ghost.abilities.add(a);
+      ghost.isWallAt = this.players[0].isWallAt;
+      this.ghost = ghost;
+      this.ghostPlayback = new GhostPlayback(ghostData);
     }
 
     // Orbe de habilidade (só aparece se ainda não foi conquistada)
@@ -578,6 +616,21 @@ export class LevelScene extends Phaser.Scene {
     this.fx.sparkle.explode(10, flipper.x, flipper.y);
   }
 
+  /** Reproduz os comandos gravados, corrigindo a posição com os quadros-chave. */
+  private updateGhost(dt: number): void {
+    const ghost = this.ghost!;
+    const playback = this.ghostPlayback!;
+    if (this.finished || playback.finished) {
+      if (ghost.visible) this.tweens.add({ targets: ghost, alpha: 0, duration: 300, onComplete: () => ghost.setVisible(false) });
+      return;
+    }
+    this.ghostClock += dt;
+    for (const step of playback.advance(this.ghostClock)) ghost.update(step.input, step.ms);
+    const pos = playback.positionAt(this.ghostClock);
+    if (pos && Phaser.Math.Distance.Between(pos.x, pos.y, ghost.x, ghost.y) > 4) ghost.body.reset(pos.x, pos.y);
+    ghost.setAlpha(0.4);
+  }
+
   /** Ímã do modo Infinito: moedas próximas vão até o jogador. */
   private attractCoins(dt: number): void {
     const p = this.player;
@@ -679,6 +732,10 @@ export class LevelScene extends Phaser.Scene {
     this.physics.add.collider(this.bullets, this.layer, (bullet) => this.popBullet(bullet as Phaser.Physics.Arcade.Image));
     if (this.boss) this.physics.add.collider(this.boss, this.layer);
 
+    if (this.ghost) {
+      this.physics.add.collider(this.ghost, this.layer);
+      this.physics.add.collider(this.ghost, this.movers);
+    }
     for (const player of this.players) {
       this.physics.add.collider(player, this.layer);
       this.physics.add.collider(player, this.movers);
@@ -749,11 +806,16 @@ export class LevelScene extends Phaser.Scene {
       this.playTime += dt / 1000;
     }
     if (this.magnet) this.attractCoins(dt);
+    if (this.ghost) this.updateGhost(dt);
     if (this.trail) this.trail.emitting = !this.player.dead && this.player.visible && Math.abs(this.player.body.velocity.x) + Math.abs(this.player.body.velocity.y) > 60;
     for (const player of this.players) {
       this.updateEnvironment(player);
       if (player.isRushing) this.breakBlocksAhead(player);
-      player.update(this.inputs.read(player.index), dt);
+      const input = this.inputs.read(player.index);
+      player.update(input, dt);
+      if (player.index === 0 && this.recorder && !this.finished && !player.dead) {
+        this.recorder.push(input, dt, player.x, player.y, Number(player.frame.name) || 0, player.flipX);
+      }
       const tag = player.getData('tag') as Phaser.GameObjects.Text | undefined;
       tag?.setPosition(player.x, player.y - 16).setVisible(player.visible && !player.dead);
       if (!player.dead && (player.y > worldBottom + 16 || player.y < -24)) this.killPlayer(player, true);
@@ -1077,7 +1139,8 @@ export class LevelScene extends Phaser.Scene {
 
     this.time.delayedCall(this.mode === 'race' ? 900 : 1100, () => {
       if (this.finished) return;
-      if (this.mode === 'race') {
+      // Na corrida e no speedrun as vidas são infinitas.
+      if (this.mode === 'race' || this.speedrun) {
         this.respawn(player, this.respawnPoints[player.index]);
         return;
       }
@@ -1112,7 +1175,7 @@ export class LevelScene extends Phaser.Scene {
 
   /** Guarda as moedas coletadas na carteira da loja (uma vez por fase). */
   private depositCoins(): void {
-    if (this.deposited || this.custom) return;
+    if (this.deposited || this.custom || this.speedrun) return;
     this.deposited = true;
     saveManager.depositCoins(this.coinsCollected);
   }
@@ -1157,6 +1220,10 @@ export class LevelScene extends Phaser.Scene {
     if (this.custom) {
       this.showPanel('FASE CONCLUÍDA!', [`Tempo: ${formatTime(this.elapsed)}`, `Moedas: ${this.coinsCollected}/${this.parsed.coins.length}`], 'Voltando ao editor...');
       this.time.delayedCall(3000, () => this.fadeTo(() => this.scene.start('Editor')));
+      return;
+    }
+    if (this.speedrun) {
+      this.clearSpeedrunLevel(player);
       return;
     }
     this.recordClearStats();
@@ -1221,6 +1288,31 @@ export class LevelScene extends Phaser.Scene {
     saveManager.missionEvent({ type: 'item', item: item.item, key: item.key });
   }
 
+  /** Speedrun: registra o split, guarda o fantasma e segue para a próxima fase da categoria. */
+  private clearSpeedrunLevel(player: Player): void {
+    const sr = this.speedrun!;
+    const category = categoryFor(sr.category)!;
+    const segments = [...sr.segments, this.elapsed];
+    const total = segments.reduce((a, b) => a + b, 0);
+    const newGhost = this.recorder ? ghostStore.offer(this.levelIndex, this.recorder.finish(this.elapsed, player.x, player.y, 0, player.flipX)) : false;
+    const delta = splitDelta(saveManager.get().speedrun[sr.category], sr.position, total);
+    const deltaText = delta === null ? t('speedrun.firstRun') : `${delta <= 0 ? '-' : '+'}${formatTimePrecise(Math.abs(delta))}`;
+    const last = sr.position + 1 >= category.levels.length;
+    const isPb = last ? saveManager.speedrunFinish(sr.category, segments) : false;
+    this.showPanel(
+      last ? (isPb ? t('speedrun.newPb') : t('speedrun.finished')) : t('speedrun.split'),
+      [t('speedrun.level', { time: formatTimePrecise(this.elapsed) }), t('speedrun.total', { time: formatTimePrecise(total) }), t('speedrun.delta', { delta: deltaText })],
+      newGhost ? t('speedrun.newGhost') : '',
+      delta !== null && delta <= 0 ? COLORS.lightGreen : COLORS.yellow,
+    );
+    this.time.delayedCall(last ? 3000 : 1800, () =>
+      this.fadeTo(() => {
+        if (last) this.scene.start('Speedrun', { result: { category: sr.category, total, isPb } });
+        else this.scene.restart({ levelIndex: category.levels[sr.position + 1], mode: 'single', speedrun: { ...sr, position: sr.position + 1, segments } } satisfies LevelSceneData);
+      }),
+    );
+  }
+
   /** Sala do Infinito concluída: bônus e escolha de power-up para a próxima. */
   private clearInfiniteRoom(): void {
     const inf = this.infinite!;
@@ -1265,7 +1357,7 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private recordClearStats(): void {
-    if (this.custom || this.infinite) return;
+    if (this.custom || this.infinite || this.speedrun) return;
     if (this.mode === 'race') {
       saveManager.stat('raceFinishes');
       return;
@@ -1312,6 +1404,7 @@ export class LevelScene extends Phaser.Scene {
       mode: this.mode,
       custom: this.custom ?? undefined,
       infinite: this.infinite ?? undefined,
+      speedrun: this.speedrun ?? undefined,
     } satisfies LevelSceneData);
   }
 
@@ -1327,6 +1420,11 @@ export class LevelScene extends Phaser.Scene {
     if (this.infinite) {
       this.finishInfinite(false);
       this.scene.start('Menu');
+      return;
+    }
+    if (this.speedrun) {
+      saveManager.speedrunSegments(this.speedrun.category, this.speedrun.segments);
+      this.scene.start('Speedrun');
       return;
     }
     if (this.mode !== 'race') saveManager.submitScore(this.run.score);
@@ -1350,7 +1448,17 @@ export class LevelScene extends Phaser.Scene {
       bossName: this.bossHud.name,
       raceProgress: this.mode === 'race' ? this.players.map((p) => Phaser.Math.Clamp(p.x / width, 0, 1)) : NO_NUMBERS,
       raceCoins: this.mode === 'race' ? this.raceCoins : NO_NUMBERS,
+      speedrun: this.speedrun ? this.speedrunHud() : null,
     };
+  }
+
+  private speedrunHud(): { total: number; delta: number | null } {
+    const sr = this.speedrun!;
+    const total = sr.segments.reduce((a, b) => a + b, 0) + this.elapsed;
+    const pb = saveManager.get().speedrun[sr.category];
+    // Compara com o split do recorde no mesmo ponto (só depois de passar dele).
+    const ref = pb?.splits[sr.position];
+    return { total, delta: ref !== undefined && total > ref ? total - ref : null };
   }
 
   /** Textura de cada jogador (o HUD usa nos marcadores da corrida). */
@@ -1360,7 +1468,7 @@ export class LevelScene extends Phaser.Scene {
 
   getLevelInfo(): { number: number; name: string; subtitle: string; mode: GameMode; custom: boolean; label: string; powerup: PowerUpId | null } {
     const inf = this.infinite;
-    const label = this.custom ? 'TESTE' : inf ? (inf.daily ? t('daily.label') : t('infinite.label', { n: inf.room + 1 })) : `FASE ${this.level.id}`;
+    const label = this.speedrun ? 'SPEEDRUN' : this.custom ? 'TESTE' : inf ? (inf.daily ? t('daily.label') : t('infinite.label', { n: inf.room + 1 })) : `FASE ${this.level.id}`;
     return {
       number: this.level.id,
       name: inf ? (inf.daily ? t('daily.title') : t('infinite.title')) : this.level.name,

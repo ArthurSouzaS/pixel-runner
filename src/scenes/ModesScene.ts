@@ -23,6 +23,7 @@ export class ModesScene extends Phaser.Scene {
     const items: { key: string; scene: string }[] = [
       { key: 'infinite', scene: 'Infinite' },
       { key: 'daily', scene: 'Daily' },
+      { key: 'speedrun', scene: 'Speedrun' },
       { key: 'twoPlayers', scene: 'TwoPlayer' },
       { key: 'editor', scene: 'Editor' },
     ];

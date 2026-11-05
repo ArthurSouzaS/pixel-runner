@@ -6,6 +6,7 @@ import { buy, deposit, equip, grantItem, type ShopCategory } from '../logic/shop
 import { type Mission, type MissionEvent, accept, applyEvent, claim } from '../logic/missions';
 import { type InfiniteEntry, addInfiniteEntry } from '../logic/powerups';
 import { addAttempt, addDailyEntry, rollDaily, todayString } from '../logic/daily';
+import { finishRun, recordSegments } from '../logic/speedrun';
 import { type StatKey, addStat, maxStat } from '../logic/stats';
 import { type VolumeChannel, stepVolume } from '../logic/audioSettings';
 import { type SaveData, type StorageLike, loadSave, recordLevelClear, saveWithAbility, submitScore, writeSave } from '../logic/save';
@@ -188,6 +189,19 @@ class SaveManager {
   setPlayerName(name: string): void {
     const clean = name.trim().slice(0, 8).toUpperCase();
     if (clean) this.commit({ ...this.data, playerName: clean });
+  }
+
+  /** Fim de uma corrida de speedrun completa. Retorna true se for recorde pessoal. */
+  speedrunFinish(category: string, segments: number[]): boolean {
+    const result = finishRun(this.data.speedrun[category], segments);
+    this.commit({ ...this.data, speedrun: { ...this.data.speedrun, [category]: result.best } });
+    return result.isPb;
+  }
+
+  /** Corrida interrompida: guarda só os melhores trechos. */
+  speedrunSegments(category: string, segments: number[]): void {
+    if (segments.length === 0) return;
+    this.commit({ ...this.data, speedrun: { ...this.data.speedrun, [category]: recordSegments(this.data.speedrun[category], segments) } });
   }
 
   /** Marca uma cena de história como vista. */

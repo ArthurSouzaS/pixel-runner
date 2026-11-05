@@ -92,6 +92,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private rushTimer = 0;
   private rushDir: 1 | -1 = 1;
   private wasInWater = false;
+  /** Fantasma do speedrun: sem sons nem tremidas. */
+  silent = false;
+
+  private playSound(name: Parameters<typeof sfx.play>[0]): void {
+    if (!this.silent) sfx.play(name);
+  }
+
   /** Multiplicadores de power-ups (modo Infinito). */
   jumpScale = 1;
   speedScale = 1;
@@ -315,7 +322,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.dashCooldown = T.dashCooldownMs;
       if (!onGround) this.canDash = false;
       body.setAllowGravity(false);
-      sfx.play('dash');
+      this.playSound('dash');
       this.onDash?.();
     }
 
@@ -369,7 +376,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       body.setVelocityY(-T.swimVelocity);
       this.jumpBuffer = 0;
       this.jumping = false;
-      sfx.play('swim');
+      this.playSound('swim');
       this.onJump?.(false);
     } else if (this.onWall !== 0 && input.jumpPressed) {
       // Salto na parede: impulso para o lado oposto.
@@ -379,7 +386,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.onWall = 0;
       this.jumping = true;
       this.jumpBuffer = 0;
-      sfx.play('jump');
+      this.playSound('jump');
       this.onJump?.(false);
     } else if (this.jumpBuffer > 0) {
       if (this.coyoteTimer > 0) {
@@ -387,14 +394,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.jumping = true;
         this.coyoteTimer = 0;
         this.jumpBuffer = 0;
-        sfx.play('jump');
+        this.playSound('jump');
         this.onJump?.(false);
       } else if (this.canDoubleJump && input.jumpPressed) {
         body.setVelocityY(-g * T.doubleJumpVelocity * this.jumpScale);
         this.jumping = true;
         this.canDoubleJump = false;
         this.jumpBuffer = 0;
-        sfx.play('doubleJump');
+        this.playSound('doubleJump');
         this.onJump?.(true);
         this.scene.tweens.add({ targets: this, angle: this.facing * 360, duration: 280, onComplete: () => this.setAngle(0) });
       }
@@ -422,8 +429,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.facing = this.rushDir;
     this.rushTimer = PLAYER_TUNING.rushMs;
     this.body.setAllowGravity(false);
-    sfx.play('rush');
-    this.scene.cameras.main.shake(120, 0.004);
+    this.playSound('rush');
+    if (!this.silent) this.scene.cameras.main.shake(120, 0.004);
     this.onRush?.();
   }
 

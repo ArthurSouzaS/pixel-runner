@@ -39,9 +39,9 @@ Decisões tomadas sem consulta ficam em [DECISOES.md](DECISOES.md) (a partir da 
 - [x] Placar local do dia
 
 ## Fase 6 — Speedrun
-- [ ] Cronômetro por fase e geral
-- [ ] Splits
-- [ ] Fantasma da melhor corrida (gravar e reproduzir comandos)
+- [x] Cronômetro por fase e geral
+- [x] Splits
+- [x] Fantasma da melhor corrida (gravar e reproduzir comandos)
 
 ## Fase 7 — Acessibilidade
 - [ ] Modo daltônico

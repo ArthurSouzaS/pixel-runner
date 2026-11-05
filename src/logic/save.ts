@@ -10,6 +10,7 @@ import { type ShopState, defaultShopState, sanitizeShop } from './shop';
 import { type MissionState, emptyMissionState, sanitizeMissions } from './missions';
 import { type InfiniteEntry, sanitizeInfiniteBoard } from './powerups';
 import { type DailyState, emptyDaily, sanitizeDaily } from './daily';
+import { type SpeedrunRecords, sanitizeSpeedrun } from './speedrun';
 import { type PlayerStats, emptyStats, sanitizeStats } from './stats';
 
 export const SAVE_KEY = 'pixel-runner:save';
@@ -38,6 +39,8 @@ export interface SaveData extends ShopState {
   daily: DailyState;
   /** Nome curto usado nos placares locais. */
   playerName: string;
+  /** Recordes pessoais do speedrun, por categoria. */
+  speedrun: SpeedrunRecords;
 }
 
 export interface StorageLike {
@@ -46,7 +49,7 @@ export interface StorageLike {
 }
 
 export function defaultSave(): SaveData {
-  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [], volumes: defaultVolumes(), storySeen: [], missions: emptyMissionState(), infinite: [], daily: emptyDaily(), playerName: 'PIX' };
+  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [], volumes: defaultVolumes(), storySeen: [], missions: emptyMissionState(), infinite: [], daily: emptyDaily(), playerName: 'PIX', speedrun: {} };
 }
 
 function toNonNegative(value: unknown, fallback: number): number {
@@ -88,6 +91,7 @@ export function sanitizeSave(raw: unknown, totalLevels: number): SaveData {
     missions: sanitizeMissions(data.missions),
     infinite: sanitizeInfiniteBoard(data.infinite),
     daily: sanitizeDaily(data.daily),
+    speedrun: sanitizeSpeedrun(data.speedrun),
     playerName: typeof data.playerName === 'string' && data.playerName.trim() ? data.playerName.trim().slice(0, 8).toUpperCase() : 'PIX',
     storySeen: Array.isArray(data.storySeen) ? [...new Set(data.storySeen.filter((v): v is string => typeof v === 'string'))] : [],
   };

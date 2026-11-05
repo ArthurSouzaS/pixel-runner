@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { COLORS } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
 import { isTouchDevice, touchState } from '../input/touchState';
-import { formatScore, formatTime } from '../logic/score';
+import { formatScore, formatTime, formatTimePrecise } from '../logic/score';
 import { pixelText } from '../ui/text';
 import { TouchControls } from '../ui/TouchControls';
 import { POWERUPS } from '../logic/powerups';
@@ -20,6 +20,7 @@ export class HUDScene extends Phaser.Scene {
   private bossFill!: Phaser.GameObjects.Rectangle;
   private bossLabel!: Phaser.GameObjects.Text;
   private touch: TouchControls | null = null;
+  private speedText: Phaser.GameObjects.Text | null = null;
   private last = { lives: -1, score: -1, coins: -1, time: -1 };
   private raceMarkers: Phaser.GameObjects.Image[] = [];
 
@@ -30,6 +31,7 @@ export class HUDScene extends Phaser.Scene {
   init(data: { level: LevelScene }): void {
     this.level = data.level;
     this.touch = null;
+    this.speedText = null;
     this.last = { lives: -1, score: -1, coins: -1, time: -1 };
   }
 
@@ -138,8 +140,14 @@ export class HUDScene extends Phaser.Scene {
       this.raceMarkers.forEach((m, i) => m.setX((m.getData('x0') as number) + (m.getData('w') as number) * (s.raceProgress[i] ?? 0)));
     } else if (s.coins !== this.last.coins) this.coinsText.setText(`${s.coins}/${s.coinsTotal}`);
     if (s.score !== this.last.score) this.scoreText.setText(formatScore(s.score));
+    if (s.speedrun) {
+      this.timeText.setText(formatTimePrecise(s.time));
+      this.speedText ??= pixelText(this, GAME_WIDTH / 2, 24, '', { size: 8 }).setOrigin(0.5, 0);
+      const delta = s.speedrun.delta;
+      this.speedText.setText(`TOTAL ${formatTimePrecise(s.speedrun.total)}${delta !== null ? `  +${formatTimePrecise(delta)}` : ''}`).setColor(delta !== null ? '#b13e53' : '#73eff7');
+    }
     const t = Math.floor(s.time);
-    if (t !== this.last.time) this.timeText.setText(formatTime(t));
+    if (t !== this.last.time && !s.speedrun) this.timeText.setText(formatTime(t));
     this.last = { lives: s.lives, score: s.score, coins: s.coins, time: t };
 
     this.bossBar.setVisible(s.bossVisible);
