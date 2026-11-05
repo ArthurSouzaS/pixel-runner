@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
+import type { GameMode } from '../input/controls';
 import { formatScore } from '../logic/score';
 import { saveManager } from '../systems/saveManager';
 import { MenuList } from '../ui/MenuList';
@@ -13,6 +14,9 @@ export interface GameOverData {
   score: number;
   levelIndex: number;
   isNewRecord: boolean;
+  mode?: GameMode;
+  /** Corrida: jogador vencedor (1 ou 2). */
+  winner?: number;
 }
 
 /** Tela de fim de jogo (derrota ou vitória). */
@@ -25,6 +29,10 @@ export class GameOverScene extends Phaser.Scene {
 
   create(data: GameOverData): void {
     const cx = GAME_WIDTH / 2;
+    if (data.mode === 'race') {
+      this.createRaceResult(data);
+      return;
+    }
     this.tick = createMenuBackdrop(this, data.victory ? 0 : 4);
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.ink, data.victory ? 0.35 : 0.6).setOrigin(0);
     this.cameras.main.fadeIn(400, 26, 28, 44);
@@ -65,7 +73,27 @@ export class GameOverScene extends Phaser.Scene {
 
     const retryLevel = data.victory ? 0 : data.levelIndex;
     new MenuList(this, cx, 170, [
-      { label: data.victory ? 'Jogar de novo' : 'Tentar de novo', action: () => this.scene.start('Level', { levelIndex: retryLevel }) },
+      { label: data.victory ? 'Jogar de novo' : 'Tentar de novo', action: () => this.scene.start('Level', { levelIndex: retryLevel, mode: data.mode ?? 'single' }) },
+      { label: 'Menu principal', action: () => this.scene.start('Menu') },
+    ]);
+  }
+
+  private createRaceResult(data: GameOverData): void {
+    const cx = GAME_WIDTH / 2;
+    this.tick = createMenuBackdrop(this, 0);
+    this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.ink, 0.45).setOrigin(0);
+    sfx.play('victory');
+    const color = data.winner === 1 ? COLORS.lightGreen : COLORS.cyan;
+    const title = pixelText(this, cx, 60, `JOGADOR ${data.winner} VENCEU!`, { size: 18, color, strokeThickness: 5 }).setOrigin(0.5);
+    title.setScale(0.3);
+    this.tweens.add({ targets: title, scale: 1, duration: 500, ease: 'Back.easeOut' });
+    const key = data.winner === 1 ? 'pix' : 'pix-p2';
+    const pix = this.add.sprite(cx, 112, this.textures.exists(key) ? key : 'pix', 0).setScale(3);
+    this.tweens.add({ targets: pix, y: 100, duration: 300, yoyo: true, repeat: -1, ease: 'Quad.easeOut' });
+    const next = Math.min(data.levelIndex + 1, saveManager.get().unlockedLevels - 1);
+    new MenuList(this, cx, 170, [
+      { label: 'Revanche', action: () => this.scene.start('Level', { levelIndex: data.levelIndex, mode: 'race' }) },
+      { label: 'Próxima fase', action: () => this.scene.start('Level', { levelIndex: next, mode: 'race' }), enabled: () => next !== data.levelIndex },
       { label: 'Menu principal', action: () => this.scene.start('Menu') },
     ]);
   }

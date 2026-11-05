@@ -98,8 +98,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   onJump?: (double: boolean) => void;
   onDash?: () => void;
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, 'pix', 0);
+  /** Índice do jogador (0 = P1, 1 = P2). */
+  readonly index: number;
+
+  constructor(scene: Phaser.Scene, x: number, y: number, texture = 'pix', index = 0) {
+    super(scene, x, y, texture, 0);
+    this.index = index;
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
@@ -156,6 +160,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.canDash = true;
     this.dashTimer = 0;
     this.body.setAllowGravity(true);
+  }
+
+  /** Congela o jogador por um tempo (usado na corrida ao ser puxado pela câmera). */
+  stun(ms: number): void {
+    this.frozen = true;
+    this.scene.time.delayedCall(ms, () => {
+      if (!this.dead) this.frozen = false;
+    });
   }
 
   /** Lançamento vertical (mola). */
@@ -432,7 +444,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.setFrame(this.body.velocity.y < 0 ? 6 : 7);
       return;
     }
-    if (Math.abs(this.body.velocity.x) > 20) this.anims.play('pix-run', true);
-    else this.anims.play('pix-idle', true);
+    const key = this.texture.key;
+    if (Math.abs(this.body.velocity.x) > 20) this.anims.play(`${key}-run`, true);
+    else this.anims.play(`${key}-idle`, true);
   }
 }

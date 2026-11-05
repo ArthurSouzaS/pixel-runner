@@ -1,11 +1,13 @@
 import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
+import { ensurePixSkin, PLAYER2_COLORS } from '../gfx/skins';
 import { createBackgroundTextures, createMoverTexture, createTileset, GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
-import { isTouchDevice, touchState } from '../input/touchState';
+import { InputHub, type GameMode } from '../input/controls';
+import { isTouchDevice } from '../input/touchState';
 import { LEVELS, TOTAL_LEVELS, worldOfLevel, type LevelData } from '../levels';
-import { SOLID_TILES, TILE_SIZE, TileIndex, parseLevel, tileCenter, type ParsedLevel } from '../logic/levelParser';
 import { ABILITIES, type AbilityId } from '../logic/abilities';
+import { SOLID_TILES, TILE_SIZE, TileIndex, parseLevel, tileCenter, type ParsedLevel } from '../logic/levelParser';
 import { nextLevelIndex } from '../logic/progress';
 import {
   POINTS,
@@ -19,21 +21,24 @@ import {
   type RunState,
 } from '../logic/score';
 import { Boss, BOSS_MAX_HP, type BossHooks, type BossLike } from '../objects/Boss';
+import { createEnemy, type Enemy, type EnemyContext } from '../objects/enemies';
 import { FallingPlatform } from '../objects/FallingPlatform';
+import { MovingPlatform } from '../objects/MovingPlatform';
+import { Player } from '../objects/Player';
 import { Spring } from '../objects/Spring';
 import { StormBoss } from '../objects/StormBoss';
-import { createEnemy, type Enemy, type EnemyContext } from '../objects/enemies';
-import { MovingPlatform } from '../objects/MovingPlatform';
-import { Player, type PlayerInput } from '../objects/Player';
 import { saveManager } from '../systems/saveManager';
 import { pixelText } from '../ui/text';
 
 export interface LevelSceneData {
   levelIndex: number;
   run?: RunState;
+  /** 'single' (padrão), 'coop' ou 'race'. */
+  mode?: GameMode;
 }
 
 export interface HudState {
+  mode: GameMode;
   levelNumber: number;
   levelName: string;
   lives: number;
@@ -45,23 +50,29 @@ export interface HudState {
   bossMax: number;
   bossVisible: boolean;
   bossName: string;
+  /** Corrida: progresso (0..1) e moedas de cada jogador. */
+  raceProgress: number[];
+  raceCoins: number[];
 }
 
-type Keys = Record<'left' | 'right' | 'a' | 'd' | 'up' | 'w' | 'space' | 'z' | 'c' | 'l', Phaser.Input.Keyboard.Key>;
+/** Zoom mínimo da câmera quando os dois jogadores se afastam. */
+const MIN_ZOOM = 0.6;
 
-const JUMP_CODES = new Set(['Space', 'ArrowUp', 'KeyW', 'KeyZ']);
-const DASH_CODES = new Set(['ShiftLeft', 'ShiftRight', 'KeyX', 'KeyK']);
-const PAUSE_CODES = new Set(['Escape', 'KeyP']);
-
-/** Cena "Fase": monta o mapa a partir dos dados e roda o jogo. */
+/** Cena "Fase": monta o mapa a partir dos dados e roda o jogo (1 ou 2 jogadores). */
 export class LevelScene extends Phaser.Scene {
   private levelIndex = 0;
   private level!: LevelData;
   private parsed!: ParsedLevel;
   private run!: RunState;
   private runAtStart!: RunState;
+  private mode: GameMode = 'single';
 
-  private player!: Player;
+  private players: Player[] = [];
+  private respawnPoints: { x: number; y: number }[] = [];
+  private raceCoins: number[] = [];
+  private inputs!: InputHub;
+  private focus!: Phaser.GameObjects.Zone;
+
   private layer!: Phaser.Tilemaps.TilemapLayer;
   private enemies: Enemy[] = [];
   private movers: MovingPlatform[] = [];
@@ -79,15 +90,18 @@ export class LevelScene extends Phaser.Scene {
   private bossDefeated = false;
   private gateClosed = false;
 
-  private keys!: Keys;
-  private respawnPoint = { x: 0, y: 0 };
   private elapsed = 0;
   private moverClock = 0;
   private coinsCollected = 0;
   private finished = false;
   private bossHud = { hp: BOSS_MAX_HP, max: BOSS_MAX_HP, visible: false, name: '' };
 
-  private bg!: { far: Phaser.GameObjects.TileSprite; near: Phaser.GameObjects.TileSprite; clouds: Phaser.GameObjects.Image[] };
+  private bg!: {
+    root: Phaser.GameObjects.Container;
+    far: Phaser.GameObjects.TileSprite;
+    near: Phaser.GameObjects.TileSprite;
+    clouds: Phaser.GameObjects.Image[];
+  };
   private fx!: {
     dust: Phaser.GameObjects.Particles.ParticleEmitter;
     sparkle: Phaser.GameObjects.Particles.ParticleEmitter;
@@ -100,11 +114,20 @@ export class LevelScene extends Phaser.Scene {
     super('Level');
   }
 
+  /** Jogador 1 (sempre existe). */
+  get player(): Player {
+    return this.players[0];
+  }
+
   init(data: LevelSceneData): void {
     this.levelIndex = Phaser.Math.Clamp(data.levelIndex ?? 0, 0, TOTAL_LEVELS - 1);
     this.level = LEVELS[this.levelIndex];
+    this.mode = data.mode ?? 'single';
     this.run = data.run ? { ...data.run, levelIndex: this.levelIndex } : createRun(this.levelIndex);
     this.runAtStart = { ...this.run };
+    this.players = [];
+    this.respawnPoints = [];
+    this.raceCoins = [];
     this.enemies = [];
     this.movers = [];
     this.boss = null;
@@ -126,7 +149,8 @@ export class LevelScene extends Phaser.Scene {
     this.parsed = parseLevel(this.level.map);
     const worldW = this.parsed.width * TILE_SIZE;
     const worldH = this.parsed.height * TILE_SIZE;
-    touchState.reset();
+    this.inputs = new InputHub(this, this.mode);
+    this.inputs.reset();
 
     this.createBackground();
     this.createMap();
@@ -138,18 +162,22 @@ export class LevelScene extends Phaser.Scene {
     this.physics.world.setBounds(0, -64, worldW, worldH + 64, true, true, true, false);
     const cam = this.cameras.main;
     cam.setBounds(0, 0, worldW, worldH);
-    cam.startFollow(this.player, true, 0.15, 0.12);
-    cam.setDeadzone(24, 40);
+    this.focus = this.add.zone(this.player.x, this.player.y, 1, 1);
+    if (this.mode === 'single') {
+      cam.startFollow(this.player, true, 0.15, 0.12);
+      cam.setDeadzone(24, 40);
+    } else {
+      cam.startFollow(this.focus, true, 0.12, 0.1);
+    }
     cam.fadeIn(350, 26, 28, 44);
 
     this.createColliders();
-    this.createInput();
-
     sfx.playMusic(this.level.theme.key);
 
     this.scene.launch('HUD', { level: this });
     this.game.events.on(Phaser.Core.Events.BLUR, this.autoPause, this);
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.autoPause, this);
+    this.events.on(Phaser.Scenes.Events.RESUME, () => this.inputs.reset());
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.game.events.off(Phaser.Core.Events.BLUR, this.autoPause, this);
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.autoPause, this);
@@ -164,34 +192,34 @@ export class LevelScene extends Phaser.Scene {
   private createBackground(): void {
     const theme = this.level.theme;
     const keys = createBackgroundTextures(this, theme);
-    this.add.image(0, 0, keys.sky).setOrigin(0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT).setScrollFactor(0).setDepth(-30);
+    // Tudo do fundo fica num contêiner fixo na tela, que é reescalado quando a câmera dá zoom.
+    const root = this.add.container(0, 0).setScrollFactor(0).setDepth(-30);
+    root.add(this.add.image(0, 0, keys.sky).setOrigin(0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT));
 
     const clouds: Phaser.GameObjects.Image[] = [];
-    if (theme.key === 'grass' || theme.key === 'ice' || theme.key === 'factory') {
+    if (['grass', 'ice', 'factory', 'frost', 'sky', 'reef', 'ruins'].includes(theme.key)) {
       for (let i = 0; i < 6; i++) {
         const cloud = this.add
           .image(i * 110 + Phaser.Math.Between(0, 60), Phaser.Math.Between(20, 90), 'cloud')
-          .setScrollFactor(0)
-          .setDepth(-25)
-          .setAlpha(theme.key === 'factory' ? 0.25 : 0.9);
+          .setAlpha(theme.key === 'factory' || theme.key === 'ruins' ? 0.3 : 0.9);
         clouds.push(cloud);
+        root.add(cloud);
       }
     } else {
       // Cristais/estrelas cintilando ao fundo.
       for (let i = 0; i < 40; i++) {
         const star = this.add
           .image(Phaser.Math.Between(0, GAME_WIDTH), Phaser.Math.Between(10, 160), 'px')
-          .setScrollFactor(0)
-          .setDepth(-25)
           .setTint(theme.key === 'cave' ? COLORS.cyan : COLORS.yellow);
+        root.add(star);
         this.tweens.add({ targets: star, alpha: 0.1, duration: Phaser.Math.Between(600, 1800), yoyo: true, repeat: -1, delay: Phaser.Math.Between(0, 1500) });
       }
     }
 
-    const far = this.add.tileSprite(0, 0, GAME_WIDTH, GAME_HEIGHT, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
-    const near = this.add.tileSprite(0, 0, GAME_WIDTH, GAME_HEIGHT, keys.near).setOrigin(0).setScrollFactor(0).setDepth(-10);
-    this.add.image(0, GAME_HEIGHT - 40, 'void').setOrigin(0).setDisplaySize(GAME_WIDTH, 40).setScrollFactor(0).setDepth(-5);
-    this.bg = { far, near, clouds };
+    const far = this.add.tileSprite(0, 0, GAME_WIDTH, GAME_HEIGHT, keys.far).setOrigin(0);
+    const near = this.add.tileSprite(0, 0, GAME_WIDTH, GAME_HEIGHT, keys.near).setOrigin(0);
+    root.add([far, near, this.add.image(0, GAME_HEIGHT - 40, 'void').setOrigin(0).setDisplaySize(GAME_WIDTH, 40)]);
+    this.bg = { root, far, near, clouds };
   }
 
   private createMap(): void {
@@ -218,6 +246,27 @@ export class LevelScene extends Phaser.Scene {
       splash: this.add.particles(0, 0, 'px', { ...base, lifespan: 500, speed: { min: 40, max: 120 }, angle: { min: 220, max: 320 }, gravityY: 500, tint: [0x73eff7, 0xf4f4f4, 0x41a6f6] }).setDepth(13),
       confetti: this.add.particles(0, 0, 'px4', { ...base, lifespan: 1400, speed: { min: 80, max: 220 }, angle: { min: 220, max: 320 }, gravityY: 260, rotate: { min: 0, max: 360 }, tint: [0xffcd75, 0x38b764, 0x41a6f6, 0xb13e53, 0xf4f4f4] }).setDepth(20),
     };
+  }
+
+  private createPlayer(index: number, x: number, y: number): Player {
+    const texture = index === 0 ? 'pix' : ensurePixSkin(this, 'p2', PLAYER2_COLORS);
+    const player = new Player(this, x, y, texture, index);
+    for (const a of saveManager.get().abilities) player.abilities.add(a);
+    player.isWallAt = (wx, wy) => {
+      const tile = this.layer.getTileAtWorldXY(wx, wy);
+      return !!tile && tile.collides && tile.index !== TileIndex.Platform;
+    };
+    player.onLand = () => this.fx.dust.explode(6, player.x, player.body.bottom);
+    player.onJump = (double) => this.fx.dust.explode(double ? 10 : 5, player.x, player.body.bottom);
+    player.onDash = () => {
+      this.fx.dust.explode(8, player.x, player.y);
+      this.cameras.main.shake(60, 0.002);
+    };
+    if (this.mode !== 'single') {
+      const tag = pixelText(this, x, y - 16, `P${index + 1}`, { size: 8, color: index === 0 ? COLORS.lightGreen : COLORS.cyan }).setOrigin(0.5).setDepth(31);
+      player.setData('tag', tag);
+    }
+    return player;
   }
 
   private createObjects(): void {
@@ -262,15 +311,14 @@ export class LevelScene extends Phaser.Scene {
       this.movers.push(new MovingPlatform(this, m, createMoverTexture(this, theme, m.width)));
     }
 
-    // Jogador
+    // Jogadores
     const start = tileCenter(p.start ?? { x: 2, y: p.height - 3 });
-    this.respawnPoint = { x: start.x, y: start.y };
-    this.player = new Player(this, start.x, start.y);
-    for (const a of saveManager.get().abilities) this.player.abilities.add(a);
-    this.player.isWallAt = (x, y) => {
-      const tile = this.layer.getTileAtWorldXY(x, y);
-      return !!tile && tile.collides && tile.index !== TileIndex.Platform;
-    };
+    for (let i = 0; i < this.inputs.playerCount; i++) {
+      const x = start.x + i * 14;
+      this.players.push(this.createPlayer(i, x, start.y));
+      this.respawnPoints.push({ x, y: start.y });
+      this.raceCoins.push(0);
+    }
 
     // Orbe de habilidade (só aparece se ainda não foi conquistada)
     const abilityId = this.level.ability;
@@ -281,12 +329,6 @@ export class LevelScene extends Phaser.Scene {
       this.tweens.add({ targets: orb, scale: 1.15, duration: 350, yoyo: true, repeat: -1 });
       this.abilityOrb = orb;
     }
-    this.player.onLand = () => this.fx.dust.explode(6, this.player.x, this.player.body.bottom);
-    this.player.onJump = (double) => this.fx.dust.explode(double ? 10 : 5, this.player.x, this.player.body.bottom);
-    this.player.onDash = () => {
-      this.fx.dust.explode(8, this.player.x, this.player.y);
-      this.cameras.main.shake(60, 0.002);
-    };
 
     // Inimigos
     for (const e of p.enemies) {
@@ -366,9 +408,8 @@ export class LevelScene extends Phaser.Scene {
     }
   }
 
-  /** Atualiza gelo, água e vento para o jogador. */
-  private updateEnvironment(): void {
-    const p = this.player;
+  /** Atualiza gelo, água e vento para um jogador. */
+  private updateEnvironment(p: Player): void {
     const env = p.env;
     const under = p.onGround ? this.layer.getTileAtWorldXY(p.x, p.body.bottom + 2) : null;
     env.onIce = under?.index === TileIndex.Ice;
@@ -405,111 +446,87 @@ export class LevelScene extends Phaser.Scene {
 
   private createColliders(): void {
     const solidEnemies = this.enemies.filter((e) => e.solid);
-    this.physics.add.collider(this.player, this.layer);
-    this.physics.add.collider(this.player, this.movers);
-    this.physics.add.collider(this.player, this.fallers, (_p, f) => {
-      const faller = f as FallingPlatform;
-      if (faller.body.touching.up) {
-        if (faller.visible) sfx.play('crumble');
-        faller.trigger();
-      }
-    });
-    this.physics.add.overlap(this.player, this.springs, (_p, s) => this.touchSpring(s as Spring));
     this.physics.add.collider(solidEnemies, this.layer);
     this.physics.add.collider(this.bullets, this.layer, (bullet) => this.popBullet(bullet as Phaser.Physics.Arcade.Image));
+    if (this.boss) this.physics.add.collider(this.boss, this.layer);
 
-    this.physics.add.overlap(this.player, this.coins, (_p, coin) => this.collectCoin(coin as Phaser.Physics.Arcade.Sprite));
-    this.physics.add.overlap(this.player, this.spikes, () => {
-      if (!this.player.isInvulnerable) this.killPlayer();
-    });
-    this.physics.add.overlap(this.player, this.checkpoints, (_p, flag) => this.activateCheckpoint(flag as Phaser.Physics.Arcade.Sprite));
-    this.physics.add.overlap(this.player, this.enemies, (_p, enemy) => this.touchEnemy(enemy as Enemy));
-    this.physics.add.overlap(this.player, this.bullets, (_p, bullet) => this.touchBullet(bullet as Phaser.Physics.Arcade.Image));
-    this.physics.add.overlap(this.player, this.goal, () => this.reachGoal());
-    if (this.abilityOrb) this.physics.add.overlap(this.player, this.abilityOrb, () => this.collectAbility());
-
-    if (this.boss) {
-      this.physics.add.collider(this.boss, this.layer);
-      this.physics.add.overlap(this.player, this.boss, () => this.touchBoss());
+    for (const player of this.players) {
+      this.physics.add.collider(player, this.layer);
+      this.physics.add.collider(player, this.movers);
+      this.physics.add.collider(player, this.fallers, (_p, f) => {
+        const faller = f as FallingPlatform;
+        if (faller.body.touching.up) {
+          if (faller.visible) sfx.play('crumble');
+          faller.trigger();
+        }
+      });
+      this.physics.add.overlap(player, this.springs, (_p, s) => this.touchSpring(player, s as Spring));
+      this.physics.add.overlap(player, this.coins, (_p, coin) => this.collectCoin(player, coin as Phaser.Physics.Arcade.Sprite));
+      this.physics.add.overlap(player, this.spikes, () => {
+        if (!player.isInvulnerable) this.killPlayer(player);
+      });
+      this.physics.add.overlap(player, this.checkpoints, (_p, flag) => this.activateCheckpoint(player, flag as Phaser.Physics.Arcade.Sprite));
+      this.physics.add.overlap(player, this.enemies, (_p, enemy) => this.touchEnemy(player, enemy as Enemy));
+      this.physics.add.overlap(player, this.bullets, (_p, bullet) => this.touchBullet(player, bullet as Phaser.Physics.Arcade.Image));
+      this.physics.add.overlap(player, this.goal, () => this.reachGoal(player));
+      if (this.abilityOrb) this.physics.add.overlap(player, this.abilityOrb, () => this.collectAbility(player));
+      if (this.boss) this.physics.add.overlap(player, this.boss, () => this.touchBoss(player));
     }
-  }
-
-  private createInput(): void {
-    const kb = this.input.keyboard;
-    if (!kb) return;
-    const K = Phaser.Input.Keyboard.KeyCodes;
-    this.keys = kb.addKeys({
-      left: K.LEFT, right: K.RIGHT, a: K.A, d: K.D,
-      up: K.UP, w: K.W, space: K.SPACE, z: K.Z,
-      c: K.C, l: K.L,
-    }) as Keys;
-    kb.addCapture([K.SPACE, K.UP, K.DOWN, K.LEFT, K.RIGHT]);
-    // Pressionamentos vão para uma fila: assim nem um toque muito rápido
-    // (apertar e soltar no mesmo frame) é perdido.
-    kb.on('keydown', (event: KeyboardEvent) => {
-      if (event.repeat) return;
-      if (JUMP_CODES.has(event.code)) touchState.jumpQueued = true;
-      else if (DASH_CODES.has(event.code)) touchState.dashQueued = true;
-      else if (PAUSE_CODES.has(event.code)) touchState.pauseQueued = true;
-    });
   }
 
   // -------------------------------------------------------------------------
   // Loop principal
   // -------------------------------------------------------------------------
 
-  private readInput(): PlayerInput {
-    const k = this.keys;
-    return {
-      left: (k?.left.isDown || k?.a.isDown || touchState.left) ?? false,
-      right: (k?.right.isDown || k?.d.isDown || touchState.right) ?? false,
-      jumpHeld: (k?.space.isDown || k?.up.isDown || k?.w.isDown || k?.z.isDown || touchState.jump) ?? false,
-      jumpPressed: touchState.consume('jumpQueued'),
-      dashPressed: touchState.consume('dashQueued'),
-      chargeHeld: (k?.c.isDown || k?.l.isDown || touchState.charge) ?? false,
-    };
+  private alivePlayers(): Player[] {
+    return this.players.filter((p) => !p.dead);
+  }
+
+  private nearestPlayer(x: number): Player {
+    const alive = this.alivePlayers();
+    const list = alive.length > 0 ? alive : this.players;
+    return list.reduce((best, p) => (Math.abs(p.x - x) < Math.abs(best.x - x) ? p : best), list[0]);
   }
 
   update(_time: number, delta: number): void {
     // Limita o delta para evitar "teletransportes" após travadas.
     const dt = Math.min(delta, 50);
-    const cam = this.cameras.main;
-    this.bg.far.tilePositionX = cam.scrollX * 0.15;
-    this.bg.near.tilePositionX = cam.scrollX * 0.35;
-    for (const [i, cloud] of this.bg.clouds.entries()) {
-      cloud.x -= dt * 0.004 * (1 + (i % 3));
-      if (cloud.x < -40) cloud.x = GAME_WIDTH + 40;
-    }
+    this.updateCamera();
+    this.updateBackground(dt);
 
-    if (touchState.consume('pauseQueued')) {
+    if (this.inputs.consumePause()) {
       this.openPause();
       return;
     }
 
     this.moverClock += dt / 1000;
     for (const mover of this.movers) mover.step(this.moverClock, dt);
-
     const worldBottom = this.parsed.height * TILE_SIZE;
     for (const f of this.fallers) f.step(dt, worldBottom);
 
-    this.updateEnvironment();
-    if (this.player.isRushing) this.breakBlocksAhead();
-    const input = this.readInput();
-    if (!this.finished && !this.player.dead) this.elapsed += dt / 1000;
-    this.player.update(input, dt);
+    if (!this.finished && this.alivePlayers().length > 0) this.elapsed += dt / 1000;
+    for (const player of this.players) {
+      this.updateEnvironment(player);
+      if (player.isRushing) this.breakBlocksAhead(player);
+      player.update(this.inputs.read(player.index), dt);
+      const tag = player.getData('tag') as Phaser.GameObjects.Text | undefined;
+      tag?.setPosition(player.x, player.y - 16).setVisible(player.visible && !player.dead);
+      if (!player.dead && player.y > worldBottom + 16) this.killPlayer(player, true);
+    }
 
     const ctx: EnemyContext = {
       player: this.player,
       layer: this.layer,
-      difficulty: 1 + this.levelIndex * 0.15,
+      difficulty: 1 + this.levelIndex * 0.12,
       fireBullet: (x, y, vx, vy) => this.fireBullet(x, y, vx, vy),
     };
     for (const enemy of this.enemies) {
       if (!enemy.active) continue;
-      // Só "pensa" quem está perto da câmera, para economizar e ser justo.
-      if (Math.abs(enemy.x - this.player.x) < GAME_WIDTH) enemy.think(ctx, dt);
+      ctx.player = this.nearestPlayer(enemy.x);
+      // Só "pensa" quem está perto de algum jogador, para economizar e ser justo.
+      if (Math.abs(enemy.x - ctx.player.x) < GAME_WIDTH) enemy.think(ctx, dt);
       else enemy.body.setVelocityX(0);
-      if (enemy.y > this.parsed.height * TILE_SIZE + 32) enemy.destroy();
+      if (enemy.y > worldBottom + 32) enemy.destroy();
     }
 
     for (const bullet of this.bullets.getChildren() as Phaser.Physics.Arcade.Image[]) {
@@ -519,15 +536,61 @@ export class LevelScene extends Phaser.Scene {
     }
 
     if (this.boss?.active) {
-      this.boss.think(this.player, dt);
+      this.boss.think(this.nearestPlayer(this.boss.x), dt);
       if (!this.gateClosed && !this.bossDefeated && this.parsed.gate.length > 0) {
         const triggerX = (this.parsed.gate[0].x + 4) * TILE_SIZE;
-        if (this.player.x > triggerX && !this.player.dead) this.startBossFight();
+        if (this.alivePlayers().some((p) => p.x > triggerX)) this.startBossFight();
       }
     }
+  }
 
-    if (!this.player.dead && this.player.y > this.parsed.height * TILE_SIZE + 16) {
-      this.killPlayer(true);
+  /** Com 2 jogadores, a câmera mira o ponto médio e se afasta para mostrar os dois. */
+  private updateCamera(): void {
+    const cam = this.cameras.main;
+    if (this.mode === 'single' || this.finished) {
+      if (this.finished && cam.zoom !== 1) cam.setZoom(Phaser.Math.Linear(cam.zoom, 1, 0.1));
+      return;
+    }
+    const alive = this.alivePlayers().filter((p) => p.visible);
+    if (alive.length === 0) return;
+    const xs = alive.map((p) => p.x);
+    const ys = alive.map((p) => p.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    this.focus.setPosition((minX + maxX) / 2, (minY + maxY) / 2);
+    const target = Phaser.Math.Clamp(Math.min(GAME_WIDTH / (maxX - minX + 140), GAME_HEIGHT / (maxY - minY + 110)), MIN_ZOOM, 1);
+    cam.setZoom(Phaser.Math.Linear(cam.zoom, target, 0.08));
+    // Com zoom, a fase (baixa) fica alinhada à base da tela e o céu ocupa o espaço de cima.
+    const worldW = this.parsed.width * TILE_SIZE;
+    const worldH = this.parsed.height * TILE_SIZE;
+    const viewH = GAME_HEIGHT / cam.zoom;
+    cam.setBounds(0, Math.min(0, worldH - viewH), worldW, Math.max(worldH, viewH));
+
+    // Se um jogador ficar para trás além do zoom mínimo, ele é puxado para perto do outro.
+    const limit = GAME_WIDTH / MIN_ZOOM - 70;
+    if (alive.length === 2 && maxX - minX > limit) {
+      const [behind, ahead] = alive[0].x < alive[1].x ? alive : [alive[1], alive[0]];
+      this.fx.sparkle.explode(12, behind.x, behind.y);
+      behind.respawn(ahead.x - 10, ahead.y - 8);
+      if (this.mode === 'race') behind.stun(900);
+      this.fx.sparkle.explode(12, behind.x, behind.y);
+    }
+  }
+
+  private updateBackground(dt: number): void {
+    const cam = this.cameras.main;
+    const z = cam.zoom;
+    // Mantém o fundo cobrindo a tela mesmo com zoom diferente de 1.
+    const cx = GAME_WIDTH / 2;
+    const cy = GAME_HEIGHT / 2;
+    this.bg.root.setScale(1 / z).setPosition(cx - cx / z, cy - cy / z);
+    this.bg.far.tilePositionX = cam.scrollX * 0.15;
+    this.bg.near.tilePositionX = cam.scrollX * 0.35;
+    for (const [i, cloud] of this.bg.clouds.entries()) {
+      cloud.x -= dt * 0.004 * (1 + (i % 3));
+      if (cloud.x < -40) cloud.x = GAME_WIDTH + 40;
     }
   }
 
@@ -540,67 +603,78 @@ export class LevelScene extends Phaser.Scene {
     this.tweens.add({ targets: t, y: y - 22, alpha: 0, duration: 800, ease: 'Quad.easeOut', onComplete: () => t.destroy() });
   }
 
-  private collectCoin(coin: Phaser.Physics.Arcade.Sprite): void {
-    if (!coin.active) return;
+  private collectCoin(player: Player, coin: Phaser.Physics.Arcade.Sprite): void {
+    if (!coin.active || player.dead) return;
     this.fx.sparkle.explode(8, coin.x, coin.y);
     coin.destroy();
     this.coinsCollected++;
+    this.raceCoins[player.index]++;
     const result = collectCoin(this.run);
     this.run = result.run;
     sfx.play('coin');
-    if (result.extraLife) {
+    if (result.extraLife && this.mode !== 'race') {
       sfx.play('extraLife');
-      this.floatingText(this.player.x, this.player.y - 14, '+1 VIDA', COLORS.lightGreen);
+      this.floatingText(player.x, player.y - 14, '+1 VIDA', COLORS.lightGreen);
     }
   }
 
-  private activateCheckpoint(flag: Phaser.Physics.Arcade.Sprite): void {
-    if (flag.getData('active') || this.player.dead) return;
-    flag.setData('active', true);
-    flag.play('checkpoint-wave');
-    this.respawnPoint = { x: flag.x, y: flag.y };
-    this.run = addPoints(this.run, POINTS.checkpoint);
+  private activateCheckpoint(player: Player, flag: Phaser.Physics.Arcade.Sprite): void {
+    if (player.dead) return;
+    const point = { x: flag.x, y: flag.y };
+    if (this.mode === 'race') {
+      // Na corrida, cada jogador tem o próprio checkpoint.
+      const current = this.respawnPoints[player.index];
+      if (current.x >= point.x) return;
+      this.respawnPoints[player.index] = point;
+    } else {
+      if (flag.getData('active')) return;
+      this.respawnPoints = this.respawnPoints.map(() => ({ ...point }));
+      this.run = addPoints(this.run, POINTS.checkpoint);
+      this.floatingText(flag.x, flag.y - 20, 'CHECKPOINT!', COLORS.lightGreen);
+    }
+    if (!flag.getData('active')) {
+      flag.setData('active', true);
+      flag.play('checkpoint-wave');
+    }
     sfx.play('checkpoint');
     this.fx.confetti.explode(16, flag.x, flag.y - 8);
-    this.floatingText(flag.x, flag.y - 20, 'CHECKPOINT!', COLORS.lightGreen);
   }
 
-  private touchEnemy(enemy: Enemy): void {
-    if (enemy.dead || this.player.dead || this.finished) return;
-    const pb = this.player.body;
+  private touchEnemy(player: Player, enemy: Enemy): void {
+    if (enemy.dead || player.dead || this.finished) return;
+    const pb = player.body;
     const stomp = pb.velocity.y > 0 && pb.bottom <= enemy.body.top + 10;
-    if (enemy.armored && !this.player.isRushing) {
+    if (enemy.armored && !player.isRushing) {
       // Blindado: pisão e dash só ricocheteiam. Encostar de lado machuca.
-      if (stomp || this.player.isDashing) {
+      if (stomp || player.isDashing) {
         sfx.play('clank');
         this.fx.sparkle.explode(6, enemy.x, enemy.body.top);
-        if (stomp) this.player.bounce(false, this.readHeldJump());
-        else this.player.setVelocityX(this.player.x < enemy.x ? -160 : 160);
-      } else if (!this.player.isInvulnerable) {
-        this.killPlayer();
+        if (stomp) player.bounce(false, this.inputs.jumpHeld(player.index));
+        else player.setVelocityX(player.x < enemy.x ? -160 : 160);
+      } else if (!player.isInvulnerable) {
+        this.killPlayer(player);
       }
       return;
     }
-    if (stomp || this.player.isDashing || this.player.isRushing) {
+    if (stomp || player.isDashing || player.isRushing) {
       if (stomp) {
-        this.player.combo++;
-        this.player.bounce(false, this.readHeldJump());
+        player.combo++;
+        player.bounce(false, this.inputs.jumpHeld(player.index));
       }
-      const points = enemyPoints(Math.max(1, this.player.combo));
+      const points = enemyPoints(Math.max(1, player.combo));
       this.run = addPoints(this.run, points);
-      this.floatingText(enemy.x, enemy.y - 10, String(points), this.player.combo > 1 ? COLORS.yellow : COLORS.white);
+      this.floatingText(enemy.x, enemy.y - 10, String(points), player.combo > 1 ? COLORS.yellow : COLORS.white);
       this.fx.pop.explode(12, enemy.x, enemy.y);
       this.cameras.main.shake(90, 0.004);
       sfx.play('stomp');
       enemy.kill();
-    } else if (!this.player.isInvulnerable) {
-      this.killPlayer();
+    } else if (!player.isInvulnerable) {
+      this.killPlayer(player);
     }
   }
 
   /** Investida: quebra blocos rachados à frente do jogador. */
-  private breakBlocksAhead(): void {
-    const p = this.player;
+  private breakBlocksAhead(p: Player): void {
     let broke = false;
     // Abre uma passagem de dois blocos de altura à frente.
     for (const dx of [10, 20]) {
@@ -619,43 +693,34 @@ export class LevelScene extends Phaser.Scene {
     }
   }
 
-  private collectAbility(): void {
+  private collectAbility(player: Player): void {
     const orb = this.abilityOrb;
     const id = this.level.ability;
-    if (!orb || !id || !orb.active || this.player.dead) return;
+    if (!orb || !id || !orb.active || player.dead) return;
     orb.destroy();
     this.abilityOrb = null;
-    this.grantAbility(id);
-  }
-
-  private grantAbility(id: AbilityId): void {
     saveManager.grantAbility(id);
-    this.player.abilities.add(id);
+    for (const p of this.players) p.abilities.add(id);
     sfx.play('ability');
-    this.fx.confetti.explode(40, this.player.x, this.player.y);
+    this.fx.confetti.explode(40, player.x, player.y);
     this.cameras.main.flash(250, 255, 255, 255);
-    touchState.reset();
+    this.inputs.reset();
     this.scene.pause();
     this.scene.launch('Tutorial', { ability: id });
     this.scene.bringToTop('Tutorial');
   }
 
   hasAbility(id: AbilityId): boolean {
-    return this.player?.abilities.has(id) ?? false;
+    return this.players[0]?.abilities.has(id) ?? false;
   }
 
-  private touchSpring(spring: Spring): void {
-    const pb = this.player.body;
-    if (this.player.dead || pb.velocity.y < 0 || pb.bottom > spring.body.top + 8) return;
-    this.player.launch(Spring.LAUNCH_VELOCITY);
+  private touchSpring(player: Player, spring: Spring): void {
+    const pb = player.body;
+    if (player.dead || pb.velocity.y < 0 || pb.bottom > spring.body.top + 8) return;
+    player.launch(Spring.LAUNCH_VELOCITY);
     spring.boing();
     sfx.play('spring');
     this.fx.dust.explode(8, spring.x, spring.y);
-  }
-
-  private readHeldJump(): boolean {
-    const k = this.keys;
-    return (k?.space.isDown || k?.up.isDown || k?.w.isDown || k?.z.isDown || touchState.jump) ?? false;
   }
 
   private fireBullet(x: number, y: number, vx: number, vy: number, texture = 'bullet'): void {
@@ -670,33 +735,33 @@ export class LevelScene extends Phaser.Scene {
     bullet.destroy();
   }
 
-  private touchBullet(bullet: Phaser.Physics.Arcade.Image): void {
-    if (this.player.dead || this.player.isDashing || this.player.isRushing || this.player.isInvulnerable) return;
+  private touchBullet(player: Player, bullet: Phaser.Physics.Arcade.Image): void {
+    if (player.dead || player.isDashing || player.isRushing || player.isInvulnerable) return;
     this.popBullet(bullet);
-    this.killPlayer();
+    this.killPlayer(player);
   }
 
-  private touchBoss(): void {
+  private hitBoss(boss: BossLike): void {
+    if (!boss.hit()) return;
+    this.run = addPoints(this.run, POINTS.bossHit);
+    this.floatingText(boss.x, boss.y - 24, String(POINTS.bossHit), COLORS.yellow);
+  }
+
+  private touchBoss(player: Player): void {
     const boss = this.boss;
-    if (!boss || !boss.active || this.player.dead) return;
-    const pb = this.player.body;
+    if (!boss || !boss.active || player.dead) return;
+    const pb = player.body;
     const stomp = pb.velocity.y > 0 && pb.bottom <= boss.body.top + 12;
-    if (this.player.isRushing) {
+    if (player.isRushing) {
       // A investida também fere os chefes, mas ricocheteia o jogador.
-      if (boss.hit()) {
-        this.run = addPoints(this.run, POINTS.bossHit);
-        this.floatingText(boss.x, boss.y - 24, String(POINTS.bossHit), COLORS.yellow);
-      }
-      this.player.stopRush(true);
+      this.hitBoss(boss);
+      player.stopRush(true);
     } else if (stomp) {
-      if (boss.hit()) {
-        this.run = addPoints(this.run, POINTS.bossHit);
-        this.floatingText(boss.x, boss.y - 24, String(POINTS.bossHit), COLORS.yellow);
-        this.fx.pop.explode(16, this.player.x, pb.bottom);
-      }
-      this.player.bounce(true);
-    } else if (boss.isActive && !this.player.isInvulnerable) {
-      this.killPlayer();
+      this.hitBoss(boss);
+      this.fx.pop.explode(16, player.x, pb.bottom);
+      player.bounce(true);
+    } else if (boss.isActive && !player.isInvulnerable) {
+      this.killPlayer(player);
     }
   }
 
@@ -710,6 +775,12 @@ export class LevelScene extends Phaser.Scene {
 
   private startBossFight(): void {
     if (!this.boss) return;
+    // Quem ficou do lado de fora da arena é trazido para dentro.
+    const gateX = this.parsed.gate[0].x * TILE_SIZE;
+    const inside = this.players.find((p) => p.x > gateX && !p.dead);
+    for (const p of this.players) {
+      if (inside && p !== inside && p.x <= gateX + 8 && !p.dead) p.respawn(inside.x - 12, inside.y - 8);
+    }
     this.setGate(true);
     sfx.play('gate');
     this.cameras.main.shake(400, 0.01);
@@ -729,37 +800,47 @@ export class LevelScene extends Phaser.Scene {
     this.cameras.main.flash(300, 255, 255, 255);
   }
 
-  private killPlayer(fell = false): void {
-    if (this.player.dead || this.finished) return;
-    this.player.die();
-    if (fell) this.player.setVisible(false).setVelocity(0, 0);
+  private killPlayer(player: Player, fell = false): void {
+    if (player.dead || this.finished) return;
+    player.die();
+    if (fell) player.setVisible(false).setVelocity(0, 0);
     sfx.play('hurt');
     this.cameras.main.shake(260, 0.012);
-    this.cameras.main.flash(120, 177, 62, 83);
-    this.fx.pop.explode(14, this.player.x, Math.min(this.player.y, this.parsed.height * TILE_SIZE));
+    if (this.mode === 'single') this.cameras.main.flash(120, 177, 62, 83);
+    this.fx.pop.explode(14, player.x, Math.min(player.y, this.parsed.height * TILE_SIZE));
 
-    this.time.delayedCall(1100, () => {
+    this.time.delayedCall(this.mode === 'race' ? 900 : 1100, () => {
+      if (this.finished) return;
+      if (this.mode === 'race') {
+        this.respawn(player, this.respawnPoints[player.index]);
+        return;
+      }
       const result = loseLife(this.run);
       this.run = result.run;
       if (result.gameOver) {
         this.gameOver();
         return;
       }
-      this.respawn();
+      // Cooperativo: renasce ao lado do parceiro, se ele estiver vivo.
+      const partner = this.players.find((p) => p !== player && !p.dead && p.visible);
+      if (partner && !partner.env.inWater) this.respawn(player, { x: partner.x, y: partner.y - 8 }, false);
+      else this.respawn(player, this.respawnPoints[player.index], true);
     });
   }
 
-  private respawn(): void {
-    this.bullets.clear(true, true);
-    if (this.boss?.active && !this.bossDefeated) {
-      this.boss.reset();
-      this.bossHud.visible = false;
-      this.setGate(false);
+  private respawn(player: Player, point: { x: number; y: number }, resetBoss = true): void {
+    if (resetBoss && this.mode !== 'race' && this.alivePlayers().length === 0) {
+      this.bullets.clear(true, true);
+      if (this.boss?.active && !this.bossDefeated) {
+        this.boss.reset();
+        this.bossHud.visible = false;
+        this.setGate(false);
+      }
     }
-    this.player.setVisible(true);
-    this.player.revive();
-    this.player.respawn(this.respawnPoint.x, this.respawnPoint.y);
-    this.fx.sparkle.explode(16, this.respawnPoint.x, this.respawnPoint.y);
+    player.setVisible(true);
+    player.revive();
+    player.respawn(point.x, point.y);
+    this.fx.sparkle.explode(16, point.x, point.y);
   }
 
   private gameOver(): void {
@@ -769,17 +850,30 @@ export class LevelScene extends Phaser.Scene {
     const isNewRecord = saveManager.submitScore(this.run.score);
     this.cameras.main.fadeOut(600, 26, 28, 44);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-      this.scene.start('GameOver', { victory: false, score: this.run.score, levelIndex: this.levelIndex, isNewRecord });
+      this.scene.start('GameOver', { victory: false, score: this.run.score, levelIndex: this.levelIndex, isNewRecord, mode: this.mode });
     });
   }
 
-  private reachGoal(): void {
-    if (this.finished || this.player.dead || !this.goal.visible) return;
+  private showPanel(title: string, lines: string[], footer: string, color: number = COLORS.yellow): void {
+    // O painel vai para o HUD (que não sofre zoom da câmera).
+    this.events.emit('panel', { title, lines, footer, color });
+  }
+
+  private reachGoal(player: Player): void {
+    if (this.finished || player.dead || !this.goal.visible) return;
     this.finished = true;
-    this.player.frozen = true;
+    for (const p of this.players) p.frozen = true;
     sfx.stopMusic();
-    sfx.play('levelClear');
+    sfx.play(this.mode === 'race' ? 'victory' : 'levelClear');
     this.fx.confetti.explode(40, this.goal.x, this.goal.y - 10);
+    this.tweens.add({ targets: player, x: this.goal.x, alpha: 0, scale: 0.4, angle: 360, duration: 700, ease: 'Quad.easeIn' });
+
+    if (this.mode === 'race') {
+      const winner = player.index + 1;
+      this.showPanel(`JOGADOR ${winner} VENCEU!`, [`Tempo: ${formatTime(this.elapsed)}`, `Moedas P1: ${this.raceCoins[0]}   P2: ${this.raceCoins[1]}`], 'Boa corrida!', winner === 1 ? COLORS.lightGreen : COLORS.cyan);
+      this.time.delayedCall(3400, () => this.fadeTo(() => this.scene.start('GameOver', { victory: true, score: 0, levelIndex: this.levelIndex, isNewRecord: false, mode: 'race', winner })));
+      return;
+    }
 
     const bonus = levelClearBonus({
       seconds: this.elapsed,
@@ -791,36 +885,29 @@ export class LevelScene extends Phaser.Scene {
     const bestTime = saveManager.levelCleared(this.levelIndex, this.elapsed);
     const isNewRecord = saveManager.submitScore(this.run.score);
 
-    this.tweens.add({ targets: this.player, x: this.goal.x, alpha: 0, scale: 0.4, angle: 360, duration: 700, ease: 'Quad.easeIn' });
-
-    const cx = GAME_WIDTH / 2;
-    const panel = this.add.rectangle(cx, GAME_HEIGHT / 2, 300, 150, COLORS.ink, 0.85).setScrollFactor(0).setDepth(50).setStrokeStyle(2, COLORS.yellow);
-    const lines = [
-      `Conclusão ......... +${bonus.clear}`,
-      `Tempo ${formatTime(this.elapsed).padStart(5, ' ')} ...... +${bonus.time}`,
-      `Todas as moedas ... +${bonus.coins}`,
-    ];
     const next = nextLevelIndex(this.levelIndex, TOTAL_LEVELS);
     const worldClear = next === null || worldOfLevel(next).id !== worldOfLevel(this.levelIndex).id;
-    const title = pixelText(this, cx, 78, worldClear ? 'MUNDO CONCLUÍDO!' : 'FASE CONCLUÍDA!', { size: 14, color: COLORS.yellow }).setOrigin(0.5).setScrollFactor(0).setDepth(51);
-    const body = pixelText(this, cx, 132, lines.join('\n'), { size: 8, align: 'left' }).setOrigin(0.5).setScrollFactor(0).setDepth(51).setLineSpacing(6);
     const extra = [bestTime ? 'Novo melhor tempo!' : '', isNewRecord ? 'Novo recorde!' : ''].filter(Boolean).join('  ');
-    const footer = pixelText(this, cx, 180, extra, { size: 8, color: COLORS.lightGreen }).setOrigin(0.5).setScrollFactor(0).setDepth(51);
-    for (const obj of [panel, title, body, footer]) {
-      obj.setAlpha(0);
-      this.tweens.add({ targets: obj, alpha: 1, duration: 300, delay: 300 });
-    }
+    this.showPanel(
+      worldClear ? 'MUNDO CONCLUÍDO!' : 'FASE CONCLUÍDA!',
+      [`Conclusão ......... +${bonus.clear}`, `Tempo ${formatTime(this.elapsed).padStart(5, ' ')} ...... +${bonus.time}`, `Todas as moedas ... +${bonus.coins}`],
+      extra,
+    );
 
-    this.time.delayedCall(3400, () => {
-      this.cameras.main.fadeOut(400, 26, 28, 44);
-      this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+    this.time.delayedCall(3400, () =>
+      this.fadeTo(() => {
         if (next === null) {
-          this.scene.start('GameOver', { victory: true, score: this.run.score, levelIndex: this.levelIndex, isNewRecord });
+          this.scene.start('GameOver', { victory: true, score: this.run.score, levelIndex: this.levelIndex, isNewRecord, mode: this.mode });
         } else {
-          this.scene.restart({ levelIndex: next, run: { ...this.run, levelIndex: next } } satisfies LevelSceneData);
+          this.scene.restart({ levelIndex: next, run: { ...this.run, levelIndex: next }, mode: this.mode } satisfies LevelSceneData);
         }
-      });
-    });
+      }),
+    );
+  }
+
+  private fadeTo(next: () => void): void {
+    this.cameras.main.fadeOut(400, 26, 28, 44);
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, next);
   }
 
   // -------------------------------------------------------------------------
@@ -832,9 +919,9 @@ export class LevelScene extends Phaser.Scene {
   }
 
   openPause(): void {
-    if (this.finished || this.player.dead || !this.scene.isActive()) return;
+    if (this.finished || this.alivePlayers().length === 0 || !this.scene.isActive()) return;
     sfx.play('pause');
-    touchState.reset();
+    this.inputs.reset();
     this.scene.pause();
     this.scene.launch('Pause', { levelIndex: this.levelIndex });
     this.scene.bringToTop('Pause');
@@ -842,18 +929,20 @@ export class LevelScene extends Phaser.Scene {
 
   /** Reinicia a fase atual com o estado da partida do início da fase. */
   restartLevel(): void {
-    this.scene.restart({ levelIndex: this.levelIndex, run: this.runAtStart } satisfies LevelSceneData);
+    this.scene.restart({ levelIndex: this.levelIndex, run: this.runAtStart, mode: this.mode } satisfies LevelSceneData);
   }
 
   /** Sai para o menu, registrando a pontuação alcançada. */
   quitToMenu(): void {
-    saveManager.submitScore(this.run.score);
+    if (this.mode !== 'race') saveManager.submitScore(this.run.score);
     sfx.stopMusic();
     this.scene.start('Menu');
   }
 
   getHudState(): HudState {
+    const width = this.parsed.width * TILE_SIZE;
     return {
+      mode: this.mode,
       levelNumber: this.level.id,
       levelName: this.level.name,
       lives: this.run.lives,
@@ -865,10 +954,12 @@ export class LevelScene extends Phaser.Scene {
       bossMax: this.bossHud.max,
       bossVisible: this.bossHud.visible,
       bossName: this.bossHud.name,
+      raceProgress: this.players.map((p) => Phaser.Math.Clamp(p.x / width, 0, 1)),
+      raceCoins: [...this.raceCoins],
     };
   }
 
-  getLevelInfo(): { number: number; name: string; subtitle: string } {
-    return { number: this.level.id, name: this.level.name, subtitle: this.level.subtitle };
+  getLevelInfo(): { number: number; name: string; subtitle: string; mode: GameMode } {
+    return { number: this.level.id, name: this.level.name, subtitle: this.level.subtitle, mode: this.mode };
   }
 }

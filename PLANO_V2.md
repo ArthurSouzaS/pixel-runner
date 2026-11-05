@@ -21,9 +21,9 @@ Decisões tomadas sem consulta ficam registradas em [DECISOES.md](DECISOES.md).
 - [x] Habilidades salvas no save
 
 ## Fase 3 — 2 jogadores no mesmo teclado
-- [ ] Modo cooperativo
-- [ ] Modo corrida
-- [ ] Câmera que acompanha os dois jogadores
+- [x] Modo cooperativo
+- [x] Modo corrida
+- [x] Câmera que acompanha os dois jogadores
 
 ## Fase 4 — Editor de fases
 - [ ] Grade de tiles, inimigos, moedas e checkpoints

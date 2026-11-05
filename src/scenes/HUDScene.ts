@@ -28,6 +28,7 @@ export class HUDScene extends Phaser.Scene {
   private bossLabel!: Phaser.GameObjects.Text;
   private buttons: TouchButton[] = [];
   private last = { lives: -1, score: -1, coins: -1, time: -1 };
+  private raceMarkers: Phaser.GameObjects.Image[] = [];
 
   constructor() {
     super('HUD');
@@ -42,13 +43,13 @@ export class HUDScene extends Phaser.Scene {
   create(): void {
     this.add.rectangle(0, 0, GAME_WIDTH, 20, COLORS.ink, 0.55).setOrigin(0);
 
-    this.add.image(10, 10, 'heart').setScale(1.25);
-    this.livesText = pixelText(this, 18, 6, 'x3', { size: 8 });
-
-    this.add.image(58, 10, 'coin', 0);
-    this.coinsText = pixelText(this, 66, 6, '0/0', { size: 8, color: COLORS.yellow });
-
     const info = this.level.getLevelInfo();
+    const race = info.mode === 'race';
+    this.add.image(10, 10, race ? 'star' : 'heart').setScale(1.25);
+    this.livesText = pixelText(this, 18, 6, race ? 'CORRIDA' : 'x3', { size: 8, color: race ? COLORS.yellow : COLORS.white });
+
+    this.add.image(race ? 92 : 58, 10, 'coin', 0);
+    this.coinsText = pixelText(this, race ? 100 : 66, 6, '0/0', { size: 8, color: COLORS.yellow });
     pixelText(this, GAME_WIDTH / 2, 6, `FASE ${info.number}`, { size: 8, color: COLORS.cyan }).setOrigin(0.5, 0);
     this.timeText = pixelText(this, GAME_WIDTH / 2 + 46, 6, '0:00', { size: 8 });
 
@@ -65,6 +66,10 @@ export class HUDScene extends Phaser.Scene {
     });
 
     this.createBossBar();
+    if (race) this.createRaceBar();
+    else if (info.mode === 'coop') pixelText(this, GAME_WIDTH / 2, 24, 'COOPERATIVO', { size: 8, color: COLORS.lightGreen }).setOrigin(0.5, 0).setAlpha(0.8);
+    this.level.events.on('panel', this.showPanel, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.level.events.off('panel', this.showPanel, this));
     this.showLevelCard(info.number, info.name, info.subtitle);
 
     if (isTouchDevice()) this.createTouchControls();
@@ -78,6 +83,31 @@ export class HUDScene extends Phaser.Scene {
     const bg = this.add.rectangle(0, 2, w + 4, 8, COLORS.ink).setStrokeStyle(1, COLORS.white);
     this.bossFill = this.add.rectangle(-w / 2, 2, w, 4, COLORS.red).setOrigin(0, 0.5);
     this.bossBar.add([label, bg, this.bossFill]);
+  }
+
+  private createRaceBar(): void {
+    const y = GAME_HEIGHT - 8;
+    const x0 = 120;
+    const w = GAME_WIDTH - 240;
+    this.add.rectangle(x0, y, w, 4, COLORS.ink, 0.7).setOrigin(0, 0.5).setStrokeStyle(1, COLORS.white, 0.6);
+    this.add.image(x0 + w + 8, y - 4, 'portal', 0).setScale(0.5);
+    const p1 = this.add.image(x0, y - 6, 'pix', 0).setScale(0.75);
+    const p2 = this.add.image(x0, y - 6, this.textures.exists('pix-p2') ? 'pix-p2' : 'pix', 0).setScale(0.75);
+    this.raceMarkers = [p1, p2];
+    this.raceMarkers.forEach((m) => m.setData('x0', x0).setData('w', w));
+  }
+
+  /** Painel central (fim de fase / resultado da corrida). */
+  private showPanel(data: { title: string; lines: string[]; footer: string; color: number }): void {
+    const cx = GAME_WIDTH / 2;
+    const c = this.add.container(cx, GAME_HEIGHT / 2).setDepth(50);
+    c.add(this.add.rectangle(0, 0, 300, 150, COLORS.ink, 0.88).setStrokeStyle(2, data.color));
+    c.add(pixelText(this, 0, -57, data.title, { size: 14, color: data.color }).setOrigin(0.5));
+    c.add(pixelText(this, 0, -3, data.lines.join('\n'), { size: 8 }).setOrigin(0.5).setLineSpacing(6));
+    c.add(pixelText(this, 0, 45, data.footer, { size: 8, color: COLORS.lightGreen }).setOrigin(0.5));
+    c.setAlpha(0);
+    this.tweens.add({ targets: c, alpha: 1, duration: 300, delay: 300 });
+    this.buttons.forEach((b) => b.gfx.setVisible(false));
   }
 
   private showLevelCard(n: number, name: string, subtitle: string): void {
@@ -140,13 +170,16 @@ export class HUDScene extends Phaser.Scene {
     }
     this.updateTouches();
     const s = this.level.getHudState();
-    if (s.lives !== this.last.lives) {
+    if (s.mode !== 'race' && s.lives !== this.last.lives) {
       if (this.last.lives !== -1) {
         this.tweens.add({ targets: this.livesText, scale: 1.4, duration: 120, yoyo: true });
       }
       this.livesText.setText(`x${s.lives}`);
     }
-    if (s.coins !== this.last.coins) this.coinsText.setText(`${s.coins}/${s.coinsTotal}`);
+    if (s.mode === 'race') {
+      this.coinsText.setText(`P1 ${s.raceCoins[0]}  P2 ${s.raceCoins[1]}`);
+      this.raceMarkers.forEach((m, i) => m.setX((m.getData('x0') as number) + (m.getData('w') as number) * (s.raceProgress[i] ?? 0)));
+    } else if (s.coins !== this.last.coins) this.coinsText.setText(`${s.coins}/${s.coinsTotal}`);
     if (s.score !== this.last.score) this.scoreText.setText(formatScore(s.score));
     const t = Math.floor(s.time);
     if (t !== this.last.time) this.timeText.setText(formatTime(t));
