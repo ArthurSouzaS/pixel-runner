@@ -38,10 +38,10 @@ describe('parseLevel', () => {
 });
 
 describe('fases do jogo', () => {
-  it('possui 10 fases (2 mundos) com ids sequenciais', () => {
-    expect(TOTAL_LEVELS).toBe(10);
-    expect(LEVELS.map((l) => l.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    expect(LEVELS.map((l) => l.world)).toEqual([1, 1, 1, 1, 1, 2, 2, 2, 2, 2]);
+  it('possui 15 fases (3 mundos) com ids sequenciais', () => {
+    expect(TOTAL_LEVELS).toBe(15);
+    expect(LEVELS.map((l) => l.id)).toEqual(Array.from({ length: 15 }, (_, i) => i + 1));
+    expect(LEVELS.map((l) => l.world)).toEqual([1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]);
   });
 
   it.each(LEVELS.map((l) => [l.name, l] as const))('%s é válida', (_name, data) => {
@@ -71,14 +71,47 @@ describe('fases do jogo', () => {
 
   it('apenas a última fase de cada mundo tem chefe e portão', () => {
     const bosses = LEVELS.map((l) => parseLevel(l.map).boss !== null);
-    expect(bosses).toEqual([false, false, false, false, true, false, false, false, false, true]);
-    expect(LEVELS.map((l) => l.boss ?? null)).toEqual([null, null, null, null, 'core', null, null, null, null, 'storm']);
-    for (const i of [4, 9]) expect(parseLevel(LEVELS[i].map).gate.length).toBeGreaterThan(0);
+    expect(bosses).toEqual(LEVELS.map((_, i) => i % 5 === 4));
+    expect(LEVELS.filter((l) => l.boss).map((l) => l.boss)).toEqual(['core', 'storm', 'eclipse']);
+    for (const i of [4, 9, 14]) expect(parseLevel(LEVELS[i].map).gate.length).toBeGreaterThan(0);
   });
 
   it('usa vários tipos de inimigo ao longo do jogo', () => {
     const kinds = new Set(LEVELS.flatMap((l) => parseLevel(l.map).enemies.map((e) => e.kind)));
-    expect([...kinds].sort()).toEqual(['armored', 'bat', 'fish', 'hopper', 'turret', 'walker']);
+    expect([...kinds].sort()).toEqual(['armored', 'bat', 'drone', 'fish', 'hopper', 'turret', 'walker']);
+  });
+
+  it('o Mundo 3 apresenta as mecânicas espaciais', () => {
+    const w3 = LEVELS.filter((l) => l.world === 3);
+    expect(w3.every((l) => (l.gravity ?? 1) < 1)).toBe(true);
+    expect(w3.some((l) => parseLevel(l.map).flippers.length > 0)).toBe(true);
+    expect(w3.some((l) => (l.portals ?? []).length > 0)).toBe(true);
+    expect(w3.some((l) => (l.asteroids ?? []).length > 0)).toBe(true);
+    expect(w3.some((l) => (l.lasers ?? []).length > 0)).toBe(true);
+  });
+
+  it('portais, asteroides e lasers ficam dentro do mapa', () => {
+    for (const l of LEVELS) {
+      const p = parseLevel(l.map);
+      const inside = (x: number, y: number) => x >= 0 && y >= 0 && x < p.width && y < p.height;
+      for (const pt of l.portals ?? []) expect(inside(pt.ax, pt.ay) && inside(pt.bx, pt.by)).toBe(true);
+      for (const a of l.asteroids ?? []) expect(inside(a.x, a.y) && inside(a.x + a.dx, a.y + a.dy)).toBe(true);
+      for (const lz of l.lasers ?? []) {
+        expect(inside(lz.x, lz.y)).toBe(true);
+        expect(lz.vertical ? lz.y + lz.length : lz.x + lz.length).toBeLessThanOrEqual(lz.vertical ? p.height : p.width);
+        expect(lz.on).toBeGreaterThan(0);
+        expect(lz.off).toBeGreaterThan(500);
+      }
+    }
+  });
+
+  it('cada inversor de gravidade no chão tem um par no teto da mesma fase', () => {
+    for (const l of LEVELS) {
+      const flippers = parseLevel(l.map).flippers;
+      const low = flippers.filter((f) => f.y > 8).length;
+      const high = flippers.filter((f) => f.y <= 8).length;
+      expect(high).toBe(low);
+    }
   });
 
   it('o Mundo 2 apresenta as mecânicas novas', () => {

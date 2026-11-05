@@ -13,16 +13,21 @@ import { pixelText } from '../ui/text';
 
 /** Posição de cada fase no mapa (pixels da tela). */
 const NODES: { x: number; y: number }[] = [
-  { x: 52, y: 196 },
-  { x: 96, y: 160 },
-  { x: 146, y: 186 },
-  { x: 178, y: 138 },
-  { x: 202, y: 90 },
-  { x: 276, y: 92 },
-  { x: 318, y: 132 },
-  { x: 364, y: 104 },
-  { x: 398, y: 152 },
-  { x: 438, y: 96 },
+  { x: 36, y: 182 },
+  { x: 66, y: 150 },
+  { x: 104, y: 174 },
+  { x: 126, y: 128 },
+  { x: 146, y: 84 },
+  { x: 192, y: 92 },
+  { x: 222, y: 130 },
+  { x: 254, y: 100 },
+  { x: 282, y: 140 },
+  { x: 306, y: 86 },
+  { x: 352, y: 176 },
+  { x: 380, y: 136 },
+  { x: 412, y: 172 },
+  { x: 436, y: 124 },
+  { x: 446, y: 70 },
 ];
 
 /** Mapa de seleção de mundos e fases. */
@@ -123,22 +128,29 @@ export class WorldMapScene extends Phaser.Scene {
   private drawIslands(): void {
     const g = this.add.graphics();
     // Mundo 1: ilha verde com praia
-    this.blob(g, 128, 150, 112, 76, 0xffcd75, 1);
-    this.blob(g, 128, 148, 100, 66, 0x38b764, 1);
-    this.blob(g, 118, 160, 60, 34, 0xa7f070, 4);
-    // Montanha e fortaleza do chefe
+    this.blob(g, 90, 140, 84, 66, 0xffcd75, 1);
+    this.blob(g, 90, 138, 74, 56, 0x38b764, 1);
+    this.blob(g, 80, 152, 44, 28, 0xa7f070, 4);
     g.fillStyle(0x566c86);
-    g.fillTriangle(180, 112, 204, 62, 228, 112);
+    g.fillTriangle(126, 104, 146, 62, 166, 104);
     g.fillStyle(0xf4f4f4);
-    g.fillTriangle(198, 74, 204, 62, 210, 74);
+    g.fillTriangle(141, 72, 146, 62, 151, 72);
     // Mundo 2: ilhas flutuantes de nuvem e gelo
-    this.blob(g, 360, 124, 102, 70, 0xc4cfdb, 2);
-    this.blob(g, 360, 120, 92, 60, 0xf4f4f4, 2);
-    this.blob(g, 340, 132, 50, 26, 0x73eff7, 5);
+    this.blob(g, 250, 114, 74, 56, 0xc4cfdb, 2);
+    this.blob(g, 250, 110, 66, 48, 0xf4f4f4, 2);
+    this.blob(g, 236, 122, 34, 20, 0x73eff7, 5);
     g.fillStyle(0x5d275d);
-    g.fillTriangle(420, 104, 438, 58, 456, 104);
+    g.fillTriangle(292, 98, 306, 60, 320, 98);
+    // Mundo 3: região espacial com planeta e estrelas
+    this.blob(g, 404, 128, 70, 82, 0x1a1c2c, 3);
+    this.blob(g, 404, 128, 62, 74, 0x29366f, 3);
+    for (let i = 0; i < 30; i++) g.fillStyle(0xf4f4f4).fillRect(Phaser.Math.Between(346, 462), Phaser.Math.Between(58, 200), 1, 1);
+    g.fillStyle(0xef7d57).fillCircle(372, 82, 10);
+    g.fillStyle(0xffcd75).fillCircle(369, 79, 4);
+    g.lineStyle(1, 0xffcd75).strokeEllipse(372, 82, 30, 8);
     pixelText(this, 70, 36, WORLDS[0].name, { size: 8, color: COLORS.white }).setOrigin(0.5);
-    pixelText(this, 360, 196, WORLDS[1].name, { size: 8, color: COLORS.white }).setOrigin(0.5);
+    pixelText(this, 250, 176, WORLDS[1].name, { size: 8, color: COLORS.white }).setOrigin(0.5);
+    pixelText(this, 404, 212, WORLDS[2].name, { size: 8, color: COLORS.white }).setOrigin(0.5);
   }
 
   private drawPaths(unlocked: number): void {
@@ -170,7 +182,8 @@ export class WorldMapScene extends Phaser.Scene {
     if (unlocked) c.add(pixelText(this, 0, 1, String(i + 1), { size: 8, color: COLORS.ink, strokeThickness: 0 }).setOrigin(0.5));
     else c.add(this.add.image(0, 0, 'lock'));
     if (cleared) c.add(this.add.image(r - 2, -r + 2, 'star'));
-    if (boss && unlocked) c.add(this.add.image(0, -r - 10, LEVELS[i].boss === 'storm' ? 'storm' : 'boss', 0).setScale(0.4));
+    const bossKey = LEVELS[i].boss === 'eclipse' ? 'eclipse' : LEVELS[i].boss === 'storm' ? 'storm' : 'boss';
+    if (boss && unlocked) c.add(this.add.image(0, -r - 10, bossKey, 0).setScale(0.4));
     c.setSize(r * 2 + 6, r * 2 + 6).setInteractive({ useHandCursor: true });
     c.on('pointerdown', () => {
       if (this.index === i) this.play();

@@ -85,7 +85,7 @@ describe('conquistas', () => {
   it('cada conquista pode ser alcançada', () => {
     const stats = emptyStats();
     for (const key of STAT_KEYS) stats[key] = 10_000;
-    const all = newlyUnlocked(ctx({ stats, unlockedLevels: 10, abilities: ['wallClimb', 'glide', 'charge'], ownedSkins: ['classic', 'gold'], ownedTrails: ['none'] }), []);
+    const all = newlyUnlocked(ctx({ stats, unlockedLevels: 15, abilities: ['wallClimb', 'glide', 'charge'], ownedSkins: ['classic', 'gold'], ownedTrails: ['none'] }), []);
     expect(all).toHaveLength(ACHIEVEMENTS.length);
   });
 

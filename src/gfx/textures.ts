@@ -25,10 +25,20 @@ import {
   SHARD_ART,
   ARMORED_FRAMES,
   ORB_FRAMES,
+  FLIPPER_FRAMES,
+  WARP_FRAMES,
+  ASTEROID_ART,
+  DRONE_FRAMES,
+  LASER_EMITTER_ART,
+  ECLIPSE_FRAMES,
+  STARBOLT_ART,
+  NPC_ELDER_FRAMES,
 } from './sprites';
 
 export const GAME_WIDTH = 480;
 export const GAME_HEIGHT = 270;
+/** Gravidade padrão do mundo (px/s²); cada fase pode multiplicar. */
+export const BASE_GRAVITY = 950;
 
 /** Gera todas as texturas fixas do jogo (sprites e ícones). */
 export function createSpriteTextures(scene: Phaser.Scene): void {
@@ -53,6 +63,14 @@ export function createSpriteTextures(scene: Phaser.Scene): void {
   createSheet(scene, 'shard', [SHARD_ART]);
   createSheet(scene, 'armored', ARMORED_FRAMES);
   createSheet(scene, 'orb', ORB_FRAMES);
+  createSheet(scene, 'flipper', FLIPPER_FRAMES);
+  createSheet(scene, 'warp', WARP_FRAMES);
+  createSheet(scene, 'asteroid', [ASTEROID_ART]);
+  createSheet(scene, 'drone', DRONE_FRAMES);
+  createSheet(scene, 'laser-emitter', [LASER_EMITTER_ART]);
+  createSheet(scene, 'eclipse', ECLIPSE_FRAMES, 2);
+  createSheet(scene, 'starbolt', [STARBOLT_ART]);
+  createSheet(scene, 'npc-elder', NPC_ELDER_FRAMES);
 
   // Partícula: quadradinho branco que é colorido com tint.
   createCanvasTexture(scene, 'px', 2, 2, (ctx) => {
@@ -170,6 +188,31 @@ const TILE_COLORS: Record<ThemeKey, TileColors> = {
   storm: {
     top: PALETTE.B, topLight: PALETTE.c, topDark: PALETTE.b,
     fill: PALETTE.d, fillDark: PALETTE.k, fillLight: PALETTE.G,
+    block: PALETTE.p, blockLight: PALETTE.r, blockDark: PALETTE.k,
+  },
+  moon: {
+    top: PALETTE.g, topLight: PALETTE.w, topDark: PALETTE.G,
+    fill: PALETTE.G, fillDark: PALETTE.d, fillLight: PALETTE.g,
+    block: PALETTE.d, blockLight: PALETTE.G, blockDark: PALETTE.k,
+  },
+  station: {
+    top: PALETTE.c, topLight: PALETTE.w, topDark: PALETTE.B,
+    fill: PALETTE.d, fillDark: PALETTE.k, fillLight: PALETTE.G,
+    block: PALETTE.G, blockLight: PALETTE.g, blockDark: PALETTE.n,
+  },
+  nebula: {
+    top: PALETTE.r, topLight: PALETTE.o, topDark: PALETTE.p,
+    fill: PALETTE.p, fillDark: PALETTE.k, fillLight: PALETTE.r,
+    block: PALETTE.n, blockLight: PALETTE.b, blockDark: PALETTE.k,
+  },
+  belt: {
+    top: PALETTE.o, topLight: PALETTE.y, topDark: PALETTE.U,
+    fill: PALETTE.U, fillDark: PALETTE.k, fillLight: PALETTE.u,
+    block: PALETTE.G, blockLight: PALETTE.g, blockDark: PALETTE.d,
+  },
+  citadel: {
+    top: PALETTE.y, topLight: PALETTE.w, topDark: PALETTE.o,
+    fill: PALETTE.k, fillDark: PALETTE.n, fillLight: PALETTE.p,
     block: PALETTE.p, blockLight: PALETTE.r, blockDark: PALETTE.k,
   },
 };
@@ -331,6 +374,11 @@ const STYLE_BY_THEME: Record<ThemeKey, [SilhouetteStyle, SilhouetteStyle]> = {
   ruins: ['towers', 'round'],
   sky: ['round', 'round'],
   storm: ['peaks', 'towers'],
+  moon: ['round', 'peaks'],
+  station: ['blocks', 'towers'],
+  nebula: ['stalactites', 'peaks'],
+  belt: ['peaks', 'round'],
+  citadel: ['towers', 'towers'],
 };
 
 function drawSilhouette(

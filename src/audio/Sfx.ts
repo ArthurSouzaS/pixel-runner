@@ -144,6 +144,51 @@ const SONGS: Record<string, Song> = {
     lead: ['C5', null, 'Eb5', 'G5', null, 'F5', 'Eb5', null, 'D5', null, 'Eb5', 'F5', 'G5', null, 'B4', null],
     kick: KICK_DRIVE,
   },
+  // ---- Mundo 3: Fronteira Estelar (sintetizado, mais espaçoso) ----
+  moon: {
+    tempo: 92,
+    bass: ['A3', null, null, null, 'F3', null, null, null, 'C3', null, null, null, 'G3', null, null, null],
+    lead: ['E5', null, null, 'A5', null, 'G5', null, null, 'F5', null, 'E5', null, 'C5', null, null, null],
+    arp: ['A4', 'C5', 'E5', 'C5', 'F4', 'A4', 'C5', 'A4', 'C4', 'E4', 'G4', 'E4', 'G4', 'B4', 'D5', 'B4'],
+  },
+  station: {
+    tempo: 126,
+    bass: ['E3', null, 'E3', 'G3', null, 'E3', 'D3', null, 'C3', null, 'C3', 'D3', null, 'E3', 'B2', null],
+    lead: ['B4', 'E5', null, 'G5', 'F#5', null, 'E5', null, 'D5', null, 'E5', 'B4', null, 'G4', null, null],
+    kick: KICK_4,
+  },
+  nebula: {
+    tempo: 108,
+    bass: ['D3', null, null, 'D3', 'Bb2', null, null, 'Bb2', 'C3', null, null, 'C3', 'A3', null, 'A3', null],
+    lead: ['F5', null, 'A5', null, 'G5', 'F5', 'D5', null, 'E5', null, 'C5', 'D5', 'E5', null, 'C#5', null],
+    arp: ['D4', 'F4', 'A4', 'D5', 'Bb3', 'D4', 'F4', 'Bb4', 'C4', 'E4', 'G4', 'C5', 'A3', 'C#5', 'E4', 'A4'],
+  },
+  belt: {
+    tempo: 142,
+    bass: ['G3', 'G3', null, 'Bb3', null, 'G3', 'F3', null, 'Eb3', 'Eb3', null, 'F3', null, 'D3', 'D3', null],
+    lead: ['D5', null, 'G5', 'Bb5', null, 'A5', 'G5', null, 'F5', null, 'Eb5', 'D5', null, 'Bb4', null, null],
+    kick: KICK_DRIVE,
+  },
+  citadel: {
+    tempo: 120,
+    bass: ['C3', null, 'G3', null, 'Ab3', null, 'Eb3', null, 'F3', null, 'C3', null, 'G3', null, 'B2', null],
+    lead: ['G4', 'C5', 'Eb5', null, 'D5', null, 'C5', 'B4', 'C5', null, 'Ab4', null, 'G4', null, 'B4', null],
+    arp: ['C4', 'Eb4', 'G4', 'Eb4', 'Ab3', 'C4', 'Eb4', 'C4', 'F3', 'Ab3', 'C4', 'Ab3', 'G3', 'B3', 'D4', 'B3'],
+    kick: KICK_4,
+  },
+  boss3: {
+    tempo: 180,
+    bass: ['E3', 'E3', 'G3', 'E3', 'F3', 'E3', 'D3', 'B2', 'E3', 'E3', 'G3', 'A3', 'Bb3', 'A3', 'G3', 'F#3'],
+    lead: ['E5', 'G5', 'B5', null, 'Bb5', null, 'A5', 'G5', 'F#5', null, 'G5', 'A5', 'B5', null, 'E6', null],
+    arp: ['E4', 'B4', 'E5', 'B4', 'F4', 'C5', 'F5', 'C5', 'D5', 'A4', 'D5', 'A4', 'E5', 'B4', 'G4', 'B4'],
+    kick: KICK_DRIVE,
+  },
+  ending: {
+    tempo: 84,
+    bass: ['F3', null, 'C3', null, 'D3', null, 'A3', null, 'Bb3', null, 'F3', null, 'C3', null, 'C3', null],
+    lead: ['A5', null, 'G5', 'F5', 'E5', null, 'F5', null, 'D5', null, 'C5', 'Bb4', 'C5', null, null, null],
+    arp: ['F4', 'A4', 'C5', 'F5', 'D4', 'F4', 'A4', 'D5', 'Bb3', 'D4', 'F4', 'Bb4', 'C4', 'E4', 'G4', 'C5'],
+  },
   // ---- Chefes, mapa e créditos ----
   boss1: {
     tempo: 164,

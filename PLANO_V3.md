@@ -5,15 +5,15 @@ Regra geral: nada das partes 1 e 2 pode quebrar, e saves antigos continuam funci
 Decisões tomadas sem consulta ficam em [DECISOES.md](DECISOES.md) (a partir da decisão 36).
 
 ## Fase 1 — Mundo 3 (espacial)
-- [ ] 5 fases novas (11 a 15)
-- [ ] Baixa gravidade
-- [ ] Inversão de gravidade
-- [ ] Portais de teletransporte
-- [ ] Asteroides em movimento
-- [ ] Lasers temporizados
-- [ ] Chefe final com 4 fases de ataque
-- [ ] Cena de final
-- [ ] Migração de save (quem zerou a v2 libera o Mundo 3)
+- [x] 5 fases novas (11 a 15)
+- [x] Baixa gravidade
+- [x] Inversão de gravidade
+- [x] Portais de teletransporte
+- [x] Asteroides em movimento
+- [x] Lasers temporizados
+- [x] Chefe final com 4 fases de ataque
+- [x] Cena de final
+- [x] Migração de save (quem zerou a v2 libera o Mundo 3)
 
 ## Fase 2 — Modo história
 - [ ] Caixa de diálogo com retrato e texto digitado

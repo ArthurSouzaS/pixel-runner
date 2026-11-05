@@ -39,3 +39,15 @@ Registro das decisões tomadas durante o desenvolvimento da v2 sem consulta pré
 | 33 | 9 | O save passou para `version: 2`; saves da v1 são lidos normalmente e recebem valores padrão para os campos novos. | Ninguém perde o progresso da v1. |
 | 34 | 10 | Se a skin do jogador 1 tiver a mesma cor de capacete do jogador 2, o jogador 2 troca automaticamente para vermelho ou roxo. | Encontrado ao gerar os prints: com a skin "Oceano" os dois ficavam iguais. |
 | 35 | 10 | O README mantém o GIF de gameplay da v1 e ganha uma galeria de prints de todos os recursos novos. | Mostra o jogo completo sem pesar o repositório com vários GIFs. |
+
+## Pixel Runner 3
+
+| # | Fase | Decisão | Motivo |
+| --- | --- | --- | --- |
+| 36 | 1 | Os textos novos da v3 já usam a função `t()` com dicionários PT/EN desde a fase 1; a conversão do restante do jogo fica para a fase de idiomas. | Evita reescrever os textos novos duas vezes. |
+| 37 | 1 | Mundo 3 "Fronteira Estelar" (fases 11–15) com gravidade baixa por fase (`gravity` de 0,55 a 0,85), inversores de gravidade (`V`, sempre em pares chão/teto), portais (`portals`), asteroides que machucam (`asteroids`), lasers temporizados com aviso (`lasers`) e o inimigo drone (`d`). | Cada mecânica é apresentada numa fase e combinada nas seguintes. |
+| 38 | 1 | Com gravidade invertida o jogador anda no teto e pisa nos inimigos "de baixo para cima"; cair para fora da tela por cima também é queda. Ao renascer, a gravidade volta ao normal. | Regras simétricas e previsíveis. |
+| 39 | 1 | Chefe final "Eclipse": 16 de vida e 4 fases de ataque (bombardeio, varredura de laser, inversão da gravidade da arena e fúria com teletransportes). Leva dano por pisão (do lado da gravidade) ou investida. | Usa as mecânicas do Mundo 3 no confronto final. |
+| 40 | 1 | Ao vencer a fase 15 toca a cena de final (4 quadros com texto digitado) antes da tela de vitória. | Fecha a história dos três mundos. |
+| 41 | 1 | Save v3: migração "concluiu a última fase liberada → libera a próxima". Quem zerou a v2 (parado na fase 10) ganha a fase 11 automaticamente. | Saves antigos continuam funcionando e passam a enxergar o Mundo 3. |
+| 42 | 1 | Novas conquistas do Mundo 3 (Eclipse, Mundo 3, gravidade e portais); "Herói dos dois mundos" passou a significar concluir o Mundo 2. | Mantém as conquistas já ganhas válidas. |

@@ -579,3 +579,224 @@ export const ORB_FRAMES: PixelArt[] = [
     '.....kkkkkk.....',
   ],
 ];
+
+// ---------------------------------------------------------------------------
+// Mundo 3 (espaço)
+// ---------------------------------------------------------------------------
+
+/** Inversor de gravidade: orbe com setas (0 = para cima, 1 = brilho). */
+export const FLIPPER_FRAMES: PixelArt[] = [
+  [
+    '.....kkkkkk.....',
+    '...kkppppppkk...',
+    '..kpppcwcpppk...',
+    '.kppppwwwppppk..',
+    '.kpppwwcwwpppk..',
+    'kppppppcppppppk.',
+    'kppppppcppppppk.',
+    'kppppppppppppppk',
+    'kppppppcppppppk.',
+    'kppppppcppppppk.',
+    '.kpppwwcwwpppk..',
+    '.kppppwwwppppk..',
+    '..kpppcwcpppk...',
+    '...kkppppppkk...',
+    '.....kkkkkk.....',
+    '................',
+  ],
+  [
+    '.....kkkkkk.....',
+    '...kkcccccckk...',
+    '..kcccwwwccck...',
+    '.kccccwwwccccck.',
+    '.kcccwwwwwccck..',
+    'kccccccwcccccck.',
+    'kccccccwcccccck.',
+    'kcccccccccccccck',
+    'kccccccwcccccck.',
+    'kccccccwcccccck.',
+    '.kcccwwwwwccck..',
+    '.kccccwwwccccck.',
+    '..kcccwwwccck...',
+    '...kkcccccckk...',
+    '.....kkkkkk.....',
+    '................',
+  ],
+];
+
+/** Portal de teletransporte (16x32), 3 frames de brilho. */
+const WARP_BASE = [
+  '.....kkkkkk.....',
+  '...kkppppppkk...',
+  '..kppkkkkkkppk..',
+  '.kpkkbbbbbbkkpk.',
+  '.kpkbbBBBBbbkpk.',
+  'kpkbbBcccBBbbkpk',
+  'kpkbBccwwccBbkpk',
+  'kpkbBcwwwwcBbkpk',
+  'kpkbBccwwccBbkpk',
+  'kpkbBBccccBBbkpk',
+  'kpkbbBBBBBBbbkpk',
+  'kpkbbbBBBBbbbkpk',
+  'kpkbbBBccBBbbkpk',
+  'kpkbBBcwwcBBbkpk',
+  'kpkbBBcwwcBBbkpk',
+  'kpkbbBBccBBbbkpk',
+  'kpkbbbBBBBbbbkpk',
+  'kpkbbBBBBBBbbkpk',
+  'kpkbBBccccBBbkpk',
+  'kpkbBccwwccBbkpk',
+  'kpkbBcwwwwcBbkpk',
+  'kpkbBccwwccBbkpk',
+  'kpkbbBBccBBbbkpk',
+  'kpkbbbBBBBbbbkpk',
+  '.kpkbbbbbbbbkpk.',
+  '.kpkkbbbbbbkkpk.',
+  '..kppkkkkkkppk..',
+  '...kkppppppkk...',
+  '..kGGGGGGGGGGk..',
+  '.kGggggggggggGk.',
+  '.kddddddddddddk.',
+  '.kkkkkkkkkkkkkk.',
+];
+const shiftWarp = (art: string[], offset: number): string[] =>
+  art.map((row, i) => {
+    if (i < 4 || i > 23) return row;
+    const src = art[((i - 4 + offset) % 20) + 4];
+    return row.slice(0, 4) + src.slice(4, 12) + row.slice(12);
+  });
+export const WARP_FRAMES: PixelArt[] = [WARP_BASE, shiftWarp(WARP_BASE, 4), shiftWarp(WARP_BASE, 9)];
+
+export const ASTEROID_ART: PixelArt = [
+  '.....kkkkkk.....',
+  '...kkGGgGGGkk...',
+  '..kGGgggGGdGGk..',
+  '.kGgggGGGdddGGk.',
+  '.kGgGGdGGGdGGGk.',
+  'kGGGGdddGGGGgGGk',
+  'kGgGGGdGGGGgggGk',
+  'kGggGGGGGdGGgGGk',
+  'kGGgGGGGdddGGGGk',
+  'kGGGGdGGGdGGGdGk',
+  'kdGGdddGGGGGdddk',
+  '.kdGGdGGgGGGGdk.',
+  '.kddGGGgggGGddk.',
+  '..kddGGGgGGddk..',
+  '...kkdddddddk...',
+  '.....kkkkkk.....',
+];
+
+/** Drone: flutua e persegue o jogador devagar. */
+export const DRONE_FRAMES: PixelArt[] = [
+  [
+    'kkk..........kkk',
+    'kgk...kkkk...kgk',
+    '.kk..kGGGGk..kk.',
+    '..kkkGggggGkkk..',
+    '....kGkkkkGk....',
+    '...kGkrrrrkGk...',
+    '...kGkrwyrkGk...',
+    '...kGkrrrrkGk...',
+    '....kGkkkkGk....',
+    '.....kGGGGk.....',
+    '......kddk......',
+    '.....kc..ck.....',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+  [
+    '................',
+    'kkk...kkkk...kkk',
+    'kgk.kkGGGGkk.kgk',
+    '.kkkGGggggGGkkk.',
+    '....kGkkkkGk....',
+    '...kGkrrrrkGk...',
+    '...kGkrywrkGk...',
+    '...kGkrrrrkGk...',
+    '....kGkkkkGk....',
+    '.....kGGGGk.....',
+    '......kddk......',
+    '......c..c......',
+    '.....c....c.....',
+    '................',
+    '................',
+    '................',
+  ],
+];
+
+/** Emissor de laser (8x8). */
+export const LASER_EMITTER_ART: PixelArt = ['kkkkkkkk', 'kGGGGGGk', 'kGrrrrGk', 'kGrwwrGk', 'kGrwwrGk', 'kGrrrrGk', 'kGGGGGGk', 'kkkkkkkk'];
+
+/** Chefe final "Eclipse" (16x16 em escala 2x): 0 normal, 1 furioso, 2 atingido. */
+const ECLIPSE_BASE = [
+  '.....kkkkkk.....',
+  '...kkddddddkk...',
+  '..kddpppppppdk..',
+  '.kdpppkkkkpppdk.',
+  '.kdppkyyyykppdk.',
+  'kdppkyoooookppdk',
+  'kdppkyokkoykppdk',
+  'kdppkyokkoykppdk',
+  'kdppkyoooookppdk',
+  'kdppkyyyyyykppdk',
+  '.kdppkkkkkkppdk.',
+  '.kdpppppppppddk.',
+  '..kddppppppddk..',
+  '.k.kkddddddkk.k.',
+  'kpk..kkkkkk..kpk',
+  '.k............k.',
+];
+export const ECLIPSE_FRAMES: PixelArt[] = [
+  ECLIPSE_BASE,
+  ECLIPSE_BASE.map((row) => row.replace(/p/g, 'r').replace(/y/g, 'w')),
+  ECLIPSE_BASE.map((row) => row.replace(/[pdyor]/g, 'w')),
+];
+
+/** Rajada estelar (projétil do chefe final). */
+export const STARBOLT_ART: PixelArt = ['..kk..', '.kpck.', 'kpwwck', 'kcwwpk', '.kcpk.', '..kk..'];
+
+// ---------------------------------------------------------------------------
+// NPCs (personagens originais da vila)
+// ---------------------------------------------------------------------------
+
+/** Vovó Bolt: robô inventora, de óculos e avental. */
+export const NPC_ELDER_FRAMES: PixelArt[] = [
+  [
+    '.....kkkkkk.....',
+    '....kggggggk....',
+    '...kgwkggkwgk...',
+    '...kgkBkkBkgk...',
+    '...kggggggggk...',
+    '....kgkkkkgk....',
+    '.....kggggk.....',
+    '....kuuuuuuk....',
+    '...kuyuuuuyuk...',
+    '...kuuuyyuuuk...',
+    '...kuuuuuuuuk...',
+    '....kuuuuuuk....',
+    '.....kGkkGk.....',
+    '.....kGk.kGk....',
+    '....kGGk.kGGk...',
+    '....kkkk.kkkk...',
+  ],
+  [
+    '.....kkkkkk.....',
+    '....kggggggk....',
+    '...kgwkggkwgk...',
+    '...kgkBkkBkgk...',
+    '...kggggggggk...',
+    '....kgkwwkgk....',
+    '.....kggggk.....',
+    '....kuuuuuuk....',
+    '...kuyuuuuyuk...',
+    '...kuuuyyuuuk...',
+    '...kuuuuuuuuk...',
+    '....kuuuuuuk....',
+    '.....kGkkGk.....',
+    '.....kGk.kGk....',
+    '....kGGk.kGGk...',
+    '....kkkk.kkkk...',
+  ],
+];

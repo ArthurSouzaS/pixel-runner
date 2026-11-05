@@ -10,7 +10,7 @@ import { type ShopState, defaultShopState, sanitizeShop } from './shop';
 import { type PlayerStats, emptyStats, sanitizeStats } from './stats';
 
 export const SAVE_KEY = 'pixel-runner:save';
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export interface SaveData extends ShopState {
   version: number;
@@ -57,10 +57,15 @@ export function sanitizeSave(raw: unknown, totalLevels: number): SaveData {
     }
   }
 
+  // Migração: quem concluiu a última fase liberada ganha a próxima. Isso libera o
+  // Mundo 3 para quem zerou a v2 (que parava na fase 10) e corrige saves inconsistentes.
+  const lastCleared = Math.max(-1, ...Object.keys(bestTimes).map(Number));
+  const unlocked = Math.max(toNonNegative(data.unlockedLevels, 1), lastCleared + 2);
+
   return {
     version: SAVE_VERSION,
     highScore: Math.floor(toNonNegative(data.highScore, 0)),
-    unlockedLevels: clampUnlocked(toNonNegative(data.unlockedLevels, 1), totalLevels),
+    unlockedLevels: clampUnlocked(unlocked, totalLevels),
     bestTimes,
     muted: data.muted === true,
     abilities: Array.isArray(data.abilities) ? grantAllValid(data.abilities) : [],

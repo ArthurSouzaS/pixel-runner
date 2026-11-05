@@ -16,6 +16,7 @@ export const STAT_KEYS = [
   'fastClears',
   'bossCore',
   'bossStorm',
+  'bossEclipse',
   'gameCompleted',
   'coopClears',
   'raceFinishes',
@@ -25,6 +26,8 @@ export const STAT_KEYS = [
   'purchases',
   'playSeconds',
   'maxCombo',
+  'gravityFlips',
+  'portals',
 ] as const;
 
 export type StatKey = (typeof STAT_KEYS)[number];
@@ -48,10 +51,13 @@ export const STAT_LABELS: [StatKey, string][] = [
   ['flawlessLevels', 'Fases sem morrer'],
   ['bossCore', 'Núcleo derrotado'],
   ['bossStorm', 'Tempestade derrotada'],
+  ['bossEclipse', 'Eclipse derrotado'],
   ['coopClears', 'Fases no cooperativo'],
   ['raceFinishes', 'Corridas disputadas'],
   ['editorTests', 'Testes no editor'],
   ['purchases', 'Compras na loja'],
+  ['gravityFlips', 'Inversões de gravidade'],
+  ['portals', 'Portais usados'],
 ];
 
 export function emptyStats(): PlayerStats {

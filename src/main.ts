@@ -1,11 +1,12 @@
 import '@fontsource/press-start-2p/latin.css';
 import Phaser from 'phaser';
 import { sfx } from './audio/Sfx';
-import { GAME_HEIGHT, GAME_WIDTH } from './gfx/textures';
+import { BASE_GRAVITY, GAME_HEIGHT, GAME_WIDTH } from './gfx/textures';
 import { AchievementsScene } from './scenes/AchievementsScene';
 import { BootScene } from './scenes/BootScene';
 import { CreditsScene } from './scenes/CreditsScene';
 import { EditorScene } from './scenes/EditorScene';
+import { EndingScene } from './scenes/EndingScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { HUDScene } from './scenes/HUDScene';
 import { LevelScene } from './scenes/LevelScene';
@@ -36,7 +37,7 @@ const config: Phaser.Types.Core.GameConfig = {
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { x: 0, y: 950 },
+      gravity: { x: 0, y: BASE_GRAVITY },
       debug: false,
       tileBias: 20,
     },
@@ -44,7 +45,7 @@ const config: Phaser.Types.Core.GameConfig = {
   input: {
     activePointers: 4,
   },
-  scene: [BootScene, MenuScene, WorldMapScene, OptionsScene, TwoPlayerScene, EditorScene, ShopScene, AchievementsScene, CreditsScene, LevelScene, HUDScene, PauseScene, TutorialScene, GameOverScene, ToastScene],
+  scene: [BootScene, MenuScene, WorldMapScene, OptionsScene, TwoPlayerScene, EditorScene, ShopScene, AchievementsScene, CreditsScene, LevelScene, HUDScene, PauseScene, TutorialScene, GameOverScene, EndingScene, ToastScene],
 };
 
 // O AudioContext só pode começar após um gesto do usuário.

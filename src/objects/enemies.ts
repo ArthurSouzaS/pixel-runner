@@ -207,6 +207,45 @@ export class Fish extends Enemy {
   }
 }
 
+/** Drone: flutua e persegue o jogador devagar quando ele chega perto. */
+export class Drone extends Enemy {
+  readonly kind = 'drone';
+  override readonly solid = false;
+  private t = Math.random() * Math.PI * 2;
+  private readonly homeX: number;
+  private readonly homeY: number;
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, 'drone');
+    this.homeX = x;
+    this.homeY = y;
+    this.body.setAllowGravity(false);
+    this.body.setSize(10, 10).setOffset(3, 3);
+    this.anims.play('drone-fly');
+  }
+
+  think(ctx: EnemyContext, delta: number): void {
+    if (this.dead) return;
+    const dt = Math.max(delta / 1000, 0.001);
+    this.t += dt;
+    const p = ctx.player;
+    const near = !p.dead && Math.abs(p.x - this.x) < 150 && Math.abs(p.y - this.y) < 110;
+    const speed = 34 * ctx.difficulty;
+    let tx = this.homeX + Math.sin(this.t * 0.8) * 16;
+    let ty = this.homeY + Math.sin(this.t * 2) * 6;
+    if (near) {
+      tx = p.x;
+      ty = p.y - 4;
+    }
+    const dx = tx - this.x;
+    const dy = ty - this.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const v = Math.min(speed, dist * 4);
+    this.body.setVelocity((dx / dist) * v, (dy / dist) * v);
+    this.setFlipX(dx > 0);
+  }
+}
+
 export function createEnemy(scene: Phaser.Scene, kind: EnemyKind, x: number, y: number): Enemy {
   switch (kind) {
     case 'walker':
@@ -221,5 +260,7 @@ export function createEnemy(scene: Phaser.Scene, kind: EnemyKind, x: number, y: 
       return new Fish(scene, x, y);
     case 'armored':
       return new Armored(scene, x, y);
+    case 'drone':
+      return new Drone(scene, x, y);
   }
 }

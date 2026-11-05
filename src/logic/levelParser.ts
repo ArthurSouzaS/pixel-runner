@@ -19,7 +19,7 @@ export const TileIndex = {
 /** Índices de tiles sólidos (usados para colisão). */
 export const SOLID_TILES: readonly number[] = [TileIndex.Top, TileIndex.Fill, TileIndex.Block, TileIndex.Platform, TileIndex.Ice, TileIndex.Breakable];
 
-export type EnemyKind = 'walker' | 'hopper' | 'bat' | 'turret' | 'fish' | 'armored';
+export type EnemyKind = 'walker' | 'hopper' | 'bat' | 'turret' | 'fish' | 'armored' | 'drone';
 
 export interface GridPoint {
   x: number;
@@ -45,6 +45,8 @@ export interface ParsedLevel {
   spikes: GridPoint[];
   springs: GridPoint[];
   fallers: GridPoint[];
+  /** Inversores de gravidade (`V`). */
+  flippers: GridPoint[];
   /** Posição do orbe de habilidade (`A`), se houver. */
   ability: GridPoint | null;
   enemies: EnemySpawn[];
@@ -57,6 +59,7 @@ const ENEMY_CHARS: Record<string, EnemyKind> = {
   t: 'turret',
   f: 'fish',
   a: 'armored',
+  d: 'drone',
 };
 
 const isGround = (ch: string | undefined): boolean => ch === '#';
@@ -79,6 +82,7 @@ export function parseLevel(map: readonly string[]): ParsedLevel {
     spikes: [],
     springs: [],
     fallers: [],
+    flippers: [],
     ability: null,
     enemies: [],
   };
@@ -112,6 +116,9 @@ export function parseLevel(map: readonly string[]): ParsedLevel {
           break;
         case 'F':
           result.fallers.push({ x, y });
+          break;
+        case 'V':
+          result.flippers.push({ x, y });
           break;
         case '^':
           result.spikes.push({ x, y });

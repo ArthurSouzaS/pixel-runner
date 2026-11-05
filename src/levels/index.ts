@@ -8,10 +8,15 @@ import { level7 } from './level7';
 import { level8 } from './level8';
 import { level9 } from './level9';
 import { level10 } from './level10';
+import { level11 } from './level11';
+import { level12 } from './level12';
+import { level13 } from './level13';
+import { level14 } from './level14';
+import { level15 } from './level15';
 import type { LevelData } from './types';
 
-/** Todas as fases, em ordem. Cada mundo tem 5 fases, a última com chefe. */
-export const LEVELS: readonly LevelData[] = [level1, level2, level3, level4, level5, level6, level7, level8, level9, level10];
+/** Todas as fases, em ordem. Cada mundo tem 5 fases, a última com chefe (a 15 é o chefe final). */
+export const LEVELS: readonly LevelData[] = [level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, level11, level12, level13, level14, level15];
 
 export const TOTAL_LEVELS = LEVELS.length;
 export const LEVELS_PER_WORLD = 5;
@@ -26,10 +31,11 @@ export interface WorldInfo {
 export const WORLDS: readonly WorldInfo[] = [
   { id: 1, name: 'Terras de Pix', firstLevel: 0 },
   { id: 2, name: 'Arquipélago Celeste', firstLevel: 5 },
+  { id: 3, name: 'Fronteira Estelar', firstLevel: 10 },
 ];
 
 export function worldOfLevel(levelIndex: number): WorldInfo {
   return WORLDS[Math.min(WORLDS.length - 1, Math.floor(levelIndex / LEVELS_PER_WORLD))];
 }
 
-export type { LevelData, LevelTheme, MoverData, HintData, ThemeKey, TileRect, WindZone, BossKind } from './types';
+export type { LevelData, LevelTheme, MoverData, HintData, ThemeKey, TileRect, WindZone, BossKind, PortalData, AsteroidData, LaserData } from './types';

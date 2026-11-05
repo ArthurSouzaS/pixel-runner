@@ -101,6 +101,29 @@ describe('recordLevelClear', () => {
   });
 });
 
+describe('migração para a versão 3', () => {
+  it('quem zerou a v2 (fase 10) ganha acesso ao Mundo 3', () => {
+    const storage = new MemoryStorage();
+    const times = Object.fromEntries(Array.from({ length: 10 }, (_, i) => [i, 60 + i]));
+    storage.setItem(SAVE_KEY, JSON.stringify({ version: 2, unlockedLevels: 10, bestTimes: times, abilities: ['wallClimb', 'glide', 'charge'], wallet: 50 }));
+    const save = loadSave(storage, 15);
+    expect(save.version).toBe(3);
+    expect(save.unlockedLevels).toBe(11);
+    expect(save.abilities).toEqual(['wallClimb', 'glide', 'charge']);
+    expect(save.wallet).toBe(50);
+  });
+
+  it('não libera nada a mais para quem não concluiu a última fase liberada', () => {
+    const save = sanitizeSave({ version: 2, unlockedLevels: 7, bestTimes: { 0: 30, 1: 40, 2: 50, 3: 60, 4: 70, 5: 80 } }, 15);
+    expect(save.unlockedLevels).toBe(7);
+  });
+
+  it('nunca passa do total de fases', () => {
+    const times = Object.fromEntries(Array.from({ length: 15 }, (_, i) => [i, 60]));
+    expect(sanitizeSave({ unlockedLevels: 15, bestTimes: times }, 15).unlockedLevels).toBe(15);
+  });
+});
+
 describe('save da versão 2', () => {
   const TOTAL_V2 = 10;
 
@@ -108,7 +131,8 @@ describe('save da versão 2', () => {
     const storage = new MemoryStorage();
     storage.setItem(SAVE_KEY, JSON.stringify({ version: 1, highScore: 9000, unlockedLevels: 5, bestTimes: { 0: 40, 4: 120 }, muted: true }));
     const save = loadSave(storage, TOTAL_V2);
-    expect(save).toMatchObject({ version: 2, highScore: 9000, unlockedLevels: 5, bestTimes: { 0: 40, 4: 120 }, muted: true });
+    // A fase 5 (índice 4) foi concluída, então a 6 é liberada pela migração.
+    expect(save).toMatchObject({ version: 3, highScore: 9000, unlockedLevels: 6, bestTimes: { 0: 40, 4: 120 }, muted: true });
     expect(save.abilities).toEqual([]);
     expect(save.wallet).toBe(0);
     expect(save.equippedSkin).toBe('classic');
@@ -123,7 +147,7 @@ describe('save da versão 2', () => {
       ...defaultSave(),
       highScore: 12345,
       unlockedLevels: 8,
-      bestTimes: { 0: 30, 7: 99.5 },
+      bestTimes: { 0: 30, 6: 99.5 },
       abilities: ['wallClimb', 'glide'] as ('wallClimb' | 'glide' | 'charge')[],
       wallet: 321,
       ownedSkins: ['classic', 'ruby'],

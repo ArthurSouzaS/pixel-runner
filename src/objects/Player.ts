@@ -92,6 +92,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private rushTimer = 0;
   private rushDir: 1 | -1 = 1;
   private wasInWater = false;
+  /** 1 = gravidade normal, -1 = invertida (anda no teto). */
+  gravityDir: 1 | -1 = 1;
 
   /** Disparados para a cena criar partículas/efeitos. */
   onLand?: () => void;
@@ -135,7 +137,22 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   get onGround(): boolean {
-    return this.body.blocked.down || this.body.touching.down;
+    return this.gravityDir > 0 ? this.body.blocked.down || this.body.touching.down : this.body.blocked.up || this.body.touching.up;
+  }
+
+  /** Inverte (ou restaura) a gravidade do jogador. */
+  setGravityDir(dir: 1 | -1): void {
+    if (this.gravityDir === dir) return;
+    this.gravityDir = dir;
+    this.setFlipY(dir < 0);
+    // A arte ocupa o quadro inteiro: o corpo acompanha o lado dos pés.
+    this.body.setOffset(4, dir > 0 ? 2 : 0);
+    this.body.setVelocityY(this.body.velocity.y * 0.3);
+  }
+
+  /** Velocidade vertical no sentido "para baixo" da gravidade atual. */
+  get fallSpeed(): number {
+    return this.body.velocity.y * this.gravityDir;
   }
 
   respawn(x: number, y: number): void {
@@ -150,12 +167,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.rushTimer = 0;
     this.chargeMs = 0;
     this.combo = 0;
+    this.setGravityDir(1);
     this.invulnerableTimer = PLAYER_TUNING.invulnerableMs;
   }
 
   /** Quique ao pisar num inimigo. */
   bounce(strong = false, jumpHeld = false): void {
-    this.setVelocityY(-(strong ? 380 : jumpHeld ? 330 : 250));
+    this.setVelocityY(-this.gravityDir * (strong ? 380 : jumpHeld ? 330 : 250));
     this.jumping = false;
     this.canDoubleJump = true;
     this.canDash = true;
@@ -173,7 +191,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   /** Lançamento vertical (mola). */
   launch(velocity: number): void {
-    this.setVelocityY(-velocity);
+    this.setVelocityY(-this.gravityDir * velocity);
     this.jumping = false;
     this.canDoubleJump = true;
     this.canDash = true;
@@ -195,7 +213,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.anims.stop();
     this.body.checkCollision.none = true;
     this.body.setCollideWorldBounds(false);
-    this.setVelocity(0, -320);
+    this.setVelocity(0, -320 * this.gravityDir);
     this.setTint(0xffffff);
   }
 
@@ -217,13 +235,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       return;
     }
 
+    const g = this.gravityDir;
     const onGround = this.onGround;
     if (onGround) {
       this.coyoteTimer = T.coyoteMs;
       this.canDoubleJump = true;
       this.canDash = true;
       this.combo = 0;
-      if (!this.wasOnGround && body.velocity.y >= 0) this.onLand?.();
+      if (!this.wasOnGround && body.velocity.y * g >= 0) this.onLand?.();
     } else {
       this.coyoteTimer -= delta;
     }
@@ -246,7 +265,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       if (env.inWater) body.setVelocityY(body.velocity.y * 0.35);
     }
     const gravity = this.scene.physics.world.gravity.y;
-    body.setGravityY(env.inWater ? -gravity * (1 - T.waterGravityScale) : 0);
+    // Gravidade invertida: soma -2g à gravidade do mundo para o resultado ser -g.
+    body.setGravityY(env.inWater ? -gravity * (1 - T.waterGravityScale) : g < 0 ? -2 * gravity : 0);
     body.setMaxVelocityY(env.inWater ? T.waterMaxFall : T.maxFall);
     if (env.inWater) {
       this.canDoubleJump = true;
@@ -328,7 +348,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
     this.onWall = wallDir !== 0 && dir === wallDir ? wallDir : 0;
     if (this.onWall !== 0) {
-      body.setVelocityY(-T.climbSpeed);
+      body.setVelocityY(-g * T.climbSpeed);
       this.facing = this.onWall;
       this.canDoubleJump = true;
       this.canDash = true;
@@ -345,7 +365,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.onJump?.(false);
     } else if (this.onWall !== 0 && input.jumpPressed) {
       // Salto na parede: impulso para o lado oposto.
-      body.setVelocity(-this.onWall * T.wallJumpX, -T.wallJumpY);
+      body.setVelocity(-this.onWall * T.wallJumpX, -g * T.wallJumpY);
       this.facing = this.onWall === 1 ? -1 : 1;
       this.wallJumpLock = T.wallJumpLockMs;
       this.onWall = 0;
@@ -355,14 +375,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.onJump?.(false);
     } else if (this.jumpBuffer > 0) {
       if (this.coyoteTimer > 0) {
-        body.setVelocityY(-T.jumpVelocity);
+        body.setVelocityY(-g * T.jumpVelocity);
         this.jumping = true;
         this.coyoteTimer = 0;
         this.jumpBuffer = 0;
         sfx.play('jump');
         this.onJump?.(false);
       } else if (this.canDoubleJump && input.jumpPressed) {
-        body.setVelocityY(-T.doubleJumpVelocity);
+        body.setVelocityY(-g * T.doubleJumpVelocity);
         this.jumping = true;
         this.canDoubleJump = false;
         this.jumpBuffer = 0;
@@ -371,17 +391,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.scene.tweens.add({ targets: this, angle: this.facing * 360, duration: 280, onComplete: () => this.setAngle(0) });
       }
     }
-    if (body.velocity.y >= 0) this.jumping = false;
-    if (this.jumping && !input.jumpHeld && body.velocity.y < -T.jumpCutVelocity) {
-      body.setVelocityY(-T.jumpCutVelocity);
+    if (body.velocity.y * g >= 0) this.jumping = false;
+    if (this.jumping && !input.jumpHeld && body.velocity.y * g < -T.jumpCutVelocity) {
+      body.setVelocityY(-g * T.jumpCutVelocity);
       this.jumping = false;
     }
 
     // Planar ----------------------------------------------------------------
     this.gliding =
-      this.abilities.has('glide') && !onGround && !env.inWater && this.onWall === 0 && input.jumpHeld && !this.jumping && body.velocity.y > 0;
+      this.abilities.has('glide') && !onGround && !env.inWater && this.onWall === 0 && input.jumpHeld && !this.jumping && body.velocity.y * g > 0;
     if (this.gliding) {
-      body.setVelocityY(Math.min(body.velocity.y, T.glideFall));
+      body.setVelocityY(g * Math.min(body.velocity.y * g, T.glideFall));
       // Correntes de ar sobem ainda mais com o cachecol aberto.
       if (env.windY < 0) body.setVelocityY(body.velocity.y + env.windY * dt * 0.6);
     }
@@ -403,7 +423,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   stopRush(knockback = false): void {
     if (!this.isRushing) return;
     this.endRush();
-    if (knockback) this.body.setVelocity(-this.rushDir * 180, -220);
+    if (knockback) this.body.setVelocity(-this.rushDir * 180, -220 * this.gravityDir);
   }
 
   private endRush(): void {
@@ -416,6 +436,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const ghost = this.scene.add
       .image(this.x, this.y, this.texture.key, 8)
       .setFlipX(this.flipX)
+      .setFlipY(this.flipY)
       .setTint(color)
       .setAlpha(0.6)
       .setDepth(9)
@@ -442,7 +463,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
     if (!this.onGround) {
       this.anims.stop();
-      this.setFrame(this.body.velocity.y < 0 ? 6 : 7);
+      this.setFrame(this.fallSpeed < 0 ? 6 : 7);
       return;
     }
     const key = this.texture.key;

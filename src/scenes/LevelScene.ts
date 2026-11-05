@@ -30,6 +30,9 @@ import { MovingPlatform } from '../objects/MovingPlatform';
 import { Player } from '../objects/Player';
 import { Spring } from '../objects/Spring';
 import { StormBoss } from '../objects/StormBoss';
+import { EclipseBoss } from '../objects/EclipseBoss';
+import { Asteroid, Laser } from '../objects/spaceHazards';
+import { BASE_GRAVITY } from '../gfx/textures';
 import { saveManager } from '../systems/saveManager';
 import { pixelText } from '../ui/text';
 
@@ -95,6 +98,14 @@ export class LevelScene extends Phaser.Scene {
   private fallers: FallingPlatform[] = [];
   private waterRects: Phaser.Geom.Rectangle[] = [];
   private windZones: { rect: Phaser.Geom.Rectangle; vx: number; vy: number }[] = [];
+  private flippers: Phaser.Physics.Arcade.Sprite[] = [];
+  private portals: { a: Phaser.GameObjects.Sprite; b: Phaser.GameObjects.Sprite }[] = [];
+  private asteroids: Asteroid[] = [];
+  private lasers: Laser[] = [];
+  /** Varreduras de laser do chefe final. */
+  private beams: { rect: Phaser.Geom.Rectangle; gfx: Phaser.GameObjects.Rectangle; warnUntil: number; until: number }[] = [];
+  /** Relógio da fase em ms (para lasers), que para na pausa. */
+  private clockMs = 0;
   private bossDefeated = false;
   private gateClosed = false;
 
@@ -164,6 +175,12 @@ export class LevelScene extends Phaser.Scene {
     this.fallers = [];
     this.waterRects = [];
     this.windZones = [];
+    this.flippers = [];
+    this.portals = [];
+    this.asteroids = [];
+    this.lasers = [];
+    this.beams = [];
+    this.clockMs = 0;
   }
 
   create(): void {
@@ -182,7 +199,10 @@ export class LevelScene extends Phaser.Scene {
     this.createEnvironment();
     this.createHints();
 
-    this.physics.world.setBounds(0, -64, worldW, worldH + 64, true, true, true, false);
+    // Gravidade da fase (o Mundo 3 tem gravidade baixa). Com inversores, cair "para cima" também é queda.
+    this.physics.world.gravity.y = BASE_GRAVITY * (this.level.gravity ?? 1);
+    const canFlip = this.parsed.flippers.length > 0 || this.level.boss === 'eclipse';
+    this.physics.world.setBounds(0, -64, worldW, worldH + 64, true, true, !canFlip, false);
     const cam = this.cameras.main;
     cam.setBounds(0, 0, worldW, worldH);
     this.focus = this.add.zone(this.player.x, this.player.y, 1, 1);
@@ -413,7 +433,16 @@ export class LevelScene extends Phaser.Scene {
         },
         onDefeated: (x, y) => this.onBossDefeated(x, y),
       };
-      if (this.level.boss === 'storm') {
+      if (this.level.boss === 'eclipse') {
+        const gateX = p.gate.length > 0 ? p.gate[0].x : 0;
+        const eclipseHooks = {
+          ...hooks,
+          beam: (y: number, warnMs: number, onMs: number) => this.bossBeam(y, warnMs, onMs, (gateX + 1) * TILE_SIZE, (p.width - 1) * TILE_SIZE),
+          setGravity: (dir: 1 | -1) => this.players.forEach((pl) => !pl.dead && pl.setGravityDir(dir)),
+          gravity: () => this.player.gravityDir,
+        };
+        this.boss = new EclipseBoss(this, c.x, c.y, { minX: (gateX + 1) * TILE_SIZE, maxX: (p.width - 1) * TILE_SIZE, groundY: (p.height - 2) * TILE_SIZE, ceilY: TILE_SIZE }, eclipseHooks);
+      } else if (this.level.boss === 'storm') {
         const gateX = p.gate.length > 0 ? p.gate[0].x : 0;
         this.boss = new StormBoss(this, c.x, c.y, { minX: (gateX + 1) * TILE_SIZE, maxX: (p.width - 1) * TILE_SIZE, groundY: (p.height - 2) * TILE_SIZE }, hooks);
       } else {
@@ -424,8 +453,89 @@ export class LevelScene extends Phaser.Scene {
     }
   }
 
+  /** Elementos do Mundo 3: inversores, portais, asteroides e lasers. */
+  private createSpace(): void {
+    for (const f of this.parsed.flippers) {
+      const c = tileCenter(f);
+      const flipper = this.physics.add.staticSprite(c.x, c.y, 'flipper', 0).setDepth(4);
+      flipper.play('flipper-pulse');
+      (flipper.body as Phaser.Physics.Arcade.StaticBody).setSize(12, 12);
+      this.flippers.push(flipper);
+    }
+    for (const pd of this.level.portals ?? []) {
+      const a = this.add.sprite(pd.ax * TILE_SIZE + 8, pd.ay * TILE_SIZE, 'warp').setDepth(3).play('warp-spin');
+      const b = this.add.sprite(pd.bx * TILE_SIZE + 8, pd.by * TILE_SIZE, 'warp').setDepth(3).play('warp-spin');
+      this.portals.push({ a, b });
+    }
+    for (const ad of this.level.asteroids ?? []) this.asteroids.push(new Asteroid(this, ad));
+    for (const ld of this.level.lasers ?? []) this.lasers.push(new Laser(this, ld));
+  }
+
+  /** Varredura de laser horizontal do chefe final. */
+  private bossBeam(y: number, warnMs: number, onMs: number, minX: number, maxX: number): void {
+    const rect = new Phaser.Geom.Rectangle(minX, y - 3, maxX - minX, 6);
+    const gfx = this.add.rectangle(rect.centerX, rect.centerY, rect.width, 2, 0xb13e53, 0.8).setDepth(7);
+    this.beams.push({ rect, gfx, warnUntil: this.clockMs + warnMs, until: this.clockMs + warnMs + onMs });
+    sfx.play('shoot');
+  }
+
+  private updateSpace(dt: number): void {
+    this.clockMs += dt;
+    for (const a of this.asteroids) a.step(this.moverClock, dt);
+    for (const l of this.lasers) l.update(this.clockMs);
+    this.beams = this.beams.filter((b) => {
+      if (this.clockMs >= b.until) {
+        b.gfx.destroy();
+        return false;
+      }
+      const on = this.clockMs >= b.warnUntil;
+      b.gfx.setFillStyle(on ? 0xf4f4f4 : 0xb13e53, on ? 1 : Math.floor(this.clockMs / 80) % 2 ? 0.9 : 0.3).setSize(b.rect.width, on ? 6 : 2);
+      b.gfx.setData('on', on);
+      return true;
+    });
+    for (const player of this.players) {
+      if (player.dead || player.isInvulnerable) continue;
+      const box = player.body;
+      if (this.lasers.some((l) => l.hits(box)) || this.beams.some((b) => b.gfx.getData('on') && Phaser.Geom.Rectangle.Overlaps(b.rect, new Phaser.Geom.Rectangle(box.x, box.y, box.width, box.height)))) {
+        this.killPlayer(player);
+      }
+    }
+    // Portais: entra num, sai no outro (com um tempinho de recarga).
+    for (const player of this.players) {
+      if (player.dead || this.clockMs < ((player.getData('warpCd') as number) ?? 0)) continue;
+      for (const pair of this.portals) {
+        const from = [pair.a, pair.b].find((s) => Math.abs(s.x - player.x) < 9 && Math.abs(s.y - player.y) < 18);
+        if (!from) continue;
+        const to = from === pair.a ? pair.b : pair.a;
+        this.fx.sparkle.explode(14, player.x, player.y);
+        player.body.reset(to.x, to.y + 2);
+        player.setData('warpCd', this.clockMs + 700);
+        this.fx.sparkle.explode(14, to.x, to.y);
+        sfx.play('ability');
+        saveManager.stat('portals');
+        break;
+      }
+    }
+  }
+
+  private touchFlipper(player: Player, flipper: Phaser.Physics.Arcade.Sprite): void {
+    if (player.dead || this.clockMs < ((player.getData('flipCd') as number) ?? 0)) return;
+    player.setData('flipCd', this.clockMs + 450);
+    player.setGravityDir(player.gravityDir === 1 ? -1 : 1);
+    saveManager.stat('gravityFlips');
+    sfx.play('spring');
+    this.fx.sparkle.explode(10, flipper.x, flipper.y);
+  }
+
+  /** Pisão que respeita a direção da gravidade do jogador. */
+  private isStomp(player: Player, target: Phaser.Physics.Arcade.Body, tolerance: number): boolean {
+    const pb = player.body;
+    return player.gravityDir > 0 ? pb.velocity.y > 0 && pb.bottom <= target.top + tolerance : pb.velocity.y < 0 && pb.top >= target.bottom - tolerance;
+  }
+
   /** Água e vento (regiões definidas nos dados da fase). */
   private createEnvironment(): void {
+    this.createSpace();
     for (const w of this.level.water ?? []) {
       const rect = new Phaser.Geom.Rectangle(w.x * TILE_SIZE, w.y * TILE_SIZE, w.w * TILE_SIZE, w.h * TILE_SIZE);
       this.waterRects.push(rect);
@@ -514,6 +624,10 @@ export class LevelScene extends Phaser.Scene {
         }
       });
       this.physics.add.overlap(player, this.springs, (_p, s) => this.touchSpring(player, s as Spring));
+      this.physics.add.overlap(player, this.flippers, (_p, f) => this.touchFlipper(player, f as Phaser.Physics.Arcade.Sprite));
+      this.physics.add.overlap(player, this.asteroids, () => {
+        if (!player.isInvulnerable) this.killPlayer(player);
+      });
       this.physics.add.overlap(player, this.coins, (_p, coin) => this.collectCoin(player, coin as Phaser.Physics.Arcade.Sprite));
       this.physics.add.overlap(player, this.spikes, () => {
         if (!player.isInvulnerable) this.killPlayer(player);
@@ -558,6 +672,7 @@ export class LevelScene extends Phaser.Scene {
     }
 
     this.moverClock += dt / 1000;
+    this.updateSpace(dt);
     for (const mover of this.movers) mover.step(this.moverClock, dt);
     const worldBottom = this.parsed.height * TILE_SIZE;
     for (const f of this.fallers) f.step(dt, worldBottom);
@@ -573,7 +688,7 @@ export class LevelScene extends Phaser.Scene {
       player.update(this.inputs.read(player.index), dt);
       const tag = player.getData('tag') as Phaser.GameObjects.Text | undefined;
       tag?.setPosition(player.x, player.y - 16).setVisible(player.visible && !player.dead);
-      if (!player.dead && player.y > worldBottom + 16) this.killPlayer(player, true);
+      if (!player.dead && (player.y > worldBottom + 16 || player.y < -24)) this.killPlayer(player, true);
     }
 
     const ctx: EnemyContext = {
@@ -706,8 +821,7 @@ export class LevelScene extends Phaser.Scene {
 
   private touchEnemy(player: Player, enemy: Enemy): void {
     if (enemy.dead || player.dead || this.finished) return;
-    const pb = player.body;
-    const stomp = pb.velocity.y > 0 && pb.bottom <= enemy.body.top + 10;
+    const stomp = this.isStomp(player, enemy.body, 10);
     if (enemy.armored && !player.isRushing) {
       // Blindado: pisão e dash só ricocheteiam. Encostar de lado machuca.
       if (stomp || player.isDashing) {
@@ -783,7 +897,7 @@ export class LevelScene extends Phaser.Scene {
 
   private touchSpring(player: Player, spring: Spring): void {
     const pb = player.body;
-    if (player.dead || pb.velocity.y < 0 || pb.bottom > spring.body.top + 8) return;
+    if (player.dead || player.gravityDir < 0 || pb.velocity.y < 0 || pb.bottom > spring.body.top + 8) return;
     player.launch(Spring.LAUNCH_VELOCITY);
     spring.boing();
     sfx.play('spring');
@@ -819,7 +933,7 @@ export class LevelScene extends Phaser.Scene {
     const boss = this.boss;
     if (!boss || !boss.active || player.dead) return;
     const pb = player.body;
-    const stomp = pb.velocity.y > 0 && pb.bottom <= boss.body.top + 12;
+    const stomp = this.isStomp(player, boss.body, 12);
     if (player.isRushing) {
       // A investida também fere os chefes, mas ricocheteia o jogador.
       this.hitBoss(boss);
@@ -851,7 +965,7 @@ export class LevelScene extends Phaser.Scene {
     }
     this.setGate(true);
     sfx.play('gate');
-    sfx.playMusic(this.level.boss === 'storm' ? 'boss2' : 'boss1');
+    sfx.playMusic(this.level.boss === 'eclipse' ? 'boss3' : this.level.boss === 'storm' ? 'boss2' : 'boss1');
     this.cameras.main.shake(400, 0.01);
     this.bossHud.visible = true;
     this.boss.wake();
@@ -861,7 +975,7 @@ export class LevelScene extends Phaser.Scene {
     this.bossDefeated = true;
     this.bossHud.visible = false;
     sfx.playMusic(this.level.theme.key);
-    saveManager.stat(this.level.boss === 'storm' ? 'bossStorm' : 'bossCore');
+    saveManager.stat(this.level.boss === 'eclipse' ? 'bossEclipse' : this.level.boss === 'storm' ? 'bossStorm' : 'bossCore');
     this.run = addPoints(this.run, POINTS.boss);
     this.floatingText(x, y - 20, `+${POINTS.boss}`, COLORS.yellow);
     this.fx.confetti.explode(60, x, y);
@@ -995,7 +1109,7 @@ export class LevelScene extends Phaser.Scene {
     this.time.delayedCall(3400, () =>
       this.fadeTo(() => {
         if (next === null) {
-          this.scene.start('GameOver', { victory: true, score: this.run.score, levelIndex: this.levelIndex, isNewRecord, mode: this.mode });
+          this.scene.start('Ending', { score: this.run.score, isNewRecord, mode: this.mode });
         } else {
           this.scene.restart({ levelIndex: next, run: { ...this.run, levelIndex: next }, mode: this.mode } satisfies LevelSceneData);
         }

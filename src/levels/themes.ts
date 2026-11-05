@@ -2,7 +2,7 @@ import { LEVELS } from './index';
 import type { LevelTheme, ThemeKey } from './types';
 
 /** Temas disponíveis (na ordem em que aparecem no jogo) e seus nomes. */
-export const THEME_KEYS: readonly ThemeKey[] = ['grass', 'cave', 'factory', 'ice', 'castle', 'frost', 'reef', 'ruins', 'sky', 'storm'];
+export const THEME_KEYS: readonly ThemeKey[] = ['grass', 'cave', 'factory', 'ice', 'castle', 'frost', 'reef', 'ruins', 'sky', 'storm', 'moon', 'station', 'nebula', 'belt', 'citadel'];
 
 export const THEME_NAMES: Record<ThemeKey, string> = {
   grass: 'Campos',
@@ -15,6 +15,11 @@ export const THEME_NAMES: Record<ThemeKey, string> = {
   ruins: 'Ruínas',
   sky: 'Penhasco',
   storm: 'Tempestade',
+  moon: 'Lua',
+  station: 'Estação',
+  nebula: 'Nebulosa',
+  belt: 'Asteroides',
+  citadel: 'Cidadela',
 };
 
 /** Paleta completa de um tema, reaproveitando as cores das fases oficiais. */
