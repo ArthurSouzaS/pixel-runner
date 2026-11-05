@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
-import { ensurePixSkin, PLAYER2_COLORS } from '../gfx/skins';
+import { ensurePixSkin, ensurePlayer2Skin } from '../gfx/skins';
 import { findSkin, findTrail } from '../logic/shop';
 import { createTrailEmitter } from './ShopScene';
 import { createBackgroundTextures, createMoverTexture, createTileset, GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
@@ -288,7 +288,7 @@ export class LevelScene extends Phaser.Scene {
 
   private createPlayer(index: number, x: number, y: number): Player {
     const skin = findSkin(saveManager.get().equippedSkin);
-    const texture = index === 0 ? ensurePixSkin(this, skin.id, skin.colors) : ensurePixSkin(this, 'p2', PLAYER2_COLORS);
+    const texture = index === 0 ? ensurePixSkin(this, skin.id, skin.colors) : ensurePlayer2Skin(this, skin.colors);
     const player = new Player(this, x, y, texture, index);
     for (const a of saveManager.get().abilities) player.abilities.add(a);
     player.isWallAt = (wx, wy) => {
@@ -969,7 +969,7 @@ export class LevelScene extends Phaser.Scene {
     if (this.mode === 'race') {
       const winner = player.index + 1;
       this.showPanel(`JOGADOR ${winner} VENCEU!`, [`Tempo: ${formatTime(this.elapsed)}`, `Moedas P1: ${this.raceCoins[0]}   P2: ${this.raceCoins[1]}`], 'Boa corrida!', winner === 1 ? COLORS.lightGreen : COLORS.cyan);
-      this.time.delayedCall(3400, () => this.fadeTo(() => this.scene.start('GameOver', { victory: true, score: 0, levelIndex: this.levelIndex, isNewRecord: false, mode: 'race', winner })));
+      this.time.delayedCall(3400, () => this.fadeTo(() => this.scene.start('GameOver', { victory: true, score: 0, levelIndex: this.levelIndex, isNewRecord: false, mode: 'race', winner, winnerTexture: player.texture.key })));
       return;
     }
 
@@ -1078,6 +1078,11 @@ export class LevelScene extends Phaser.Scene {
       raceProgress: this.mode === 'race' ? this.players.map((p) => Phaser.Math.Clamp(p.x / width, 0, 1)) : NO_NUMBERS,
       raceCoins: this.mode === 'race' ? this.raceCoins : NO_NUMBERS,
     };
+  }
+
+  /** Textura de cada jogador (o HUD usa nos marcadores da corrida). */
+  playerTextures(): string[] {
+    return this.players.map((p) => p.texture.key);
   }
 
   getLevelInfo(): { number: number; name: string; subtitle: string; mode: GameMode; custom: boolean } {

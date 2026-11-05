@@ -37,3 +37,5 @@ Registro das decisões tomadas durante o desenvolvimento da v2 sem consulta pré
 | 31 | 8 | Fora da fase (menus, mapa, pausa, tutorial) o controle simula teclas: direcional = setas (com repetição ao segurar), A/Start = Enter, B/Select = Esc. | Todos os menus passam a funcionar com controle sem reescrever cada um. |
 | 32 | 8 | Em 2 jogadores, com dois controles cada um comanda um jogador; com um só controle, ele fica com o jogador 2 e o jogador 1 usa o teclado. | Permite jogar a dois com apenas um controle extra. |
 | 33 | 9 | O save passou para `version: 2`; saves da v1 são lidos normalmente e recebem valores padrão para os campos novos. | Ninguém perde o progresso da v1. |
+| 34 | 10 | Se a skin do jogador 1 tiver a mesma cor de capacete do jogador 2, o jogador 2 troca automaticamente para vermelho ou roxo. | Encontrado ao gerar os prints: com a skin "Oceano" os dois ficavam iguais. |
+| 35 | 10 | O README mantém o GIF de gameplay da v1 e ganha uma galeria de prints de todos os recursos novos. | Mostra o jogo completo sem pesar o repositório com vários GIFs. |

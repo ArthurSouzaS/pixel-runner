@@ -26,3 +26,17 @@ export function ensurePixSkin(scene: Phaser.Scene, id: string, colors: ColorMap)
 
 /** Skin padrão do jogador 2 (capacete azul, cachecol amarelo). */
 export const PLAYER2_COLORS: ColorMap = { l: 'c', t: 'B', T: 'b', o: 'y' };
+
+/** Alternativas para o jogador 2 caso a skin do jogador 1 tenha a mesma cor de capacete. */
+const PLAYER2_OPTIONS: { id: string; colors: ColorMap }[] = [
+  { id: 'p2', colors: PLAYER2_COLORS },
+  { id: 'p2-red', colors: { l: 'o', t: 'r', T: 'p', o: 'y' } },
+  { id: 'p2-purple', colors: { l: 'w', t: 'p', T: 'n', o: 'l' } },
+];
+
+/** Escolhe e cria a skin do jogador 2, sempre diferente do capacete do jogador 1. */
+export function ensurePlayer2Skin(scene: Phaser.Scene, player1Colors: ColorMap): string {
+  const p1Helmet = player1Colors.t ?? 't';
+  const choice = PLAYER2_OPTIONS.find((o) => o.colors.t !== p1Helmet) ?? PLAYER2_OPTIONS[0];
+  return ensurePixSkin(scene, choice.id, choice.colors);
+}

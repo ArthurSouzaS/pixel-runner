@@ -91,8 +91,9 @@ export class HUDScene extends Phaser.Scene {
     const w = GAME_WIDTH - 240;
     this.add.rectangle(x0, y, w, 4, COLORS.ink, 0.7).setOrigin(0, 0.5).setStrokeStyle(1, COLORS.white, 0.6);
     this.add.image(x0 + w + 8, y - 4, 'portal', 0).setScale(0.5);
-    const p1 = this.add.image(x0, y - 6, 'pix', 0).setScale(0.75);
-    const p2 = this.add.image(x0, y - 6, this.textures.exists('pix-p2') ? 'pix-p2' : 'pix', 0).setScale(0.75);
+    const [t1, t2] = this.level.playerTextures();
+    const p1 = this.add.image(x0, y - 6, t1 ?? 'pix', 0).setScale(0.75);
+    const p2 = this.add.image(x0, y - 6, t2 ?? 'pix', 0).setScale(0.75);
     this.raceMarkers = [p1, p2];
     this.raceMarkers.forEach((m) => m.setData('x0', x0).setData('w', w));
   }

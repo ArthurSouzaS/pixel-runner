@@ -15,8 +15,9 @@ export interface GameOverData {
   levelIndex: number;
   isNewRecord: boolean;
   mode?: GameMode;
-  /** Corrida: jogador vencedor (1 ou 2). */
+  /** Corrida: jogador vencedor (1 ou 2) e a textura dele. */
   winner?: number;
+  winnerTexture?: string;
 }
 
 /** Tela de fim de jogo (derrota ou vitória). */
@@ -88,7 +89,7 @@ export class GameOverScene extends Phaser.Scene {
     const title = pixelText(this, cx, 60, `JOGADOR ${data.winner} VENCEU!`, { size: 18, color, strokeThickness: 5 }).setOrigin(0.5);
     title.setScale(0.3);
     this.tweens.add({ targets: title, scale: 1, duration: 500, ease: 'Back.easeOut' });
-    const key = data.winner === 1 ? 'pix' : 'pix-p2';
+    const key = data.winnerTexture ?? 'pix';
     const pix = this.add.sprite(cx, 112, this.textures.exists(key) ? key : 'pix', 0).setScale(3);
     this.tweens.add({ targets: pix, y: 100, duration: 300, yoyo: true, repeat: -1, ease: 'Quad.easeOut' });
     const next = Math.min(data.levelIndex + 1, saveManager.get().unlockedLevels - 1);

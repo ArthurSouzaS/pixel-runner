@@ -1,6 +1,6 @@
 # Plano — Pixel Runner 2
 
-Checklist de desenvolvimento da versão 2. Ao fim de cada fase: testes, build, correções, atualização deste plano, commit e push na `main`.
+Checklist de desenvolvimento da versão 2. **Status: todas as fases concluídas.** Ao fim de cada fase: testes, build, correções, atualização deste plano, commit e push na `main`.
 Decisões tomadas sem consulta ficam registradas em [DECISOES.md](DECISOES.md).
 
 ## Fase 1 — Mundo 2
@@ -61,4 +61,4 @@ Decisões tomadas sem consulta ficam registradas em [DECISOES.md](DECISOES.md).
   - Teste de fumaça no navegador passou por todas as cenas, as 10 fases e os modos sem erros, a 60 FPS.
 
 ## Fase 10 — Documentação
-- [ ] README atualizado com as novidades e o link do jogo
+- [x] README atualizado com as novidades e o link do jogo

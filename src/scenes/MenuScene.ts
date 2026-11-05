@@ -4,6 +4,8 @@ import { COLORS } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
 import { TOTAL_LEVELS } from '../levels';
 import { formatScore } from '../logic/score';
+import { findSkin } from '../logic/shop';
+import { ensurePixSkin } from '../gfx/skins';
 import { saveManager } from '../systems/saveManager';
 import { MenuList } from '../ui/MenuList';
 import { pixelText } from '../ui/text';
@@ -31,7 +33,9 @@ export class MenuScene extends Phaser.Scene {
     pixelText(this, cx, 66, 'um jogo de Arthur Souza Soares', { size: 8, color: COLORS.white }).setOrigin(0.5);
 
     // Pix correndo no chão do menu.
-    const pix = this.add.sprite(70, GAME_HEIGHT - 40, 'pix').play('pix-run').setScale(2);
+    const skin = findSkin(saveManager.get().equippedSkin);
+    const skinKey = ensurePixSkin(this, skin.id, skin.colors);
+    const pix = this.add.sprite(70, GAME_HEIGHT - 40, skinKey).play(`${skinKey}-run`).setScale(2);
     this.tweens.add({ targets: pix, x: GAME_WIDTH - 70, duration: 5000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', onYoyo: () => pix.setFlipX(true), onRepeat: () => pix.setFlipX(false) });
 
     const panel = this.add.rectangle(cx, 140, 220, 126, COLORS.ink, 0.65).setStrokeStyle(2, COLORS.white, 0.4);

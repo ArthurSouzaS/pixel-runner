@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
-import { ensurePixSkin, PLAYER2_COLORS } from '../gfx/skins';
+import { ensurePixSkin, ensurePlayer2Skin } from '../gfx/skins';
+import { findSkin } from '../logic/shop';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
 import type { GameMode } from '../input/controls';
 import { LEVELS } from '../levels';
@@ -41,8 +42,9 @@ export class TwoPlayerScene extends Phaser.Scene {
     this.cursors = [58, 84].map((y) => pixelText(this, 0, y, '>', { size: 10, color: COLORS.yellow }).setOrigin(0.5));
 
     // Controles de cada jogador
-    this.add.image(cx - 110, 160, 'pix', 0).setScale(2);
-    this.add.image(cx + 110, 160, ensurePixSkin(this, 'p2', PLAYER2_COLORS), 0).setScale(2);
+    const skin = findSkin(saveManager.get().equippedSkin);
+    this.add.image(cx - 110, 160, ensurePixSkin(this, skin.id, skin.colors), 0).setScale(2);
+    this.add.image(cx + 110, 160, ensurePlayer2Skin(this, skin.colors), 0).setScale(2);
     pixelText(this, cx - 110, 186, 'JOGADOR 1\nA D  mover\nW  pular\nS  dash\nE  investida', { size: 8, align: 'center', color: COLORS.lightGreen }).setOrigin(0.5, 0).setLineSpacing(3);
     pixelText(this, cx + 110, 186, 'JOGADOR 2\nSetas  mover\nCima  pular\nBaixo  dash\nEnter  investida', { size: 8, align: 'center', color: COLORS.cyan }).setOrigin(0.5, 0).setLineSpacing(3);
     pixelText(this, cx, GAME_HEIGHT - 10, 'Enter/Espaço: jogar   Esc: voltar', { size: 8, color: COLORS.gray }).setOrigin(0.5);
