@@ -34,6 +34,7 @@ import { saveManager } from './systems/saveManager';
 import { installAccessibility } from './systems/accessibility';
 import { textSettings } from './ui/text';
 import { setLang } from './i18n';
+import { type BeforeInstallPromptEvent, installPrompt } from './systems/install';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -107,3 +108,16 @@ async function start(): Promise<void> {
 }
 
 void start();
+
+// PWA: o service worker deixa o jogo instalável e jogável offline (só no build de produção).
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => undefined);
+  });
+}
+
+// Guarda o convite de instalação para oferecer a opção "Instalar" nas Opções.
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  installPrompt.event = event as BeforeInstallPromptEvent;
+});

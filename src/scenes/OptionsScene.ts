@@ -7,6 +7,7 @@ import { type VolumeChannel, volumeBar } from '../logic/audioSettings';
 import { saveManager } from '../systems/saveManager';
 import { pixelText } from '../ui/text';
 import { t } from '../i18n';
+import { installPrompt, isStandalone, promptInstall } from '../systems/install';
 import { createMenuBackdrop } from './menuBackdrop';
 
 interface Row {
@@ -47,6 +48,9 @@ export class OptionsScene extends Phaser.Scene {
       volumeRow('sfx', t('options.sfx')),
       { label: () => t('common.sound', { state: sfx.isMuted() ? t('common.off') : t('common.on') }), activate: () => saveManager.toggleMute(), adjust: () => saveManager.toggleMute() },
       { label: () => t('options.access'), activate: () => this.scene.start('Accessibility') },
+      ...(installPrompt.event && !isStandalone()
+        ? [{ label: () => t('options.install'), activate: () => void promptInstall().then(() => this.scene.restart()) }]
+        : []),
       { label: () => t('options.controls'), activate: () => this.toggleControls(true) },
       { label: () => t('common.back'), activate: () => this.scene.start('Menu') },
     ];

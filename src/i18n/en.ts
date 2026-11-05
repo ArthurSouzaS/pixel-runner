@@ -593,4 +593,5 @@ export const en: Dictionary = {
   "key.ShiftRight": "R Shift",
   "key.ControlRight": "R Ctrl",
   "key.Backspace": "Backspace",
+  "options.install": "Install on this device",
 };

@@ -1,8 +1,10 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
+import { serviceWorker } from './build/serviceWorker';
 
 export default defineConfig({
   base: '/pixel-runner/',
+  plugins: [serviceWorker()],
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: 1600,

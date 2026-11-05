@@ -55,8 +55,8 @@ Decisões tomadas sem consulta ficam em [DECISOES.md](DECISOES.md) (a partir da 
 - [x] Troca de idioma no menu
 
 ## Fase 9 — PWA
-- [ ] Manifest e ícones originais
-- [ ] Service worker: instalável e jogável offline
+- [x] Manifest e ícones originais
+- [x] Service worker: instalável e jogável offline
 
 ## Fase 10 — Testes e revisão
 - [ ] Testes: geração procedural (determinismo e fases possíveis), missões, fantasma, migração de save, traduções faltando

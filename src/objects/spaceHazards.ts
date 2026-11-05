@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { AsteroidData, LaserData } from '../levels/types';
+import { type LaserState, laserStateAt } from '../logic/laser';
 import { TILE_SIZE } from '../logic/levelParser';
 
 /** Asteroide que flutua indo e voltando e gira. Encostar machuca. */
@@ -44,18 +45,7 @@ export class Asteroid extends Phaser.Physics.Arcade.Image {
   }
 }
 
-export type LaserState = 'off' | 'warning' | 'on';
-
-export const LASER_WARNING_MS = 500;
-
-/** Estado de um laser temporizado num instante (ms). Função pura para testes. */
-export function laserStateAt(data: Pick<LaserData, 'on' | 'off' | 'offset'>, timeMs: number): LaserState {
-  const cycle = data.on + data.off;
-  if (cycle <= 0) return 'on';
-  const t = (((timeMs + data.offset) % cycle) + cycle) % cycle;
-  if (t < data.on) return 'on';
-  return t >= cycle - LASER_WARNING_MS ? 'warning' : 'off';
-}
+export { LASER_WARNING_MS, type LaserState, laserStateAt } from '../logic/laser';
 
 /** Laser entre dois emissores. Mata enquanto está ligado. */
 export class Laser {

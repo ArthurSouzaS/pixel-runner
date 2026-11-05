@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LASER_WARNING_MS, laserStateAt } from '../src/objects/spaceHazards';
+import { LASER_WARNING_MS, laserStateAt } from '../src/logic/laser';
 
 describe('lasers temporizados', () => {
   const laser = { on: 1000, off: 1500, offset: 0 };

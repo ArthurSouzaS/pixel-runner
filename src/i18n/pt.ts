@@ -383,4 +383,5 @@ export const pt: Dictionary = {
   "credits.tech": "TECNOLOGIAS",
   "credits.font": "FONTE",
   "credits.thanks": "Obrigado por jogar!",
+  "options.install": "Instalar no dispositivo",
 };
