@@ -26,10 +26,10 @@ Decisões tomadas sem consulta ficam registradas em [DECISOES.md](DECISOES.md).
 - [x] Câmera que acompanha os dois jogadores
 
 ## Fase 4 — Editor de fases
-- [ ] Grade de tiles, inimigos, moedas e checkpoints
-- [ ] Salvar no localStorage
-- [ ] Exportar e importar JSON
-- [ ] Jogar a fase criada
+- [x] Grade de tiles, inimigos, moedas e checkpoints
+- [x] Salvar no localStorage
+- [x] Exportar e importar JSON
+- [x] Jogar a fase criada
 
 ## Fase 5 — Loja
 - [ ] Carteira de moedas

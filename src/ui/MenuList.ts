@@ -18,6 +18,8 @@ export class MenuList {
   private cursor: Phaser.GameObjects.Text;
   private index = 0;
   private active = true;
+  private readonly keyHandlers: [string, () => void][];
+  private readonly kb: Phaser.Input.Keyboard.KeyboardPlugin | null;
 
   constructor(
     scene: Phaser.Scene,
@@ -40,14 +42,17 @@ export class MenuList {
     this.cursor = pixelText(scene, 0, 0, '>', { size, color: COLORS.yellow }).setOrigin(0.5);
     scene.tweens.add({ targets: this.cursor, alpha: 0.3, duration: 400, yoyo: true, repeat: -1 });
 
-    const kb = scene.input.keyboard;
-    kb?.on('keydown-UP', () => this.move(-1));
-    kb?.on('keydown-W', () => this.move(-1));
-    kb?.on('keydown-DOWN', () => this.move(1));
-    kb?.on('keydown-S', () => this.move(1));
-    kb?.on('keydown-ENTER', () => this.activate());
-    kb?.on('keydown-SPACE', () => this.activate());
-    kb?.on('keydown-Z', () => this.activate());
+    this.kb = scene.input.keyboard;
+    this.keyHandlers = [
+      ['keydown-UP', () => this.move(-1)],
+      ['keydown-W', () => this.move(-1)],
+      ['keydown-DOWN', () => this.move(1)],
+      ['keydown-S', () => this.move(1)],
+      ['keydown-ENTER', () => this.activate()],
+      ['keydown-SPACE', () => this.activate()],
+      ['keydown-Z', () => this.activate()],
+    ];
+    for (const [event, fn] of this.keyHandlers) this.kb?.on(event, fn);
     this.refresh();
   }
 
@@ -57,6 +62,22 @@ export class MenuList {
 
   private isEnabled(i: number): boolean {
     return this.items[i].enabled?.() ?? true;
+  }
+
+  getTexts(): Phaser.GameObjects.Text[] {
+    return this.texts;
+  }
+
+  getCursor(): Phaser.GameObjects.Text {
+    return this.cursor;
+  }
+
+  /** Remove os textos e os atalhos de teclado. */
+  destroy(): void {
+    for (const [event, fn] of this.keyHandlers) this.kb?.off(event, fn);
+    this.texts.forEach((t) => t.destroy());
+    this.cursor.destroy();
+    this.active = false;
   }
 
   setActive(active: boolean): void {

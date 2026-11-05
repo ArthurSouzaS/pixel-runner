@@ -35,6 +35,8 @@ export interface LevelSceneData {
   run?: RunState;
   /** 'single' (padrão), 'coop' ou 'race'. */
   mode?: GameMode;
+  /** Fase criada no editor (substitui `levelIndex`). */
+  custom?: LevelData;
 }
 
 export interface HudState {
@@ -66,6 +68,7 @@ export class LevelScene extends Phaser.Scene {
   private run!: RunState;
   private runAtStart!: RunState;
   private mode: GameMode = 'single';
+  private custom: LevelData | null = null;
 
   private players: Player[] = [];
   private respawnPoints: { x: number; y: number }[] = [];
@@ -121,7 +124,8 @@ export class LevelScene extends Phaser.Scene {
 
   init(data: LevelSceneData): void {
     this.levelIndex = Phaser.Math.Clamp(data.levelIndex ?? 0, 0, TOTAL_LEVELS - 1);
-    this.level = LEVELS[this.levelIndex];
+    this.custom = data.custom ?? null;
+    this.level = this.custom ?? LEVELS[this.levelIndex];
     this.mode = data.mode ?? 'single';
     this.run = data.run ? { ...data.run, levelIndex: this.levelIndex } : createRun(this.levelIndex);
     this.runAtStart = { ...this.run };
@@ -847,6 +851,11 @@ export class LevelScene extends Phaser.Scene {
     this.finished = true;
     sfx.stopMusic();
     sfx.play('gameOver');
+    if (this.custom) {
+      this.showPanel('FIM DE JOGO', ['Suas vidas acabaram.', 'Volte ao editor e ajuste a fase!'], '', COLORS.red);
+      this.time.delayedCall(2500, () => this.fadeTo(() => this.scene.start('Editor')));
+      return;
+    }
     const isNewRecord = saveManager.submitScore(this.run.score);
     this.cameras.main.fadeOut(600, 26, 28, 44);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
@@ -868,6 +877,11 @@ export class LevelScene extends Phaser.Scene {
     this.fx.confetti.explode(40, this.goal.x, this.goal.y - 10);
     this.tweens.add({ targets: player, x: this.goal.x, alpha: 0, scale: 0.4, angle: 360, duration: 700, ease: 'Quad.easeIn' });
 
+    if (this.custom) {
+      this.showPanel('FASE CONCLUÍDA!', [`Tempo: ${formatTime(this.elapsed)}`, `Moedas: ${this.coinsCollected}/${this.parsed.coins.length}`], 'Voltando ao editor...');
+      this.time.delayedCall(3000, () => this.fadeTo(() => this.scene.start('Editor')));
+      return;
+    }
     if (this.mode === 'race') {
       const winner = player.index + 1;
       this.showPanel(`JOGADOR ${winner} VENCEU!`, [`Tempo: ${formatTime(this.elapsed)}`, `Moedas P1: ${this.raceCoins[0]}   P2: ${this.raceCoins[1]}`], 'Boa corrida!', winner === 1 ? COLORS.lightGreen : COLORS.cyan);
@@ -929,13 +943,17 @@ export class LevelScene extends Phaser.Scene {
 
   /** Reinicia a fase atual com o estado da partida do início da fase. */
   restartLevel(): void {
-    this.scene.restart({ levelIndex: this.levelIndex, run: this.runAtStart, mode: this.mode } satisfies LevelSceneData);
+    this.scene.restart({ levelIndex: this.levelIndex, run: this.runAtStart, mode: this.mode, custom: this.custom ?? undefined } satisfies LevelSceneData);
   }
 
   /** Sai para o menu, registrando a pontuação alcançada. */
   quitToMenu(): void {
-    if (this.mode !== 'race') saveManager.submitScore(this.run.score);
     sfx.stopMusic();
+    if (this.custom) {
+      this.scene.start('Editor');
+      return;
+    }
+    if (this.mode !== 'race') saveManager.submitScore(this.run.score);
     this.scene.start('Menu');
   }
 
@@ -959,7 +977,7 @@ export class LevelScene extends Phaser.Scene {
     };
   }
 
-  getLevelInfo(): { number: number; name: string; subtitle: string; mode: GameMode } {
-    return { number: this.level.id, name: this.level.name, subtitle: this.level.subtitle, mode: this.mode };
+  getLevelInfo(): { number: number; name: string; subtitle: string; mode: GameMode; custom: boolean } {
+    return { number: this.level.id, name: this.level.name, subtitle: this.level.subtitle, mode: this.mode, custom: this.custom !== null };
   }
 }

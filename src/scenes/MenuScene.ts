@@ -35,20 +35,21 @@ export class MenuScene extends Phaser.Scene {
     const pix = this.add.sprite(70, GAME_HEIGHT - 40, 'pix').play('pix-run').setScale(2);
     this.tweens.add({ targets: pix, x: GAME_WIDTH - 70, duration: 5000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', onYoyo: () => pix.setFlipX(true), onRepeat: () => pix.setFlipX(false) });
 
-    const panel = this.add.rectangle(cx, 149, 200, 110, COLORS.ink, 0.65).setStrokeStyle(2, COLORS.white, 0.4);
+    const panel = this.add.rectangle(cx, 156, 210, 126, COLORS.ink, 0.65).setStrokeStyle(2, COLORS.white, 0.4);
     panel.setDepth(-1);
 
     const save = saveManager.get();
-    this.menu = new MenuList(this, cx, 108, [
+    this.menu = new MenuList(this, cx, 104, [
       { label: 'Novo jogo', action: () => this.startGame(0) },
       { label: 'Selecionar fase', action: () => this.scene.start('LevelSelect') },
       { label: '2 jogadores', action: () => this.scene.start('TwoPlayer') },
+      { label: 'Editor de fases', action: () => this.scene.start('Editor') },
       { label: 'Controles', action: () => this.toggleControls(true) },
       { label: () => `Som: ${sfx.isMuted() ? 'Desligado' : 'Ligado'}`, action: () => saveManager.toggleMute() },
     ]);
 
-    pixelText(this, cx, 214, `RECORDE ${formatScore(save.highScore)}`, { size: 8, color: COLORS.cyan }).setOrigin(0.5);
-    pixelText(this, cx, 226, `Fases liberadas: ${save.unlockedLevels}/${TOTAL_LEVELS}`, { size: 8, color: COLORS.white }).setOrigin(0.5);
+    pixelText(this, cx, 230, `RECORDE ${formatScore(save.highScore)}`, { size: 8, color: COLORS.cyan }).setOrigin(0.5);
+    pixelText(this, cx, 242, `Fases liberadas: ${save.unlockedLevels}/${TOTAL_LEVELS}`, { size: 8, color: COLORS.white }).setOrigin(0.5);
 
     this.controls = this.buildControlsPanel();
     this.input.keyboard?.on('keydown-ESC', () => this.toggleControls(false));

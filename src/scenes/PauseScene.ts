@@ -38,7 +38,7 @@ export class PauseScene extends Phaser.Scene {
       },
       { label: () => `Som: ${sfx.isMuted() ? 'Desligado' : 'Ligado'}`, action: () => saveManager.toggleMute() },
       {
-        label: 'Sair para o menu',
+        label: level.getLevelInfo().custom ? 'Voltar ao editor' : 'Sair para o menu',
         action: () => {
           this.scene.stop();
           level.quitToMenu();

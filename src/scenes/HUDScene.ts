@@ -50,7 +50,7 @@ export class HUDScene extends Phaser.Scene {
 
     this.add.image(race ? 92 : 58, 10, 'coin', 0);
     this.coinsText = pixelText(this, race ? 100 : 66, 6, '0/0', { size: 8, color: COLORS.yellow });
-    pixelText(this, GAME_WIDTH / 2, 6, `FASE ${info.number}`, { size: 8, color: COLORS.cyan }).setOrigin(0.5, 0);
+    pixelText(this, GAME_WIDTH / 2, 6, info.custom ? 'TESTE' : `FASE ${info.number}`, { size: 8, color: COLORS.cyan }).setOrigin(0.5, 0);
     this.timeText = pixelText(this, GAME_WIDTH / 2 + 46, 6, '0:00', { size: 8 });
 
     this.scoreText = pixelText(this, GAME_WIDTH - 30, 6, '0000000', { size: 8 }).setOrigin(1, 0);
@@ -70,7 +70,7 @@ export class HUDScene extends Phaser.Scene {
     else if (info.mode === 'coop') pixelText(this, GAME_WIDTH / 2, 24, 'COOPERATIVO', { size: 8, color: COLORS.lightGreen }).setOrigin(0.5, 0).setAlpha(0.8);
     this.level.events.on('panel', this.showPanel, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.level.events.off('panel', this.showPanel, this));
-    this.showLevelCard(info.number, info.name, info.subtitle);
+    this.showLevelCard(info.custom ? 'CRIADA' : String(info.number), info.name, info.subtitle);
 
     if (isTouchDevice()) this.createTouchControls();
   }
@@ -110,7 +110,7 @@ export class HUDScene extends Phaser.Scene {
     this.buttons.forEach((b) => b.gfx.setVisible(false));
   }
 
-  private showLevelCard(n: number, name: string, subtitle: string): void {
+  private showLevelCard(n: string, name: string, subtitle: string): void {
     const card = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 30);
     card.add(this.add.rectangle(0, 0, 320, 56, COLORS.ink, 0.8).setStrokeStyle(2, COLORS.yellow));
     card.add(pixelText(this, 0, -14, `FASE ${n}`, { size: 8, color: COLORS.cyan }).setOrigin(0.5));
