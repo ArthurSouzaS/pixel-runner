@@ -24,6 +24,7 @@ import {
   validateCustomLevel,
 } from '../logic/editor';
 import { TILE_SIZE, TileIndex } from '../logic/levelParser';
+import { saveManager } from '../systems/saveManager';
 import { MenuList } from '../ui/MenuList';
 import { pixelText } from '../ui/text';
 
@@ -402,6 +403,7 @@ export class EditorScene extends Phaser.Scene {
     }
     sfx.play('confirm');
     this.remember();
+    saveManager.stat('editorTests');
     this.scene.start('Level', { levelIndex: 0, custom: toLevelData(this.level) });
   }
 

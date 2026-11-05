@@ -100,6 +100,7 @@ export class LevelScene extends Phaser.Scene {
   private coinsCollected = 0;
   private finished = false;
   private deposited = false;
+  private deathsThisLevel = 0;
   private trail: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
   private bossHud = { hp: BOSS_MAX_HP, max: BOSS_MAX_HP, visible: false, name: '' };
 
@@ -146,6 +147,7 @@ export class LevelScene extends Phaser.Scene {
     this.coinsCollected = 0;
     this.finished = false;
     this.deposited = false;
+    this.deathsThisLevel = 0;
     this.trail = null;
     this.bossHud = { hp: BOSS_MAX_HP, max: BOSS_MAX_HP, visible: false, name: '' };
     this.springs = [];
@@ -268,10 +270,18 @@ export class LevelScene extends Phaser.Scene {
       return !!tile && tile.collides && tile.index !== TileIndex.Platform;
     };
     player.onLand = () => this.fx.dust.explode(6, player.x, player.body.bottom);
-    player.onJump = (double) => this.fx.dust.explode(double ? 10 : 5, player.x, player.body.bottom);
+    player.onJump = (double) => {
+      this.fx.dust.explode(double ? 10 : 5, player.x, player.body.bottom);
+      saveManager.stat(double ? 'doubleJumps' : 'jumps');
+    };
     player.onDash = () => {
       this.fx.dust.explode(8, player.x, player.y);
       this.cameras.main.shake(60, 0.002);
+      saveManager.stat('dashes');
+    };
+    player.onRush = () => {
+      this.fx.dust.explode(12, player.x, player.y);
+      saveManager.stat('rushes');
     };
     if (index === 0) {
       this.trail = createTrailEmitter(this, findTrail(saveManager.get().equippedTrail), player);
@@ -519,7 +529,10 @@ export class LevelScene extends Phaser.Scene {
     const worldBottom = this.parsed.height * TILE_SIZE;
     for (const f of this.fallers) f.step(dt, worldBottom);
 
-    if (!this.finished && this.alivePlayers().length > 0) this.elapsed += dt / 1000;
+    if (!this.finished && this.alivePlayers().length > 0) {
+      this.elapsed += dt / 1000;
+      saveManager.stat('playSeconds', dt / 1000, false);
+    }
     if (this.trail) this.trail.emitting = !this.player.dead && this.player.visible && Math.abs(this.player.body.velocity.x) + Math.abs(this.player.body.velocity.y) > 60;
     for (const player of this.players) {
       this.updateEnvironment(player);
@@ -625,6 +638,7 @@ export class LevelScene extends Phaser.Scene {
     coin.destroy();
     this.coinsCollected++;
     this.raceCoins[player.index]++;
+    saveManager.stat('coins');
     const result = collectCoin(this.run);
     this.run = result.run;
     sfx.play('coin');
@@ -684,6 +698,8 @@ export class LevelScene extends Phaser.Scene {
       this.cameras.main.shake(90, 0.004);
       sfx.play('stomp');
       enemy.kill();
+      saveManager.stat('enemies');
+      saveManager.statMax('maxCombo', player.combo);
     } else if (!player.isInvulnerable) {
       this.killPlayer(player);
     }
@@ -691,7 +707,7 @@ export class LevelScene extends Phaser.Scene {
 
   /** Investida: quebra blocos rachados à frente do jogador. */
   private breakBlocksAhead(p: Player): void {
-    let broke = false;
+    let broke = 0;
     // Abre uma passagem de dois blocos de altura à frente.
     for (const dx of [10, 20]) {
       for (const y of [p.body.top - 10, p.body.center.y, p.body.bottom - 2]) {
@@ -699,13 +715,14 @@ export class LevelScene extends Phaser.Scene {
         if (tile?.index === TileIndex.Breakable) {
           this.layer.removeTileAt(tile.x, tile.y);
           this.fx.pop.explode(10, tile.getCenterX(), tile.getCenterY());
-          broke = true;
+          broke++;
         }
       }
     }
-    if (broke) {
+    if (broke > 0) {
       sfx.play('break');
       this.cameras.main.shake(100, 0.006);
+      saveManager.stat('blocksBroken', broke);
     }
   }
 
@@ -736,6 +753,7 @@ export class LevelScene extends Phaser.Scene {
     player.launch(Spring.LAUNCH_VELOCITY);
     spring.boing();
     sfx.play('spring');
+    saveManager.stat('springs');
     this.fx.dust.explode(8, spring.x, spring.y);
   }
 
@@ -807,6 +825,7 @@ export class LevelScene extends Phaser.Scene {
   private onBossDefeated(x: number, y: number): void {
     this.bossDefeated = true;
     this.bossHud.visible = false;
+    saveManager.stat(this.level.boss === 'storm' ? 'bossStorm' : 'bossCore');
     this.run = addPoints(this.run, POINTS.boss);
     this.floatingText(x, y - 20, `+${POINTS.boss}`, COLORS.yellow);
     this.fx.confetti.explode(60, x, y);
@@ -819,6 +838,9 @@ export class LevelScene extends Phaser.Scene {
   private killPlayer(player: Player, fell = false): void {
     if (player.dead || this.finished) return;
     player.die();
+    this.deathsThisLevel++;
+    saveManager.stat('deaths');
+    saveManager.flush();
     if (fell) player.setVisible(false).setVelocity(0, 0);
     sfx.play('hurt');
     this.cameras.main.shake(260, 0.012);
@@ -869,6 +891,7 @@ export class LevelScene extends Phaser.Scene {
   private gameOver(): void {
     this.finished = true;
     this.depositCoins();
+    saveManager.flush();
     sfx.stopMusic();
     sfx.play('gameOver');
     if (this.custom) {
@@ -903,6 +926,8 @@ export class LevelScene extends Phaser.Scene {
       this.time.delayedCall(3000, () => this.fadeTo(() => this.scene.start('Editor')));
       return;
     }
+    this.recordClearStats();
+    saveManager.flush();
     if (this.mode === 'race') {
       const winner = player.index + 1;
       this.showPanel(`JOGADOR ${winner} VENCEU!`, [`Tempo: ${formatTime(this.elapsed)}`, `Moedas P1: ${this.raceCoins[0]}   P2: ${this.raceCoins[1]}`], 'Boa corrida!', winner === 1 ? COLORS.lightGreen : COLORS.cyan);
@@ -940,6 +965,20 @@ export class LevelScene extends Phaser.Scene {
     );
   }
 
+  private recordClearStats(): void {
+    if (this.custom) return;
+    if (this.mode === 'race') {
+      saveManager.stat('raceFinishes');
+      return;
+    }
+    saveManager.stat('levelsCleared');
+    if (this.parsed.coins.length > 0 && this.coinsCollected >= this.parsed.coins.length) saveManager.stat('perfectLevels');
+    if (this.deathsThisLevel === 0) saveManager.stat('flawlessLevels');
+    if (this.elapsed <= this.level.par / 2) saveManager.stat('fastClears');
+    if (this.mode === 'coop') saveManager.stat('coopClears');
+    if (nextLevelIndex(this.levelIndex, TOTAL_LEVELS) === null) saveManager.stat('gameCompleted');
+  }
+
   private fadeTo(next: () => void): void {
     this.cameras.main.fadeOut(400, 26, 28, 44);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, next);
@@ -956,6 +995,7 @@ export class LevelScene extends Phaser.Scene {
   openPause(): void {
     if (this.finished || this.alivePlayers().length === 0 || !this.scene.isActive()) return;
     sfx.play('pause');
+    saveManager.flush();
     this.inputs.reset();
     this.scene.pause();
     this.scene.launch('Pause', { levelIndex: this.levelIndex });
@@ -971,6 +1011,7 @@ export class LevelScene extends Phaser.Scene {
   /** Sai para o menu, registrando a pontuação alcançada. */
   quitToMenu(): void {
     this.depositCoins();
+    saveManager.flush();
     sfx.stopMusic();
     if (this.custom) {
       this.scene.start('Editor');

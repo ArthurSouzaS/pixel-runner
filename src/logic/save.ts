@@ -3,8 +3,10 @@
  * Recebe um "StorageLike" para poder ser testado sem navegador.
  */
 import { type AbilityId, grantAbility, isAbilityId } from './abilities';
+import { sanitizeAchievements } from './achievements';
 import { clampUnlocked, unlockAfterClear } from './progress';
 import { type ShopState, defaultShopState, sanitizeShop } from './shop';
+import { type PlayerStats, emptyStats, sanitizeStats } from './stats';
 
 export const SAVE_KEY = 'pixel-runner:save';
 export const SAVE_VERSION = 1;
@@ -19,6 +21,9 @@ export interface SaveData extends ShopState {
   muted: boolean;
   /** Habilidades já conquistadas. */
   abilities: AbilityId[];
+  stats: PlayerStats;
+  /** Ids das conquistas desbloqueadas. */
+  achievements: string[];
 }
 
 export interface StorageLike {
@@ -27,7 +32,7 @@ export interface StorageLike {
 }
 
 export function defaultSave(): SaveData {
-  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState() };
+  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [] };
 }
 
 function toNonNegative(value: unknown, fallback: number): number {
@@ -58,6 +63,8 @@ export function sanitizeSave(raw: unknown, totalLevels: number): SaveData {
     muted: data.muted === true,
     abilities: Array.isArray(data.abilities) ? grantAllValid(data.abilities) : [],
     ...sanitizeShop(data),
+    stats: sanitizeStats(data.stats),
+    achievements: sanitizeAchievements(data.achievements),
   };
 }
 

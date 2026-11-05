@@ -37,9 +37,9 @@ Decisões tomadas sem consulta ficam registradas em [DECISOES.md](DECISOES.md).
 - [x] Rastros de partícula
 
 ## Fase 6 — Conquistas, estatísticas e créditos
-- [ ] Pelo menos 15 conquistas
-- [ ] Tela de estatísticas
-- [ ] Tela de créditos
+- [x] Pelo menos 15 conquistas
+- [x] Tela de estatísticas
+- [x] Tela de créditos
 
 ## Fase 7 — Mapa de mundos e áudio
 - [ ] Mapa de seleção de mundos

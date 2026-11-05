@@ -2,7 +2,9 @@ import '@fontsource/press-start-2p/latin.css';
 import Phaser from 'phaser';
 import { sfx } from './audio/Sfx';
 import { GAME_HEIGHT, GAME_WIDTH } from './gfx/textures';
+import { AchievementsScene } from './scenes/AchievementsScene';
 import { BootScene } from './scenes/BootScene';
+import { CreditsScene } from './scenes/CreditsScene';
 import { EditorScene } from './scenes/EditorScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { HUDScene } from './scenes/HUDScene';
@@ -11,6 +13,7 @@ import { LevelSelectScene } from './scenes/LevelSelectScene';
 import { MenuScene } from './scenes/MenuScene';
 import { PauseScene } from './scenes/PauseScene';
 import { ShopScene } from './scenes/ShopScene';
+import { ToastScene } from './scenes/ToastScene';
 import { TutorialScene } from './scenes/TutorialScene';
 import { TwoPlayerScene } from './scenes/TwoPlayerScene';
 import { touchState } from './input/touchState';
@@ -39,7 +42,7 @@ const config: Phaser.Types.Core.GameConfig = {
   input: {
     activePointers: 4,
   },
-  scene: [BootScene, MenuScene, LevelSelectScene, TwoPlayerScene, EditorScene, ShopScene, LevelScene, HUDScene, PauseScene, TutorialScene, GameOverScene],
+  scene: [BootScene, MenuScene, LevelSelectScene, TwoPlayerScene, EditorScene, ShopScene, AchievementsScene, CreditsScene, LevelScene, HUDScene, PauseScene, TutorialScene, GameOverScene, ToastScene],
 };
 
 // O AudioContext só pode começar após um gesto do usuário.
@@ -51,6 +54,13 @@ window.addEventListener('touchstart', unlockAudio, { passive: true });
 // Tecla M liga/desliga o som em qualquer tela.
 window.addEventListener('keydown', (event) => {
   if (event.key === 'm' || event.key === 'M') saveManager.toggleMute();
+});
+
+// Estatísticas ficam em memória e são gravadas de tempos em tempos e ao sair.
+setInterval(() => saveManager.flush(), 15000);
+window.addEventListener('pagehide', () => saveManager.flush());
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveManager.flush();
 });
 
 async function start(): Promise<void> {

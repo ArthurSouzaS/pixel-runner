@@ -10,6 +10,7 @@ export class BootScene extends Phaser.Scene {
   create(): void {
     createSpriteTextures(this);
     this.createAnimations();
+    this.scene.launch('Toast');
     this.scene.start('Menu');
   }
 

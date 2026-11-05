@@ -97,6 +97,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   onLand?: () => void;
   onJump?: (double: boolean) => void;
   onDash?: () => void;
+  onRush?: () => void;
 
   /** Índice do jogador (0 = P1, 1 = P2). */
   readonly index: number;
@@ -395,7 +396,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.body.setAllowGravity(false);
     sfx.play('rush');
     this.scene.cameras.main.shake(120, 0.004);
-    this.onDash?.();
+    this.onRush?.();
   }
 
   /** Interrompe a investida, opcionalmente ricocheteando para trás. */
