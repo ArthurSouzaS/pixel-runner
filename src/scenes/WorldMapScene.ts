@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { t } from '../i18n';
 import { sfx } from '../audio/Sfx';
 import { COLORS, hex } from '../gfx/palette';
 import { ensurePixSkin } from '../gfx/skins';
@@ -10,6 +11,7 @@ import { findSkin } from '../logic/shop';
 import { formatScore, formatTime } from '../logic/score';
 import { saveManager } from '../systems/saveManager';
 import { pixelText } from '../ui/text';
+import { abilityText, levelName, worldName } from '../i18n/data';
 
 /** Posição de cada fase no mapa (pixels da tela). */
 const NODES: { x: number; y: number }[] = [
@@ -69,8 +71,8 @@ export class WorldMapScene extends Phaser.Scene {
 
     // Barra superior
     this.add.rectangle(0, 0, GAME_WIDTH, 20, COLORS.ink, 0.75).setOrigin(0).setDepth(30);
-    pixelText(this, 8, 6, 'MAPA', { size: 8, color: COLORS.yellow }).setDepth(31);
-    pixelText(this, GAME_WIDTH / 2, 6, `RECORDE ${formatScore(save.highScore)}`, { size: 8, color: COLORS.cyan }).setOrigin(0.5, 0).setDepth(31);
+    pixelText(this, 8, 6, t('map.title'), { size: 8, color: COLORS.yellow }).setDepth(31);
+    pixelText(this, GAME_WIDTH / 2, 6, t('menu.record', { score: formatScore(save.highScore) }), { size: 8, color: COLORS.cyan }).setOrigin(0.5, 0).setDepth(31);
     this.add.image(GAME_WIDTH - 60, 10, 'coin', 0).setDepth(31);
     pixelText(this, GAME_WIDTH - 52, 6, String(save.wallet), { size: 8, color: COLORS.yellow }).setDepth(31);
 
@@ -80,7 +82,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.info = pixelText(this, 10, GAME_HEIGHT - 28, '', { size: 8 }).setDepth(31).setLineSpacing(4);
     this.hint = pixelText(this, GAME_WIDTH - 10, GAME_HEIGHT - 16, '', { size: 8, color: COLORS.lightGreen }).setOrigin(1, 0.5).setDepth(31);
     this.hint.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.play());
-    pixelText(this, GAME_WIDTH - 10, GAME_HEIGHT - 38, 'Esc: vila', { size: 8, color: COLORS.gray })
+    pixelText(this, GAME_WIDTH - 10, GAME_HEIGHT - 38, t('map.back'), { size: 8, color: COLORS.gray })
       .setOrigin(1, 0.5)
       .setDepth(31)
       .setInteractive({ useHandCursor: true })
@@ -153,9 +155,9 @@ export class WorldMapScene extends Phaser.Scene {
     g.fillStyle(0xef7d57).fillCircle(372, 82, 10);
     g.fillStyle(0xffcd75).fillCircle(369, 79, 4);
     g.lineStyle(1, 0xffcd75).strokeEllipse(372, 82, 30, 8);
-    pixelText(this, 70, 36, WORLDS[0].name, { size: 8, color: COLORS.white }).setOrigin(0.5);
-    pixelText(this, 250, 176, WORLDS[1].name, { size: 8, color: COLORS.white }).setOrigin(0.5);
-    pixelText(this, 404, 212, WORLDS[2].name, { size: 8, color: COLORS.white }).setOrigin(0.5);
+    pixelText(this, 70, 36, worldName(1, WORLDS[0].name), { size: 8, color: COLORS.white }).setOrigin(0.5);
+    pixelText(this, 250, 176, worldName(2, WORLDS[1].name), { size: 8, color: COLORS.white }).setOrigin(0.5);
+    pixelText(this, 404, 212, worldName(3, WORLDS[2].name), { size: 8, color: COLORS.white }).setOrigin(0.5);
   }
 
   private drawPaths(unlocked: number): void {
@@ -233,18 +235,18 @@ export class WorldMapScene extends Phaser.Scene {
     }
     this.pix.setAlpha(unlocked ? 1 : 0.4);
 
-    this.title.setText(`MUNDO ${world.id} · ${world.name.toUpperCase()}`);
+    this.title.setText(t('map.world', { n: world.id, name: worldName(world.id, world.name).toUpperCase() }));
     if (!unlocked) {
-      this.info.setText(`Fase ${level.id}: ${level.name}\nConclua a fase anterior para liberar.`).setColor(hex(COLORS.gray));
-      this.hint.setText('BLOQUEADA').setColor(hex(COLORS.red));
+      this.info.setText(`${t('map.level', { n: level.id, name: levelName(level) })}\n${t('map.locked')}`).setColor(hex(COLORS.gray));
+      this.hint.setText(t('map.lockedTag')).setColor(hex(COLORS.red));
       return;
     }
     const best = save.bestTimes[this.index];
-    const extras = [best !== undefined ? `Melhor tempo ${formatTime(best)}` : 'Ainda não concluída'];
-    if (level.ability) extras.push(`Orbe: ${ABILITIES[level.ability].name}`);
-    if (level.boss) extras.push('Chefe!');
-    this.info.setText(`Fase ${level.id}: ${level.name}\n${extras.join('  ·  ')}`).setColor(hex(COLORS.white));
-    this.hint.setText('ENTER: JOGAR').setColor(hex(COLORS.lightGreen));
+    const extras = [best !== undefined ? t('map.best', { time: formatTime(best) }) : t('map.notCleared')];
+    if (level.ability) extras.push(t('map.orb', { name: abilityText(level.ability, 'name', ABILITIES[level.ability].name) }));
+    if (level.boss) extras.push(t('map.boss'));
+    this.info.setText(`${t('map.level', { n: level.id, name: levelName(level) })}\n${extras.join('  ·  ')}`).setColor(hex(COLORS.white));
+    this.hint.setText(t('map.play')).setColor(hex(COLORS.lightGreen));
   }
 
   private play(): void {

@@ -1,6 +1,7 @@
 /**
  * Opções de acessibilidade. Módulo puro (sem Phaser), coberto por testes.
  */
+import { tOr } from '../i18n';
 
 export type ColorblindMode = 'off' | 'protanopia' | 'deuteranopia' | 'tritanopia';
 export const COLORBLIND_MODES: readonly ColorblindMode[] = ['off', 'protanopia', 'deuteranopia', 'tritanopia'];
@@ -88,7 +89,8 @@ export function keyLabel(code: string): string {
     ArrowLeft: 'Seta E', ArrowRight: 'Seta D', ArrowUp: 'Seta C', ArrowDown: 'Seta B', Space: 'Espaço', ShiftLeft: 'Shift', ShiftRight: 'Shift D',
     ControlLeft: 'Ctrl', ControlRight: 'Ctrl D', Enter: 'Enter', Escape: 'Esc', Tab: 'Tab', Backspace: 'Apagar', AltLeft: 'Alt',
   };
-  return names[code] ?? code;
+  const name = names[code];
+  return name ? tOr(`key.${code}`, name) : code;
 }
 
 export function sanitizeAccess(raw: unknown): AccessSettings {

@@ -32,7 +32,7 @@ export class OptionsScene extends Phaser.Scene {
     this.tick = createMenuBackdrop(this, 5);
     this.index = 0;
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.ink, 0.6).setOrigin(0);
-    pixelText(this, GAME_WIDTH / 2, 26, 'OPÇÕES', { size: 16, color: COLORS.yellow }).setOrigin(0.5);
+    pixelText(this, GAME_WIDTH / 2, 26, t('options.title'), { size: 16, color: COLORS.yellow }).setOrigin(0.5);
 
     const volumeRow = (channel: VolumeChannel, name: string): Row => ({
       label: () => `${name.padEnd(13, ' ')} < ${volumeBar(saveManager.get().volumes[channel])} >`,
@@ -42,13 +42,13 @@ export class OptionsScene extends Phaser.Scene {
       },
     });
     this.rows = [
-      volumeRow('master', 'Volume geral'),
-      volumeRow('music', 'Música'),
-      volumeRow('sfx', 'Efeitos'),
-      { label: () => `Som: ${sfx.isMuted() ? 'Desligado' : 'Ligado'}`, activate: () => saveManager.toggleMute(), adjust: () => saveManager.toggleMute() },
+      volumeRow('master', t('options.master')),
+      volumeRow('music', t('options.music')),
+      volumeRow('sfx', t('options.sfx')),
+      { label: () => t('common.sound', { state: sfx.isMuted() ? t('common.off') : t('common.on') }), activate: () => saveManager.toggleMute(), adjust: () => saveManager.toggleMute() },
       { label: () => t('options.access'), activate: () => this.scene.start('Accessibility') },
-      { label: () => 'Ver controles', activate: () => this.toggleControls(true) },
-      { label: () => 'Voltar', activate: () => this.scene.start('Menu') },
+      { label: () => t('options.controls'), activate: () => this.toggleControls(true) },
+      { label: () => t('common.back'), activate: () => this.scene.start('Menu') },
     ];
     this.texts = this.rows.map((row, i) => {
       const t = pixelText(this, GAME_WIDTH / 2, 60 + i * 24, '', { size: 10 }).setOrigin(0.5).setInteractive({ useHandCursor: true });
@@ -60,7 +60,7 @@ export class OptionsScene extends Phaser.Scene {
       });
       return t;
     });
-    pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 14, 'Cima/Baixo: escolher   Esquerda/Direita: ajustar', { size: 8, color: COLORS.gray }).setOrigin(0.5);
+    pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 14, t('options.hint'), { size: 8, color: COLORS.gray }).setOrigin(0.5);
 
     this.controls = this.buildControlsPanel();
     const kb = this.input.keyboard;
@@ -110,14 +110,12 @@ export class OptionsScene extends Phaser.Scene {
     const cx = GAME_WIDTH / 2;
     const c = this.add.container(0, 0).setDepth(20).setVisible(false);
     c.add(this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.ink, 0.94).setOrigin(0).setInteractive());
-    c.add(pixelText(this, cx, 18, 'CONTROLES', { size: 14, color: COLORS.yellow }).setOrigin(0.5));
-    const solo = isTouchDevice()
-      ? ['Setas da tela . correr', 'Botão A ....... pular / nadar', 'A no ar ....... pulo duplo', 'Segurar A ..... planar*', 'Botão B ....... dash', 'Segurar C ..... investida*', 'Botão II ...... pausa']
-      : ['Setas / A D ......... correr', 'Espaço / W / Z / Up . pular / nadar', 'Pular no ar ......... pulo duplo', 'Segurar pulo caindo . planar*', 'Contra a parede ..... escalar*', 'Shift / X / K ....... dash', 'Segurar C / L ....... investida*', 'Esc / P ............. pausa', 'M ................... som'];
-    c.add(pixelText(this, 24, 40, solo.join('\n'), { size: 8 }).setLineSpacing(6));
-    c.add(pixelText(this, 24, 182, '2 JOGADORES\nP1: A D mover, W pular, S dash, E investida\nP2: setas, Cima pular, Baixo dash, Enter investida', { size: 8, color: COLORS.cyan }).setLineSpacing(4));
-    c.add(pixelText(this, 24, 226, 'GAMEPAD: analógico/direcional, A pular, X dash,\nB investida, Start pausa', { size: 8, color: COLORS.lightGreen }).setLineSpacing(4));
-    c.add(pixelText(this, GAME_WIDTH - 10, 18, '* Mundo 2', { size: 8, color: COLORS.gray }).setOrigin(1, 0.5));
+    c.add(pixelText(this, cx, 18, t('controls.title'), { size: 14, color: COLORS.yellow }).setOrigin(0.5));
+    const solo = isTouchDevice() ? t('controls.touch') : t('controls.keyboard');
+    c.add(pixelText(this, 24, 40, solo, { size: 8 }).setLineSpacing(6));
+    c.add(pixelText(this, 24, 182, t('controls.two'), { size: 8, color: COLORS.cyan }).setLineSpacing(4));
+    c.add(pixelText(this, 24, 226, t('controls.pad'), { size: 8, color: COLORS.lightGreen }).setLineSpacing(4));
+    c.add(pixelText(this, GAME_WIDTH - 10, 18, t('controls.note'), { size: 8, color: COLORS.gray }).setOrigin(1, 0.5));
     c.list[0].on('pointerdown', () => this.toggleControls(false));
     return c;
   }

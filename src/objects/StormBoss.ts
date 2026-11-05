@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
+import { tOr } from '../i18n';
 import type { BossHooks, BossLike } from './Boss';
 import type { Player } from './Player';
 
@@ -17,7 +18,9 @@ type StormState = 'sleep' | 'intro' | 'hover' | 'swoop' | 'aim' | 'dive' | 'rest
 export class StormBoss extends Phaser.Physics.Arcade.Sprite implements BossLike {
   declare body: Phaser.Physics.Arcade.Body;
   readonly maxHp = STORM_MAX_HP;
-  readonly displayName = 'TEMPESTADE RUBRA';
+  get displayName(): string {
+    return tOr('boss.storm', 'TEMPESTADE RUBRA');
+  }
   hp = STORM_MAX_HP;
 
   private mode: StormState = 'sleep';

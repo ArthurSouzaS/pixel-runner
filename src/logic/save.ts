@@ -44,6 +44,8 @@ export interface SaveData extends ShopState {
   speedrun: SpeedrunRecords;
   /** Opções de acessibilidade e controles remapeados. */
   access: AccessSettings;
+  /** Idioma escolhido ('' = automático, pelo navegador). */
+  lang: '' | 'pt' | 'en';
 }
 
 export interface StorageLike {
@@ -52,7 +54,7 @@ export interface StorageLike {
 }
 
 export function defaultSave(): SaveData {
-  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [], volumes: defaultVolumes(), storySeen: [], missions: emptyMissionState(), infinite: [], daily: emptyDaily(), playerName: 'PIX', speedrun: {}, access: defaultAccess() };
+  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [], volumes: defaultVolumes(), storySeen: [], missions: emptyMissionState(), infinite: [], daily: emptyDaily(), playerName: 'PIX', speedrun: {}, access: defaultAccess(), lang: '' };
 }
 
 function toNonNegative(value: unknown, fallback: number): number {
@@ -96,6 +98,7 @@ export function sanitizeSave(raw: unknown, totalLevels: number): SaveData {
     daily: sanitizeDaily(data.daily),
     speedrun: sanitizeSpeedrun(data.speedrun),
     access: sanitizeAccess(data.access),
+    lang: data.lang === 'pt' || data.lang === 'en' ? data.lang : '',
     playerName: typeof data.playerName === 'string' && data.playerName.trim() ? data.playerName.trim().slice(0, 8).toUpperCase() : 'PIX',
     storySeen: Array.isArray(data.storySeen) ? [...new Set(data.storySeen.filter((v): v is string => typeof v === 'string'))] : [],
   };

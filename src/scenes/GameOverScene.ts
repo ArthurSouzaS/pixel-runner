@@ -63,7 +63,7 @@ export class GameOverScene extends Phaser.Scene {
       this.tweens.add({ targets: pix, y: pix.y - 24, duration: 350, yoyo: true, repeat: -1, ease: 'Quad.easeOut' });
     }
 
-    const title = pixelText(this, cx, 52, data.victory ? 'VITÓRIA!' : 'GAME OVER', {
+    const title = pixelText(this, cx, 52, data.victory ? t('over.victory') : t('over.gameOver'), {
       size: 26,
       color: data.victory ? COLORS.yellow : COLORS.red,
       strokeThickness: 6,
@@ -71,21 +71,21 @@ export class GameOverScene extends Phaser.Scene {
     title.setScale(0.3);
     this.tweens.add({ targets: title, scale: 1, duration: 500, ease: 'Back.easeOut' });
 
-    const subtitle = data.victory ? 'Você salvou os três mundos!' : `Você chegou até a fase ${data.levelIndex + 1}`;
+    const subtitle = data.victory ? t('over.saved') : t('over.reached', { n: data.levelIndex + 1 });
     pixelText(this, cx, 84, subtitle, { size: 8 }).setOrigin(0.5);
-    pixelText(this, cx, 106, `PONTOS  ${formatScore(data.score)}`, { size: 10 }).setOrigin(0.5);
-    pixelText(this, cx, 122, `RECORDE ${formatScore(saveManager.get().highScore)}`, { size: 10, color: COLORS.cyan }).setOrigin(0.5);
+    pixelText(this, cx, 106, t('over.points', { score: formatScore(data.score) }), { size: 10 }).setOrigin(0.5);
+    pixelText(this, cx, 122, t('over.record', { score: formatScore(saveManager.get().highScore) }), { size: 10, color: COLORS.cyan }).setOrigin(0.5);
 
     if (data.isNewRecord) {
-      const record = pixelText(this, cx, 140, 'NOVO RECORDE!', { size: 10, color: COLORS.lightGreen }).setOrigin(0.5);
+      const record = pixelText(this, cx, 140, t('common.newRecord'), { size: 10, color: COLORS.lightGreen }).setOrigin(0.5);
       this.tweens.add({ targets: record, alpha: 0.2, duration: 300, yoyo: true, repeat: -1 });
     }
 
     const retryLevel = data.victory ? 0 : data.levelIndex;
     new MenuList(this, cx, 170, [
-      { label: data.victory ? 'Jogar de novo' : 'Tentar de novo', action: () => this.scene.start('Level', { levelIndex: retryLevel, mode: data.mode ?? 'single' }) },
-      { label: 'Mapa do mundo', action: () => this.scene.start('WorldMap') },
-      { label: 'Menu principal', action: () => this.scene.start('Menu') },
+      { label: data.victory ? t('over.playAgain') : t('over.retry'), action: () => this.scene.start('Level', { levelIndex: retryLevel, mode: data.mode ?? 'single' }) },
+      { label: t('over.map'), action: () => this.scene.start('WorldMap') },
+      { label: t('over.menu'), action: () => this.scene.start('Menu') },
     ]);
   }
 
@@ -103,7 +103,7 @@ export class GameOverScene extends Phaser.Scene {
     new MenuList(this, cx, 170, [
       { label: t('infinite.retry'), action: () => this.scene.start('Level', { levelIndex: 0, run: createRun(0), infinite: { seed: e.seed, room: 0, powerup: null } }) },
       { label: t('infinite.newRun'), action: () => this.scene.start('Level', { levelIndex: 0, run: createRun(0), infinite: { seed: randomSeed(), room: 0, powerup: null } }) },
-      { label: 'Menu principal', action: () => this.scene.start('Menu') },
+      { label: t('over.menu'), action: () => this.scene.start('Menu') },
     ]);
   }
 
@@ -113,7 +113,7 @@ export class GameOverScene extends Phaser.Scene {
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.ink, 0.45).setOrigin(0);
     sfx.play('victory');
     const color = data.winner === 1 ? COLORS.lightGreen : COLORS.cyan;
-    const title = pixelText(this, cx, 60, `JOGADOR ${data.winner} VENCEU!`, { size: 18, color, strokeThickness: 5 }).setOrigin(0.5);
+    const title = pixelText(this, cx, 60, t('level.winner', { n: data.winner ?? 1 }), { size: 18, color, strokeThickness: 5 }).setOrigin(0.5);
     title.setScale(0.3);
     this.tweens.add({ targets: title, scale: 1, duration: 500, ease: 'Back.easeOut' });
     const key = data.winnerTexture ?? 'pix';
@@ -121,9 +121,9 @@ export class GameOverScene extends Phaser.Scene {
     this.tweens.add({ targets: pix, y: 100, duration: 300, yoyo: true, repeat: -1, ease: 'Quad.easeOut' });
     const next = Math.min(data.levelIndex + 1, saveManager.get().unlockedLevels - 1);
     new MenuList(this, cx, 170, [
-      { label: 'Revanche', action: () => this.scene.start('Level', { levelIndex: data.levelIndex, mode: 'race' }) },
-      { label: 'Próxima fase', action: () => this.scene.start('Level', { levelIndex: next, mode: 'race' }), enabled: () => next !== data.levelIndex },
-      { label: 'Menu principal', action: () => this.scene.start('Menu') },
+      { label: t('over.rematch'), action: () => this.scene.start('Level', { levelIndex: data.levelIndex, mode: 'race' }) },
+      { label: t('over.nextLevel'), action: () => this.scene.start('Level', { levelIndex: next, mode: 'race' }), enabled: () => next !== data.levelIndex },
+      { label: t('over.menu'), action: () => this.scene.start('Menu') },
     ]);
   }
 

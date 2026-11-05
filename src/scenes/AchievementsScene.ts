@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { t } from '../i18n';
 import { sfx } from '../audio/Sfx';
 import { COLORS, hex } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
@@ -6,6 +7,7 @@ import { ACHIEVEMENTS, achievementProgress } from '../logic/achievements';
 import { STAT_LABELS, formatStat } from '../logic/stats';
 import { saveManager } from '../systems/saveManager';
 import { pixelText } from '../ui/text';
+import { achievementDesc, achievementName, statLabel } from '../i18n/data';
 import { createMenuBackdrop } from './menuBackdrop';
 
 const COLS = 2;
@@ -30,12 +32,12 @@ export class AchievementsScene extends Phaser.Scene {
     this.tick = createMenuBackdrop(this, 4);
     this.tabs = [];
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.ink, 0.72).setOrigin(0);
-    ['CONQUISTAS', 'ESTATÍSTICAS'].forEach((label, i) => {
+    [t('ach.tab.ach'), t('ach.tab.stats')].forEach((label, i) => {
       const t = pixelText(this, 20 + i * 130, 10, label, { size: 10 }).setInteractive({ useHandCursor: true });
       t.on('pointerdown', () => this.setTab(i === 0 ? 'achievements' : 'stats'));
       this.tabs.push(t);
     });
-    pixelText(this, GAME_WIDTH - 12, 12, '< VOLTAR', { size: 8, color: COLORS.gray })
+    pixelText(this, GAME_WIDTH - 12, 12, t('common.backTag'), { size: 8, color: COLORS.gray })
       .setOrigin(1, 0)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.scene.start('Menu'));
@@ -69,13 +71,13 @@ export class AchievementsScene extends Phaser.Scene {
 
     if (tab === 'achievements') {
       const { done, total } = achievementProgress(save.achievements);
-      this.content.add(pixelText(this, GAME_WIDTH / 2, 30, `${done}/${total} desbloqueadas`, { size: 8, color: COLORS.lightGreen }).setOrigin(0.5, 0));
+      this.content.add(pixelText(this, GAME_WIDTH / 2, 30, t('ach.unlocked', { done, total }), { size: 8, color: COLORS.lightGreen }).setOrigin(0.5, 0));
       ACHIEVEMENTS.forEach((a, i) => {
         const unlocked = save.achievements.includes(a.id);
         const x = 30 + (i % COLS) * 226;
         const y = 46 + Math.floor(i / COLS) * ROW_H;
         this.content.add(this.add.image(x, y + 4, unlocked ? 'star' : 'lock').setScale(unlocked ? 1.4 : 0.8));
-        const cell = pixelText(this, x + 12, y, unlocked ? a.name : '???', { size: 8, color: unlocked ? COLORS.white : COLORS.gray }).setInteractive({ useHandCursor: true });
+        const cell = pixelText(this, x + 12, y, unlocked ? achievementName(a.id, a.name) : '???', { size: 8, color: unlocked ? COLORS.white : COLORS.gray }).setInteractive({ useHandCursor: true });
         cell.on('pointerdown', () => {
           this.index = i;
           this.refresh();
@@ -84,8 +86,9 @@ export class AchievementsScene extends Phaser.Scene {
         this.content.add(cell);
       });
     } else {
-      this.content.add(pixelText(this, GAME_WIDTH / 2, 30, `Recorde: ${save.highScore}   Carteira: ${save.wallet} moedas`, { size: 8, color: COLORS.lightGreen }).setOrigin(0.5, 0));
-      STAT_LABELS.forEach(([key, label], i) => {
+      this.content.add(pixelText(this, GAME_WIDTH / 2, 30, t('ach.summary', { score: save.highScore, wallet: save.wallet }), { size: 8, color: COLORS.lightGreen }).setOrigin(0.5, 0));
+      STAT_LABELS.forEach(([key, rawLabel], i) => {
+        const label = statLabel(key, rawLabel);
         const x = 24 + (i % COLS) * 228;
         const y = 50 + Math.floor(i / COLS) * ROW_H;
         this.content.add(pixelText(this, x, y, label, { size: 8, color: COLORS.gray }));
@@ -104,13 +107,13 @@ export class AchievementsScene extends Phaser.Scene {
 
   private refresh(): void {
     if (this.tab !== 'achievements') {
-      this.desc.setText('Tab/Q/E: trocar aba   Esc: voltar');
+      this.desc.setText(t('ach.statsHint'));
       return;
     }
     const save = saveManager.get();
     this.cells.forEach((c, i) => c.setColor(hex(i === this.index ? COLORS.yellow : save.achievements.includes(ACHIEVEMENTS[i].id) ? COLORS.white : COLORS.gray)));
     const a = ACHIEVEMENTS[this.index];
-    this.desc.setText(`${a.name}: ${a.description}`);
+    this.desc.setText(`${achievementName(a.id, a.name)}: ${achievementDesc(a.id, a.description)}`);
   }
 
   update(): void {

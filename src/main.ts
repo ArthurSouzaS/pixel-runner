@@ -33,6 +33,7 @@ import { touchState } from './input/touchState';
 import { saveManager } from './systems/saveManager';
 import { installAccessibility } from './systems/accessibility';
 import { textSettings } from './ui/text';
+import { setLang } from './i18n';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -85,6 +86,9 @@ async function start(): Promise<void> {
   } catch {
     // Segue com a fonte reserva.
   }
+  // Idioma: o escolhido no menu ou, na primeira vez, o do navegador.
+  const saved = saveManager.get().lang;
+  setLang(saved || (navigator.language?.toLowerCase().startsWith('pt') ? 'pt' : 'en'));
   const access = saveManager.get().access;
   textSettings.scale = access.textScale;
   gamepads.mapping = access.pad;

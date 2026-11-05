@@ -1,33 +1,35 @@
 import Phaser from 'phaser';
+import { t } from '../i18n';
 import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
 import { pixelText } from '../ui/text';
 import { createMenuBackdrop } from './menuBackdrop';
 
+/** Linhas dos créditos: chave de tradução (ou texto fixo, começando com "="), e cor. */
 const CREDITS: [string, number][] = [
-  ['PIXEL RUNNER 2', COLORS.yellow],
+  ['credits.title', COLORS.yellow],
   ['', 0],
-  ['CRIAÇÃO, PROGRAMAÇÃO E DESIGN', COLORS.cyan],
-  ['Arthur Souza Soares', COLORS.white],
+  ['credits.creation', COLORS.cyan],
+  ['=Arthur Souza Soares', COLORS.white],
   ['', 0],
-  ['PIXEL ART E PERSONAGENS', COLORS.cyan],
-  ['Pix, inimigos e chefes desenhados em código', COLORS.white],
+  ['credits.art', COLORS.cyan],
+  ['credits.artText', COLORS.white],
   ['', 0],
-  ['MÚSICA E EFEITOS SONOROS', COLORS.cyan],
-  ['Sintetizados em tempo real com Web Audio', COLORS.white],
+  ['credits.music', COLORS.cyan],
+  ['credits.musicText', COLORS.white],
   ['', 0],
-  ['DESIGN DE FASES', COLORS.cyan],
-  ['10 fases em 2 mundos + editor de fases', COLORS.white],
+  ['credits.levels', COLORS.cyan],
+  ['credits.levelsText', COLORS.white],
   ['', 0],
-  ['TECNOLOGIAS', COLORS.cyan],
-  ['Phaser 3 · TypeScript · Vite · Vitest', COLORS.white],
+  ['credits.tech', COLORS.cyan],
+  ['=Phaser 3 · TypeScript · Vite · Vitest', COLORS.white],
   ['', 0],
-  ['FONTE', COLORS.cyan],
-  ['Press Start 2P (SIL Open Font License)', COLORS.white],
+  ['credits.font', COLORS.cyan],
+  ['=Press Start 2P (SIL Open Font License)', COLORS.white],
   ['', 0],
   ['', 0],
-  ['Obrigado por jogar!', COLORS.lightGreen],
+  ['credits.thanks', COLORS.lightGreen],
 ];
 
 /** Créditos rolando. Qualquer tecla ou toque volta ao menu. */
@@ -45,7 +47,7 @@ export class CreditsScene extends Phaser.Scene {
     sfx.playMusic('credits');
     this.roll = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT + 10);
     CREDITS.forEach(([line, color], i) => {
-      if (line) this.roll.add(pixelText(this, 0, i * 16, line, { size: i === 0 ? 16 : 8, color }).setOrigin(0.5, 0));
+      if (line) this.roll.add(pixelText(this, 0, i * 16, line.startsWith('=') ? line.slice(1) : t(line), { size: i === 0 ? 16 : 8, color }).setOrigin(0.5, 0));
     });
     const pix = this.add.sprite(0, CREDITS.length * 16 + 30, 'pix').play('pix-run').setScale(2);
     this.roll.add(pix);

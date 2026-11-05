@@ -44,6 +44,7 @@ import { GhostPlayback, GhostRecorder } from '../logic/ghost';
 import { categoryFor, splitDelta } from '../logic/speedrun';
 import { ghostStore } from '../systems/ghostStore';
 import { t } from '../i18n';
+import { hintText, hintTouchText, levelName, levelSubtitle } from '../i18n/data';
 import { pixelText } from '../ui/text';
 
 export interface LevelSceneData {
@@ -722,8 +723,9 @@ export class LevelScene extends Phaser.Scene {
 
   private createHints(): void {
     const touch = isTouchDevice();
-    for (const hint of this.level.hints ?? []) {
-      const text = pixelText(this, hint.x * TILE_SIZE, hint.y * TILE_SIZE, touch && hint.touchText ? hint.touchText : hint.text, {
+    (this.level.hints ?? []).forEach((hint, index) => {
+      const label = touch && hint.touchText ? hintTouchText(this.level, index, hint.touchText) : hintText(this.level, index, hint.text);
+      const text = pixelText(this, hint.x * TILE_SIZE, hint.y * TILE_SIZE, label, {
         size: 8,
         scalable: true,
         align: 'center',
@@ -733,7 +735,7 @@ export class LevelScene extends Phaser.Scene {
         .setOrigin(0.5)
         .setDepth(2);
       this.tweens.add({ targets: text, y: text.y - 3, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    }
+    });
   }
 
   private createColliders(): void {
@@ -934,7 +936,7 @@ export class LevelScene extends Phaser.Scene {
     sfx.play('coin');
     if (result.extraLife && this.mode !== 'race') {
       sfx.play('extraLife');
-      this.floatingText(player.x, player.y - 14, '+1 VIDA', COLORS.lightGreen);
+      this.floatingText(player.x, player.y - 14, t('level.extraLife'), COLORS.lightGreen);
     }
   }
 
@@ -950,7 +952,7 @@ export class LevelScene extends Phaser.Scene {
       if (flag.getData('active')) return;
       this.respawnPoints = this.respawnPoints.map(() => ({ ...point }));
       this.run = addPoints(this.run, POINTS.checkpoint);
-      this.floatingText(flag.x, flag.y - 20, 'CHECKPOINT!', COLORS.lightGreen);
+      this.floatingText(flag.x, flag.y - 20, t('level.checkpoint'), COLORS.lightGreen);
     }
     if (!flag.getData('active')) {
       flag.setData('active', true);
@@ -1201,7 +1203,7 @@ export class LevelScene extends Phaser.Scene {
       return;
     }
     if (this.custom) {
-      this.showPanel('FIM DE JOGO', ['Suas vidas acabaram.', 'Volte ao editor e ajuste a fase!'], '', COLORS.red);
+      this.showPanel(t('level.gameOver'), [t('level.noLives'), t('level.fixLevel')], '', COLORS.red);
       this.time.delayedCall(2500, () => this.fadeTo(() => this.scene.start('Editor')));
       return;
     }
@@ -1228,7 +1230,7 @@ export class LevelScene extends Phaser.Scene {
     this.tweens.add({ targets: player, x: this.goal.x, alpha: 0, scale: 0.4, angle: 360, duration: 700, ease: 'Quad.easeIn' });
 
     if (this.custom) {
-      this.showPanel('FASE CONCLUÍDA!', [`Tempo: ${formatTime(this.elapsed)}`, `Moedas: ${this.coinsCollected}/${this.parsed.coins.length}`], 'Voltando ao editor...');
+      this.showPanel(t('level.clear'), [t('level.time', { time: formatTime(this.elapsed) }), t('level.coins', { n: this.coinsCollected, total: this.parsed.coins.length })], t('level.backEditor'));
       this.time.delayedCall(3000, () => this.fadeTo(() => this.scene.start('Editor')));
       return;
     }
@@ -1245,7 +1247,7 @@ export class LevelScene extends Phaser.Scene {
     }
     if (this.mode === 'race') {
       const winner = player.index + 1;
-      this.showPanel(`JOGADOR ${winner} VENCEU!`, [`Tempo: ${formatTime(this.elapsed)}`, `Moedas P1: ${this.raceCoins[0]}   P2: ${this.raceCoins[1]}`], 'Boa corrida!', winner === 1 ? COLORS.lightGreen : COLORS.cyan);
+      this.showPanel(t('level.winner', { n: winner }), [t('level.time', { time: formatTime(this.elapsed) }), t('level.raceCoins', { a: this.raceCoins[0], b: this.raceCoins[1] })], t('level.goodRace'), winner === 1 ? COLORS.lightGreen : COLORS.cyan);
       this.time.delayedCall(3400, () => this.fadeTo(() => this.scene.start('GameOver', { victory: true, score: 0, levelIndex: this.levelIndex, isNewRecord: false, mode: 'race', winner, winnerTexture: player.texture.key })));
       return;
     }
@@ -1262,10 +1264,10 @@ export class LevelScene extends Phaser.Scene {
 
     const next = nextLevelIndex(this.levelIndex, TOTAL_LEVELS);
     const worldClear = next === null || worldOfLevel(next).id !== worldOfLevel(this.levelIndex).id;
-    const extra = [bestTime ? 'Novo melhor tempo!' : '', isNewRecord ? 'Novo recorde!' : ''].filter(Boolean).join('  ');
+    const extra = [bestTime ? t('level.bestTime') : '', isNewRecord ? t('level.newRecord') : ''].filter(Boolean).join('  ');
     this.showPanel(
-      worldClear ? 'MUNDO CONCLUÍDO!' : 'FASE CONCLUÍDA!',
-      [`Conclusão ......... +${bonus.clear}`, `Tempo ${formatTime(this.elapsed).padStart(5, ' ')} ...... +${bonus.time}`, `Todas as moedas ... +${bonus.coins}`],
+      worldClear ? t('level.worldClear') : t('level.clear'),
+      [t('level.bonusClear', { n: bonus.clear }), t('level.bonusTime', { time: formatTime(this.elapsed).padStart(5, ' '), n: bonus.time }), t('level.bonusCoins', { n: bonus.coins })],
       extra,
     );
 
@@ -1446,7 +1448,7 @@ export class LevelScene extends Phaser.Scene {
     return {
       mode: this.mode,
       levelNumber: this.level.id,
-      levelName: this.level.name,
+      levelName: levelName(this.level),
       lives: this.run.lives,
       score: this.run.score,
       coins: this.coinsCollected,
@@ -1478,11 +1480,11 @@ export class LevelScene extends Phaser.Scene {
 
   getLevelInfo(): { number: number; name: string; subtitle: string; mode: GameMode; custom: boolean; label: string; powerup: PowerUpId | null } {
     const inf = this.infinite;
-    const label = this.speedrun ? 'SPEEDRUN' : this.custom ? 'TESTE' : inf ? (inf.daily ? t('daily.label') : t('infinite.label', { n: inf.room + 1 })) : `FASE ${this.level.id}`;
+    const label = this.speedrun ? 'SPEEDRUN' : this.custom ? t('hud.test') : inf ? (inf.daily ? t('daily.label') : t('infinite.label', { n: inf.room + 1 })) : t('hud.level', { n: this.level.id });
     return {
       number: this.level.id,
-      name: inf ? (inf.daily ? t('daily.title') : t('infinite.title')) : this.level.name,
-      subtitle: inf ? t('infinite.seed', { seed: inf.seed }) : this.level.subtitle,
+      name: inf ? (inf.daily ? t('daily.title') : t('infinite.title')) : levelName(this.level),
+      subtitle: inf ? t('infinite.seed', { seed: inf.seed }) : levelSubtitle(this.level),
       mode: this.mode,
       custom: this.custom !== null,
       label,

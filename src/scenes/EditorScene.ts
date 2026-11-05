@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { t } from '../i18n';
 import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
 import { createTileset, GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
@@ -27,6 +28,7 @@ import { TILE_SIZE, TileIndex } from '../logic/levelParser';
 import { saveManager } from '../systems/saveManager';
 import { MenuList } from '../ui/MenuList';
 import { pixelText } from '../ui/text';
+import { themeName, toolLabel } from '../i18n/data';
 
 const TOP = 22;
 const PALETTE_H = 34;
@@ -123,7 +125,7 @@ export class EditorScene extends Phaser.Scene {
     cam.scrollX = working?.scrollX ?? 0;
     this.input.mouse?.disableContextMenu();
     this.setupInput();
-    this.toast('Clique para desenhar, botão direito apaga. Esc abre o menu.');
+    this.toast(t('editor.welcome'));
   }
 
   // -------------------------------------------------------------------------
@@ -231,11 +233,11 @@ export class EditorScene extends Phaser.Scene {
 
   private buildUi(): void {
     this.addToUi(this.add.rectangle(0, 0, GAME_WIDTH, TOP, COLORS.ink, 0.95).setOrigin(0));
-    this.button(28, 11, 'MENU', () => this.openMenu(), COLORS.yellow);
+    this.button(28, 11, t('editor.menu'), () => this.openMenu(), COLORS.yellow);
     this.nameText = this.addToUi(pixelText(this, 62, 11, '', { size: 8 }).setOrigin(0, 0.5));
     this.nameText.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.rename());
     this.infoText = this.addToUi(pixelText(this, 360, 11, '', { size: 8, color: COLORS.gray }).setOrigin(1, 0.5));
-    this.button(GAME_WIDTH - 40, 11, 'TESTAR', () => this.playTest(), COLORS.lightGreen);
+    this.button(GAME_WIDTH - 40, 11, t('editor.testButton'), () => this.playTest(), COLORS.lightGreen);
 
     // Botões de rolagem (úteis no toque)
     const mapMid = TOP + (GAME_HEIGHT - TOP - PALETTE_H) / 2;
@@ -267,8 +269,8 @@ export class EditorScene extends Phaser.Scene {
         e.stopPropagation();
         this.selectTool(tool);
       });
-      box.on('pointerover', () => this.toolText.setText(tool.label));
-      box.on('pointerout', () => this.toolText.setText(this.tool.label));
+      box.on('pointerover', () => this.toolText.setText(toolLabel(tool.char, tool.label)));
+      box.on('pointerout', () => this.toolText.setText(toolLabel(this.tool.char, this.tool.label)));
       this.paletteButtons.push({ tool, box });
     });
 
@@ -295,7 +297,7 @@ export class EditorScene extends Phaser.Scene {
   private selectTool(tool: EditorTool): void {
     this.tool = tool;
     this.paletteButtons.forEach((b) => b.box.setStrokeStyle(b.tool === tool ? 2 : 1, b.tool === tool ? COLORS.yellow : COLORS.white, b.tool === tool ? 1 : 0.3));
-    this.toolText.setText(tool.label);
+    this.toolText.setText(toolLabel(tool.char, tool.label));
   }
 
   private refreshInfo(): void {
@@ -379,7 +381,7 @@ export class EditorScene extends Phaser.Scene {
   private undo(): void {
     const prev = this.undoStack.pop();
     if (!prev) {
-      this.toast('Nada para desfazer.');
+      this.toast(t('editor.nothingUndo'));
       return;
     }
     const resized = levelWidth(prev) !== levelWidth(this.level) || prev.theme !== this.level.theme;
@@ -410,7 +412,7 @@ export class EditorScene extends Phaser.Scene {
   private save(): void {
     const result = validateCustomLevel(this.level);
     if (!result.valid) {
-      this.toast(`Não salvou: ${result.errors[0]}`, COLORS.red);
+      this.toast(t('editor.notSaved', { error: result.errors[0] }), COLORS.red);
       return;
     }
     this.slots = saveEditorSlot(getStorage(), this.slots, this.slot, this.level);
@@ -418,19 +420,19 @@ export class EditorScene extends Phaser.Scene {
     this.refreshInfo();
     this.remember();
     sfx.play('checkpoint');
-    this.toast(`Fase salva no slot ${this.slot + 1}!`, COLORS.lightGreen);
+    this.toast(t('editor.saved', { n: this.slot + 1 }), COLORS.lightGreen);
   }
 
   private loadSlot(slot: number): void {
     const saved = this.slots[slot];
     this.slot = slot;
-    this.level = saved ?? createCustomLevel(undefined, `Fase ${slot + 1}`);
+    this.level = saved ?? createCustomLevel(undefined, t('editor.slotName', { n: slot + 1 }));
     this.undoStack = [];
     this.dirty = false;
     this.cameras.main.scrollX = 0;
     this.rebuildMap();
     this.remember();
-    this.toast(saved ? `Slot ${slot + 1} carregado.` : `Slot ${slot + 1} vazio: nova fase criada.`);
+    this.toast(saved ? t('editor.loaded', { n: slot + 1 }) : t('editor.emptySlot', { n: slot + 1 }));
   }
 
   private newLevel(): void {
@@ -438,11 +440,11 @@ export class EditorScene extends Phaser.Scene {
     this.level = createCustomLevel(undefined, this.level.name, this.level.theme);
     this.dirty = true;
     this.rebuildMap();
-    this.toast('Nova fase criada.');
+    this.toast(t('editor.newLevel'));
   }
 
   private rename(): void {
-    const name = window.prompt('Nome da fase:', this.level.name);
+    const name = window.prompt(t('editor.namePrompt'), this.level.name);
     if (name === null) return;
     const trimmed = name.trim().slice(0, MAX_NAME_LENGTH);
     if (!trimmed) return;
@@ -457,7 +459,7 @@ export class EditorScene extends Phaser.Scene {
     this.level = { ...this.level, theme: THEME_KEYS[(i + 1) % THEME_KEYS.length] };
     this.dirty = true;
     this.rebuildMap();
-    this.toast(`Tema: ${THEME_NAMES[this.level.theme]}`);
+    this.toast(t('editor.theme', { name: themeName(this.level.theme, THEME_NAMES[this.level.theme]) }));
   }
 
   private resize(delta: number): void {
@@ -465,7 +467,7 @@ export class EditorScene extends Phaser.Scene {
     this.level = resizeLevel(this.level, levelWidth(this.level) + delta);
     this.dirty = true;
     this.rebuildMap();
-    this.toast(`Largura: ${levelWidth(this.level)} colunas`);
+    this.toast(t('editor.width', { n: levelWidth(this.level) }));
   }
 
   private exportJson(): void {
@@ -485,7 +487,7 @@ export class EditorScene extends Phaser.Scene {
       // Sem download disponível: a área de transferência abaixo ainda ajuda.
     }
     navigator.clipboard?.writeText(json).catch(() => undefined);
-    this.toast(`Exportado: ${fileName} (também copiado)`, COLORS.lightGreen);
+    this.toast(t('editor.exported', { file: fileName }), COLORS.lightGreen);
   }
 
   private importJson(): void {
@@ -501,7 +503,7 @@ export class EditorScene extends Phaser.Scene {
           const result = deserializeCustomLevel(text);
           if (!result.ok) {
             sfx.play('hurt');
-            this.toast(`Erro ao importar: ${result.error}`, COLORS.red);
+            this.toast(t('editor.importError', { error: result.error }), COLORS.red);
             return;
           }
           this.undoStack.push(this.level);
@@ -510,9 +512,9 @@ export class EditorScene extends Phaser.Scene {
           this.cameras.main.scrollX = 0;
           this.rebuildMap();
           sfx.play('confirm');
-          this.toast(`"${result.level.name}" importada! Salve para guardar.`, COLORS.lightGreen);
+          this.toast(t('editor.imported', { name: result.level.name }), COLORS.lightGreen);
         })
-        .catch(() => this.toast('Não foi possível ler o arquivo.', COLORS.red));
+        .catch(() => this.toast(t('editor.readError'), COLORS.red));
     };
     input.click();
   }
@@ -524,23 +526,23 @@ export class EditorScene extends Phaser.Scene {
     this.menuPanel = this.addToUi(this.add.container(0, 0));
     const shade = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.ink, 0.75).setOrigin(0).setInteractive();
     this.menuPanel.add(shade);
-    this.menuPanel.add(pixelText(this, cx, 18, 'EDITOR DE FASES', { size: 12, color: COLORS.yellow }).setOrigin(0.5));
+    this.menuPanel.add(pixelText(this, cx, 18, t('editor.menuTitle'), { size: 12, color: COLORS.yellow }).setOrigin(0.5));
     const items = [
-      { label: 'Testar fase (T)', action: () => this.closeMenu(() => this.playTest()) },
-      { label: `Salvar no slot ${this.slot + 1} (Ctrl+S)`, action: () => this.closeMenu(() => this.save()) },
+      { label: t('editor.test'), action: () => this.closeMenu(() => this.playTest()) },
+      { label: t('editor.save', { n: this.slot + 1 }), action: () => this.closeMenu(() => this.save()) },
       ...Array.from({ length: EDITOR_SLOTS }, (_, i) => ({
-        label: `Abrir slot ${i + 1}: ${this.slots[i]?.name ?? 'vazio'}`,
+        label: t('editor.open', { n: i + 1, name: this.slots[i]?.name ?? t('editor.empty') }),
         action: () => this.closeMenu(() => this.loadSlot(i)),
       })),
-      { label: 'Nova fase', action: () => this.closeMenu(() => this.newLevel()) },
-      { label: 'Renomear', action: () => this.closeMenu(() => this.rename()) },
-      { label: `Tema: ${THEME_NAMES[this.level.theme]}`, action: () => this.closeMenu(() => this.cycleTheme()) },
-      { label: 'Largura +10', action: () => this.closeMenu(() => this.resize(10)) },
-      { label: 'Largura -10', action: () => this.closeMenu(() => this.resize(-10)) },
-      { label: 'Exportar JSON', action: () => this.closeMenu(() => this.exportJson()) },
-      { label: 'Importar JSON', action: () => this.closeMenu(() => this.importJson()) },
-      { label: 'Desfazer (Ctrl+Z)', action: () => this.closeMenu(() => this.undo()) },
-      { label: 'Voltar ao jogo', action: () => this.exit() },
+      { label: t('editor.new'), action: () => this.closeMenu(() => this.newLevel()) },
+      { label: t('editor.rename'), action: () => this.closeMenu(() => this.rename()) },
+      { label: t('editor.theme', { name: themeName(this.level.theme, THEME_NAMES[this.level.theme]) }), action: () => this.closeMenu(() => this.cycleTheme()) },
+      { label: t('editor.wider'), action: () => this.closeMenu(() => this.resize(10)) },
+      { label: t('editor.narrower'), action: () => this.closeMenu(() => this.resize(-10)) },
+      { label: t('editor.export'), action: () => this.closeMenu(() => this.exportJson()) },
+      { label: t('editor.import'), action: () => this.closeMenu(() => this.importJson()) },
+      { label: t('editor.undo'), action: () => this.closeMenu(() => this.undo()) },
+      { label: t('editor.exit'), action: () => this.exit() },
     ];
     this.menuList = new MenuList(this, cx, 38, items, 15, 8);
     this.menuList.getTexts().forEach((t) => this.menuPanel?.add(t));

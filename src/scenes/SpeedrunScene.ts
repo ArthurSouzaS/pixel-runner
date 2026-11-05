@@ -8,6 +8,7 @@ import { availableCategories, categoryFor, sumOfBest } from '../logic/speedrun';
 import { formatTimePrecise } from '../logic/score';
 import { saveManager } from '../systems/saveManager';
 import { pixelText } from '../ui/text';
+import { levelName } from '../i18n/data';
 import { createMenuBackdrop } from './menuBackdrop';
 
 const VISIBLE = 9;
@@ -73,7 +74,7 @@ export class SpeedrunScene extends Phaser.Scene {
     if (id === 'all') return t('speedrun.cat.all');
     if (id.startsWith('world-')) return t('speedrun.cat.world', { n: id.slice(6) });
     const level = LEVELS[cat.levels[0]];
-    return `${level.id}. ${level.name}`;
+    return `${level.id}. ${levelName(level)}`;
   }
 
   private firstVisible(): number {

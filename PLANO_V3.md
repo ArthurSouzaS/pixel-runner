@@ -51,8 +51,8 @@ Decisões tomadas sem consulta ficam em [DECISOES.md](DECISOES.md) (a partir da 
 - [x] Tamanho do texto
 
 ## Fase 8 — Idiomas
-- [ ] Português e inglês em todos os textos (inclusive diálogos)
-- [ ] Troca de idioma no menu
+- [x] Português e inglês em todos os textos (inclusive diálogos)
+- [x] Troca de idioma no menu
 
 ## Fase 9 — PWA
 - [ ] Manifest e ícones originais

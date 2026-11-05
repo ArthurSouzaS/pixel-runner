@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
+import { tOr } from '../i18n';
 import type { Player } from './Player';
 
 export const BOSS_MAX_HP = 8;
@@ -38,7 +39,9 @@ export class Boss extends Phaser.Physics.Arcade.Sprite implements BossLike {
   declare body: Phaser.Physics.Arcade.Body;
 
   readonly maxHp = BOSS_MAX_HP;
-  readonly displayName = 'NÚCLEO ANCESTRAL';
+  get displayName(): string {
+    return tOr('boss.core', 'NÚCLEO ANCESTRAL');
+  }
   hp = BOSS_MAX_HP;
   state: BossState = 'sleep';
   private timer = 0;

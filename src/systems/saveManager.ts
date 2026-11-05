@@ -8,6 +8,7 @@ import { type InfiniteEntry, addInfiniteEntry } from '../logic/powerups';
 import { addAttempt, addDailyEntry, rollDaily, todayString } from '../logic/daily';
 import { finishRun, recordSegments } from '../logic/speedrun';
 import type { AccessSettings } from '../logic/accessibility';
+import { setLang } from '../i18n';
 import { type StatKey, addStat, maxStat } from '../logic/stats';
 import { type VolumeChannel, stepVolume } from '../logic/audioSettings';
 import { type SaveData, type StorageLike, loadSave, recordLevelClear, saveWithAbility, submitScore, writeSave } from '../logic/save';
@@ -215,6 +216,11 @@ class SaveManager {
   onAccessChange(listener: (a: AccessSettings) => void): () => void {
     this.accessListeners.add(listener);
     return () => this.accessListeners.delete(listener);
+  }
+
+  setLang(lang: 'pt' | 'en'): void {
+    setLang(lang);
+    this.commit({ ...this.data, lang });
   }
 
   /** Marca uma cena de história como vista. */

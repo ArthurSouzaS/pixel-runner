@@ -182,7 +182,7 @@ export class HubScene extends Phaser.Scene {
     house(11 * TILE_SIZE, 64, 48, 0xc4cfdb, 0xb13e53);
     house(27 * TILE_SIZE, 80, 54, 0xffcd75, 0x3b5dc9);
     house(53 * TILE_SIZE, 64, 50, 0x94b0c2, 0x5d275d);
-    pixelText(this, 27 * TILE_SIZE + 40, ground - 40, 'LOJA', { size: 8, color: COLORS.ink, strokeThickness: 0 }).setOrigin(0.5).setDepth(-4);
+    pixelText(this, 27 * TILE_SIZE + 40, ground - 40, t('shop.title'), { size: 8, color: COLORS.ink, strokeThickness: 0 }).setOrigin(0.5).setDepth(-4);
     for (const tx of [3, 20, 44, 61, 69]) {
       const x = tx * TILE_SIZE;
       g.fillStyle(0x5e3a28).fillRect(x - 3, ground - 26, 6, 26);

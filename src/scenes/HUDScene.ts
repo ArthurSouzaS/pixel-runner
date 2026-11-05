@@ -41,7 +41,7 @@ export class HUDScene extends Phaser.Scene {
     const info = this.level.getLevelInfo();
     const race = info.mode === 'race';
     this.add.image(10, 10, race ? 'star' : 'heart').setScale(1.25);
-    this.livesText = pixelText(this, 18, 6, race ? 'CORRIDA' : 'x3', { size: 8, color: race ? COLORS.yellow : COLORS.white });
+    this.livesText = pixelText(this, 18, 6, race ? t('hud.race') : 'x3', { size: 8, color: race ? COLORS.yellow : COLORS.white });
 
     this.add.image(race ? 92 : 58, 10, 'coin', 0);
     this.coinsText = pixelText(this, race ? 100 : 66, 6, '0/0', { size: 8, color: COLORS.yellow });
@@ -67,10 +67,10 @@ export class HUDScene extends Phaser.Scene {
 
     this.createBossBar();
     if (race) this.createRaceBar();
-    else if (info.mode === 'coop') pixelText(this, GAME_WIDTH / 2, 24, 'COOPERATIVO', { size: 8, color: COLORS.lightGreen }).setOrigin(0.5, 0).setAlpha(0.8);
+    else if (info.mode === 'coop') pixelText(this, GAME_WIDTH / 2, 24, t('hud.coop'), { size: 8, color: COLORS.lightGreen }).setOrigin(0.5, 0).setAlpha(0.8);
     this.level.events.on('panel', this.showPanel, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.level.events.off('panel', this.showPanel, this));
-    this.showLevelCard(info.custom ? 'FASE CRIADA' : info.label, info.name, info.subtitle);
+    this.showLevelCard(info.custom ? t('hud.custom') : info.label, info.name, info.subtitle);
 
     if (isTouchDevice()) this.touch = new TouchControls(this);
   }

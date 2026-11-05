@@ -6,6 +6,7 @@ import type { LevelData, ThemeKey } from '../levels/types';
 import { isThemeKey, themeByKey } from '../levels/themes';
 import { parseLevel, validateLevel } from './levelParser';
 import type { StorageLike } from './save';
+import { t } from '../i18n';
 
 export const EDITOR_FORMAT = 'pixel-runner-level';
 export const EDITOR_VERSION = 1;
@@ -59,7 +60,7 @@ const VALID_CHARS = new Set(EDITOR_TOOLS.map((t) => t.char));
 /** Caracteres que só podem aparecer uma vez. */
 const UNIQUE_CHARS = ['P', 'G'];
 
-export function createCustomLevel(width = EDITOR_DEFAULT_WIDTH, name = 'Minha fase', theme: ThemeKey = 'grass'): CustomLevel {
+export function createCustomLevel(width = EDITOR_DEFAULT_WIDTH, name = t('editor.defaultName'), theme: ThemeKey = 'grass'): CustomLevel {
   const w = clampWidth(width);
   const map: string[] = [];
   for (let y = 0; y < EDITOR_HEIGHT; y++) map.push((y >= EDITOR_HEIGHT - 2 ? '#' : '.').repeat(w));
@@ -121,25 +122,25 @@ export interface ValidationResult {
 /** Confere se a fase pode ser jogada e salva. */
 export function validateCustomLevel(level: CustomLevel): ValidationResult {
   const errors: string[] = [];
-  if (!level.name.trim()) errors.push('A fase precisa de um nome.');
-  if (level.name.length > MAX_NAME_LENGTH) errors.push(`O nome pode ter no máximo ${MAX_NAME_LENGTH} letras.`);
-  if (!isThemeKey(level.theme)) errors.push('Tema inválido.');
-  if (level.map.length !== EDITOR_HEIGHT) errors.push(`O mapa deve ter ${EDITOR_HEIGHT} linhas.`);
+  if (!level.name.trim()) errors.push(t('editor.err.name'));
+  if (level.name.length > MAX_NAME_LENGTH) errors.push(t('editor.err.nameLong', { n: MAX_NAME_LENGTH }));
+  if (!isThemeKey(level.theme)) errors.push(t('editor.err.theme'));
+  if (level.map.length !== EDITOR_HEIGHT) errors.push(t('editor.err.rows', { n: EDITOR_HEIGHT }));
   const width = levelWidth(level);
-  if (width < EDITOR_MIN_WIDTH || width > EDITOR_MAX_WIDTH) errors.push(`A largura deve ficar entre ${EDITOR_MIN_WIDTH} e ${EDITOR_MAX_WIDTH}.`);
-  if (level.map.some((row) => row.length !== width)) errors.push('Todas as linhas devem ter a mesma largura.');
-  if (level.map.some((row) => [...row].some((ch) => !VALID_CHARS.has(ch)))) errors.push('O mapa tem caracteres inválidos.');
+  if (width < EDITOR_MIN_WIDTH || width > EDITOR_MAX_WIDTH) errors.push(t('editor.err.width', { min: EDITOR_MIN_WIDTH, max: EDITOR_MAX_WIDTH }));
+  if (level.map.some((row) => row.length !== width)) errors.push(t('editor.err.ragged'));
+  if (level.map.some((row) => [...row].some((ch) => !VALID_CHARS.has(ch)))) errors.push(t('editor.err.chars'));
   for (const ch of UNIQUE_CHARS) {
     const n = countChar(level, ch);
-    const what = ch === 'P' ? 'início' : 'chegada';
-    if (n === 0) errors.push(`Coloque um ${what} (${ch}).`);
-    if (n > 1) errors.push(`Só pode haver um ${what}.`);
+    const which = ch === 'P' ? 'Start' : 'Goal';
+    if (n === 0) errors.push(t(`editor.err.missing${which}`));
+    if (n > 1) errors.push(t(`editor.err.many${which}`));
   }
   if (errors.length === 0) {
     const parsed = parseLevel(level.map);
     for (const e of validateLevel(parsed)) {
-      if (e.includes('chão')) errors.push('O início precisa ter chão logo abaixo.');
-      else if (e.includes('antes')) errors.push('A chegada deve ficar à direita do início.');
+      if (e.includes('chão')) errors.push(t('editor.err.ground'));
+      else if (e.includes('antes')) errors.push(t('editor.err.order'));
     }
   }
   return { valid: errors.length === 0, errors };
@@ -174,10 +175,10 @@ export function deserializeCustomLevel(text: string): ImportResult {
   try {
     raw = JSON.parse(text);
   } catch {
-    return { ok: false, error: 'O arquivo não é um JSON válido.' };
+    return { ok: false, error: t('editor.err.json') };
   }
   const level = sanitizeCustomLevel(raw);
-  if (!level) return { ok: false, error: 'O arquivo não é uma fase do Pixel Runner.' };
+  if (!level) return { ok: false, error: t('editor.err.format') };
   const result = validateCustomLevel(level);
   if (!result.valid) return { ok: false, error: result.errors[0] };
   return { ok: true, level };
@@ -190,7 +191,7 @@ export function sanitizeCustomLevel(raw: unknown): CustomLevel | null {
   if (data.format !== undefined && data.format !== EDITOR_FORMAT) return null;
   if (typeof data.version === 'number' && data.version > EDITOR_VERSION) return null;
   if (!Array.isArray(data.map) || !data.map.every((row) => typeof row === 'string')) return null;
-  const name = typeof data.name === 'string' ? data.name.slice(0, MAX_NAME_LENGTH) : 'Fase importada';
+  const name = typeof data.name === 'string' ? data.name.slice(0, MAX_NAME_LENGTH) : t('editor.importedName');
   const theme = isThemeKey(data.theme) ? data.theme : 'grass';
   return { name, theme, map: [...(data.map as string[])] };
 }

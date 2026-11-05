@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { t } from '../i18n';
 import { sfx } from '../audio/Sfx';
 import { COLORS, hex } from '../gfx/palette';
 import { ensurePixSkin } from '../gfx/skins';
@@ -6,6 +7,7 @@ import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
 import { type ShopCategory, type TrailItem, catalog, findSkin, findTrail, isEquipped, isOwned } from '../logic/shop';
 import { saveManager } from '../systems/saveManager';
 import { pixelText } from '../ui/text';
+import { skinName, trailName } from '../i18n/data';
 import { createMenuBackdrop } from './menuBackdrop';
 
 /** Loja: troca as moedas por skins de cor e rastros de partícula. */
@@ -33,12 +35,12 @@ export class ShopScene extends Phaser.Scene {
     this.tabs = [];
     this.trail = null;
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.ink, 0.6).setOrigin(0);
-    pixelText(this, 20, 14, 'LOJA', { size: 16, color: COLORS.yellow });
+    pixelText(this, 20, 14, t('shop.title'), { size: 16, color: COLORS.yellow });
     this.add.image(GAME_WIDTH - 110, 22, 'coin', 0).setScale(1.5);
     this.walletText = pixelText(this, GAME_WIDTH - 98, 16, '', { size: 10, color: COLORS.yellow });
 
     (['skin', 'trail'] as ShopCategory[]).forEach((cat, i) => {
-      const tab = pixelText(this, 30 + i * 100, 46, cat === 'skin' ? 'SKINS' : 'RASTROS', { size: 8 }).setInteractive({ useHandCursor: true });
+      const tab = pixelText(this, 30 + i * 100, 46, cat === 'skin' ? t('shop.skins') : t('shop.trails'), { size: 8 }).setInteractive({ useHandCursor: true });
       tab.on('pointerdown', () => this.setCategory(cat));
       this.tabs.push(tab);
     });
@@ -50,7 +52,7 @@ export class ShopScene extends Phaser.Scene {
     this.tweens.add({ targets: this.preview, x: { from: 290, to: 390 }, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', onYoyo: () => this.preview.setFlipX(true), onRepeat: () => this.preview.setFlipX(false) });
     this.infoText = pixelText(this, 340, 220, '', { size: 8, align: 'center', color: COLORS.cyan }).setOrigin(0.5);
 
-    pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 12, 'Enter: comprar/equipar   < >: abas   Esc: voltar', { size: 8, color: COLORS.gray }).setOrigin(0.5);
+    pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 12, t('shop.hint'), { size: 8, color: COLORS.gray }).setOrigin(0.5);
 
     const kb = this.input.keyboard;
     kb?.on('keydown-UP', () => this.move(-1));
@@ -62,7 +64,7 @@ export class ShopScene extends Phaser.Scene {
     kb?.on('keydown-ENTER', () => this.activate());
     kb?.on('keydown-SPACE', () => this.activate());
     kb?.on('keydown-ESC', () => this.scene.start(this.from));
-    const back = pixelText(this, GAME_WIDTH - 20, 46, '< VOLTAR', { size: 8, color: COLORS.gray }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+    const back = pixelText(this, GAME_WIDTH - 20, 46, t('common.backTag'), { size: 8, color: COLORS.gray }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
     back.on('pointerdown', () => this.scene.start(this.from));
 
     this.setCategory('skin');
@@ -113,7 +115,7 @@ export class ShopScene extends Phaser.Scene {
       } else {
         sfx.play('hurt');
         this.cameras.main.shake(150, 0.006);
-        this.infoText.setText(result === 'exclusive' ? 'Recompensa de missão!' : 'Moedas insuficientes!').setColor(hex(COLORS.red));
+        this.infoText.setText(result === 'exclusive' ? t('shop.exclusive') : t('shop.noFunds')).setColor(hex(COLORS.red));
         return;
       }
     }
@@ -128,10 +130,10 @@ export class ShopScene extends Phaser.Scene {
       const owned = isOwned(save, this.category, item.id);
       const equipped = isEquipped(save, this.category, item.id);
       const exclusive = (item as { exclusive?: boolean }).exclusive;
-      const status = equipped ? 'EQUIPADO' : owned ? 'COMPRADO' : exclusive ? 'MISSÃO' : `${item.price} moedas`;
+      const status = equipped ? t('shop.equipped') : owned ? t('shop.owned') : exclusive ? t('shop.mission') : t('shop.price', { n: item.price });
       const selected = i === this.index;
       this.rows[i]
-        .setText(`${selected ? '>' : ' '} ${item.name.padEnd(10, ' ')} ${status}`)
+        .setText(`${selected ? '>' : ' '} ${(this.category === 'skin' ? skinName(item.id, item.name) : trailName(item.id, item.name)).padEnd(10, ' ')} ${status}`)
         .setColor(hex(selected ? COLORS.yellow : equipped ? COLORS.lightGreen : owned ? COLORS.white : COLORS.gray));
     });
 
@@ -147,11 +149,11 @@ export class ShopScene extends Phaser.Scene {
       .setText(
         owned
           ? isEquipped(save, this.category, selected.id)
-            ? 'Equipado'
-            : 'Enter para equipar'
+            ? t('shop.isEquipped')
+            : t('shop.equip')
           : (selected as { exclusive?: boolean }).exclusive
-            ? 'Recompensa de missão'
-            : `Custa ${selected.price} moedas`,
+            ? t('shop.missionReward')
+            : t('shop.cost', { n: selected.price }),
       )
       .setColor(hex(owned || save.wallet >= selected.price ? COLORS.cyan : COLORS.red));
   }
