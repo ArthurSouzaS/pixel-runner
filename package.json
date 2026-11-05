@@ -1,0 +1,25 @@
+{
+  "name": "pixel-runner",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Pixel Runner — jogo de plataforma 2D em pixel art feito com Phaser 3, TypeScript e Vite.",
+  "author": "Arthur Souza Soares",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "phaser": "3.90.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "^7.3.7",
+    "vitest": "^3.2.7"
+  }
+}
