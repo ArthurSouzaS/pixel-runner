@@ -133,6 +133,15 @@ export function formatTime(seconds: number): string {
   return `${m}:${String(s % 60).padStart(2, '0')}`;
 }
 
+/** Tempo com centésimos, ex.: 1:05.42 (speedrun e desafio diário). */
+export function formatTimePrecise(seconds: number): string {
+  const total = Math.max(0, seconds);
+  const m = Math.floor(total / 60);
+  const s = Math.floor(total % 60);
+  const cs = Math.floor((total * 100) % 100);
+  return `${m}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
+}
+
 export function formatScore(score: number, digits = 7): string {
   return String(Math.max(0, Math.floor(score))).padStart(digits, '0');
 }

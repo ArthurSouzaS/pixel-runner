@@ -9,6 +9,7 @@ import { clampUnlocked, unlockAfterClear } from './progress';
 import { type ShopState, defaultShopState, sanitizeShop } from './shop';
 import { type MissionState, emptyMissionState, sanitizeMissions } from './missions';
 import { type InfiniteEntry, sanitizeInfiniteBoard } from './powerups';
+import { type DailyState, emptyDaily, sanitizeDaily } from './daily';
 import { type PlayerStats, emptyStats, sanitizeStats } from './stats';
 
 export const SAVE_KEY = 'pixel-runner:save';
@@ -34,6 +35,9 @@ export interface SaveData extends ShopState {
   missions: MissionState;
   /** Melhores corridas do modo Infinito. */
   infinite: InfiniteEntry[];
+  daily: DailyState;
+  /** Nome curto usado nos placares locais. */
+  playerName: string;
 }
 
 export interface StorageLike {
@@ -42,7 +46,7 @@ export interface StorageLike {
 }
 
 export function defaultSave(): SaveData {
-  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [], volumes: defaultVolumes(), storySeen: [], missions: emptyMissionState(), infinite: [] };
+  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [], volumes: defaultVolumes(), storySeen: [], missions: emptyMissionState(), infinite: [], daily: emptyDaily(), playerName: 'PIX' };
 }
 
 function toNonNegative(value: unknown, fallback: number): number {
@@ -83,6 +87,8 @@ export function sanitizeSave(raw: unknown, totalLevels: number): SaveData {
     volumes: sanitizeVolumes(data.volumes),
     missions: sanitizeMissions(data.missions),
     infinite: sanitizeInfiniteBoard(data.infinite),
+    daily: sanitizeDaily(data.daily),
+    playerName: typeof data.playerName === 'string' && data.playerName.trim() ? data.playerName.trim().slice(0, 8).toUpperCase() : 'PIX',
     storySeen: Array.isArray(data.storySeen) ? [...new Set(data.storySeen.filter((v): v is string => typeof v === 'string'))] : [],
   };
 }

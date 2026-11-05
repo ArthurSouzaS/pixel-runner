@@ -19,6 +19,7 @@ import {
   createRun,
   enemyPoints,
   formatTime,
+  formatTimePrecise,
   levelClearBonus,
   loseLife,
   type RunState,
@@ -36,7 +37,7 @@ import { BASE_GRAVITY } from '../gfx/textures';
 import { saveManager } from '../systems/saveManager';
 import { cutsceneAfterLevel } from '../story/story';
 import { itemsToSpawn, type MissionItem } from '../logic/missions';
-import { generateRoom } from '../logic/procgen';
+import { generateDaily, generateRoom } from '../logic/procgen';
 import { type PowerUpId, powerUpEffects } from '../logic/powerups';
 import { todayString } from '../logic/daily';
 import { t } from '../i18n';
@@ -170,7 +171,13 @@ export class LevelScene extends Phaser.Scene {
     this.levelIndex = Phaser.Math.Clamp(data.levelIndex ?? 0, 0, TOTAL_LEVELS - 1);
     this.custom = data.custom ?? null;
     this.infinite = data.infinite ?? null;
-    this.level = this.custom ?? (this.infinite ? generateRoom(this.infinite.seed, this.infinite.room).level : LEVELS[this.levelIndex]);
+    this.level =
+      this.custom ??
+      (this.infinite
+        ? this.infinite.daily
+          ? generateDaily(this.infinite.daily).level
+          : generateRoom(this.infinite.seed, this.infinite.room).level
+        : LEVELS[this.levelIndex]);
     const fx = powerUpEffects(this.infinite?.powerup ?? null);
     this.shield = fx.shield;
     this.magnet = fx.magnet;
@@ -215,6 +222,7 @@ export class LevelScene extends Phaser.Scene {
     this.parsed = parseLevel(this.level.map);
     const worldW = this.parsed.width * TILE_SIZE;
     const worldH = this.parsed.height * TILE_SIZE;
+    if (this.infinite?.daily) saveManager.dailyAttempt(this.infinite.daily);
     this.inputs = new InputHub(this, this.mode);
     this.inputs.extraSources.push(new GamepadSource(this.mode));
     this.inputs.extraPause = () => gamepads.consumePause();
@@ -1246,9 +1254,14 @@ export class LevelScene extends Phaser.Scene {
     });
   }
 
-  /** Desafio diário (implementado na fase 5). */
-  private finishDaily(_cleared = true): void {
-    this.fadeTo(() => this.scene.start('Menu'));
+  /** Desafio diário: registra o tempo (se concluiu) e mostra o placar do dia. */
+  private finishDaily(cleared = true): void {
+    const date = this.infinite!.daily!;
+    const rank = cleared ? saveManager.dailyResult(date, this.elapsed, this.coinsCollected) : -1;
+    if (cleared) this.showPanel(t('daily.done'), [t('daily.time', { time: formatTimePrecise(this.elapsed) }), t('daily.coins', { n: this.coinsCollected })], rank >= 0 ? t('daily.rank', { n: rank + 1 }) : '');
+    this.time.delayedCall(cleared ? 2800 : 1200, () =>
+      this.fadeTo(() => this.scene.start('Daily', { result: { cleared, time: this.elapsed, rank } })),
+    );
   }
 
   private recordClearStats(): void {

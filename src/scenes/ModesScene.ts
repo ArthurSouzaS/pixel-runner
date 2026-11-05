@@ -22,6 +22,7 @@ export class ModesScene extends Phaser.Scene {
     const desc = pixelText(this, cx, GAME_HEIGHT - 30, '', { size: 8, color: COLORS.cyan, align: 'center', wrap: 440 }).setOrigin(0.5);
     const items: { key: string; scene: string }[] = [
       { key: 'infinite', scene: 'Infinite' },
+      { key: 'daily', scene: 'Daily' },
       { key: 'twoPlayers', scene: 'TwoPlayer' },
       { key: 'editor', scene: 'Editor' },
     ];

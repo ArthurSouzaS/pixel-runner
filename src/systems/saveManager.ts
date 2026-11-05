@@ -5,6 +5,7 @@ import { type Achievement, type AchievementContext, findAchievement, newlyUnlock
 import { buy, deposit, equip, grantItem, type ShopCategory } from '../logic/shop';
 import { type Mission, type MissionEvent, accept, applyEvent, claim } from '../logic/missions';
 import { type InfiniteEntry, addInfiniteEntry } from '../logic/powerups';
+import { addAttempt, addDailyEntry, rollDaily, todayString } from '../logic/daily';
 import { type StatKey, addStat, maxStat } from '../logic/stats';
 import { type VolumeChannel, stepVolume } from '../logic/audioSettings';
 import { type SaveData, type StorageLike, loadSave, recordLevelClear, saveWithAbility, submitScore, writeSave } from '../logic/save';
@@ -166,6 +167,27 @@ class SaveManager {
     const board = addInfiniteEntry(this.data.infinite, entry);
     this.commit({ ...this.data, infinite: board });
     return board.indexOf(entry);
+  }
+
+  /** Estado do desafio do dia (arquiva o de ontem se a data mudou). */
+  dailyToday(date = todayString()): SaveData['daily'] {
+    return rollDaily(this.data.daily, date);
+  }
+
+  dailyAttempt(date: string): void {
+    this.commit({ ...this.data, daily: addAttempt(this.data.daily, date) });
+  }
+
+  /** Registra um tempo no placar do dia. Retorna a posição (0 = melhor) ou -1. */
+  dailyResult(date: string, time: number, coins: number): number {
+    const result = addDailyEntry(this.data.daily, date, { name: this.data.playerName, time, coins });
+    this.commit({ ...this.data, daily: result.state });
+    return result.rank;
+  }
+
+  setPlayerName(name: string): void {
+    const clean = name.trim().slice(0, 8).toUpperCase();
+    if (clean) this.commit({ ...this.data, playerName: clean });
   }
 
   /** Marca uma cena de história como vista. */

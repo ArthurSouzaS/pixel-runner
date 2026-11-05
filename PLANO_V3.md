@@ -35,8 +35,8 @@ Decisões tomadas sem consulta ficam em [DECISOES.md](DECISOES.md) (a partir da 
 - [x] Seed compartilhável
 
 ## Fase 5 — Desafio diário
-- [ ] Fase gerada com a seed do dia (igual para todos)
-- [ ] Placar local do dia
+- [x] Fase gerada com a seed do dia (igual para todos)
+- [x] Placar local do dia
 
 ## Fase 6 — Speedrun
 - [ ] Cronômetro por fase e geral

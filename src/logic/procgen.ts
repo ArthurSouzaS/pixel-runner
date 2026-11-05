@@ -96,6 +96,13 @@ export interface GeneratedRoom {
   chunkIds: string[];
 }
 
+/** Fase do Desafio diário de uma data (AAAA-MM-DD). */
+export function generateDaily(date: string): GeneratedRoom {
+  const seed = `D${date.replace(/-/g, '')}`;
+  const room = generateRoom(seed, 0, { chunks: 10, minTier: 2, maxTier: 4 });
+  return { ...room, level: { ...room.level, name: date, par: Math.round(room.level.map[0].length * 0.55) } };
+}
+
 /** Gera a sala `room` (0, 1, 2...) de uma seed. */
 export function generateRoom(seed: string, room: number, opts: RoomOptions = roomOptions(room)): GeneratedRoom {
   const random = mulberry32(hashString(`${seed}:${room}`));

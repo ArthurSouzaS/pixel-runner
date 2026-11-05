@@ -10,6 +10,7 @@ import { CutsceneScene } from './scenes/CutsceneScene';
 import { HubScene } from './scenes/HubScene';
 import { InfiniteScene } from './scenes/InfiniteScene';
 import { ModesScene } from './scenes/ModesScene';
+import { DailyScene } from './scenes/DailyScene';
 import { PowerUpScene } from './scenes/PowerUpScene';
 import { MissionLogScene } from './scenes/MissionLogScene';
 import { EndingScene } from './scenes/EndingScene';
@@ -51,7 +52,7 @@ const config: Phaser.Types.Core.GameConfig = {
   input: {
     activePointers: 4,
   },
-  scene: [BootScene, MenuScene, HubScene, CutsceneScene, MissionLogScene, ModesScene, InfiniteScene, PowerUpScene, WorldMapScene, OptionsScene, TwoPlayerScene, EditorScene, ShopScene, AchievementsScene, CreditsScene, LevelScene, HUDScene, PauseScene, TutorialScene, GameOverScene, EndingScene, ToastScene],
+  scene: [BootScene, MenuScene, HubScene, CutsceneScene, MissionLogScene, ModesScene, InfiniteScene, PowerUpScene, DailyScene, WorldMapScene, OptionsScene, TwoPlayerScene, EditorScene, ShopScene, AchievementsScene, CreditsScene, LevelScene, HUDScene, PauseScene, TutorialScene, GameOverScene, EndingScene, ToastScene],
 };
 
 // O AudioContext só pode começar após um gesto do usuário.
