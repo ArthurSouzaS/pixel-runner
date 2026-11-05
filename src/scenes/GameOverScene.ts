@@ -3,7 +3,10 @@ import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
 import type { GameMode } from '../input/controls';
-import { formatScore } from '../logic/score';
+import { createRun, formatScore } from '../logic/score';
+import type { InfiniteEntry } from '../logic/powerups';
+import { randomSeed } from '../logic/procgen';
+import { t } from '../i18n';
 import { saveManager } from '../systems/saveManager';
 import { MenuList } from '../ui/MenuList';
 import { pixelText } from '../ui/text';
@@ -18,6 +21,8 @@ export interface GameOverData {
   /** Corrida: jogador vencedor (1 ou 2) e a textura dele. */
   winner?: number;
   winnerTexture?: string;
+  /** Resultado de uma corrida do Infinito. */
+  infinite?: InfiniteEntry & { rank: number };
 }
 
 /** Tela de fim de jogo (derrota ou vitória). */
@@ -32,6 +37,10 @@ export class GameOverScene extends Phaser.Scene {
     const cx = GAME_WIDTH / 2;
     if (data.mode === 'race') {
       this.createRaceResult(data);
+      return;
+    }
+    if (data.infinite) {
+      this.createInfiniteResult(data.infinite);
       return;
     }
     this.tick = createMenuBackdrop(this, data.victory ? 0 : 4);
@@ -76,6 +85,24 @@ export class GameOverScene extends Phaser.Scene {
     new MenuList(this, cx, 170, [
       { label: data.victory ? 'Jogar de novo' : 'Tentar de novo', action: () => this.scene.start('Level', { levelIndex: retryLevel, mode: data.mode ?? 'single' }) },
       { label: 'Mapa do mundo', action: () => this.scene.start('WorldMap') },
+      { label: 'Menu principal', action: () => this.scene.start('Menu') },
+    ]);
+  }
+
+  private createInfiniteResult(e: InfiniteEntry & { rank: number }): void {
+    const cx = GAME_WIDTH / 2;
+    this.tick = createMenuBackdrop(this, 12);
+    this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.ink, 0.6).setOrigin(0);
+    sfx.play('gameOver');
+    pixelText(this, cx, 40, t('infinite.result'), { size: 18, color: COLORS.yellow, strokeThickness: 5 }).setOrigin(0.5);
+    pixelText(this, cx, 76, t('infinite.resultRooms', { n: e.rooms }), { size: 10 }).setOrigin(0.5);
+    pixelText(this, cx, 94, `${formatScore(e.score)}`, { size: 10, color: COLORS.cyan }).setOrigin(0.5);
+    if (e.rank >= 0) pixelText(this, cx, 112, t('infinite.rank', { n: e.rank + 1 }), { size: 8, color: COLORS.lightGreen }).setOrigin(0.5);
+    const share = pixelText(this, cx, 132, t('infinite.share', { seed: e.seed }), { size: 8, color: COLORS.white }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    share.on('pointerdown', () => navigator.clipboard?.writeText(e.seed).catch(() => undefined));
+    new MenuList(this, cx, 170, [
+      { label: t('infinite.retry'), action: () => this.scene.start('Level', { levelIndex: 0, run: createRun(0), infinite: { seed: e.seed, room: 0, powerup: null } }) },
+      { label: t('infinite.newRun'), action: () => this.scene.start('Level', { levelIndex: 0, run: createRun(0), infinite: { seed: randomSeed(), room: 0, powerup: null } }) },
       { label: 'Menu principal', action: () => this.scene.start('Menu') },
     ]);
   }

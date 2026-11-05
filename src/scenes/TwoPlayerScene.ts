@@ -60,7 +60,7 @@ export class TwoPlayerScene extends Phaser.Scene {
     kb?.on('keydown-D', () => this.change(1));
     kb?.on('keydown-ENTER', () => this.start());
     kb?.on('keydown-SPACE', () => this.start());
-    kb?.on('keydown-ESC', () => this.scene.start('Menu'));
+    kb?.on('keydown-ESC', () => this.scene.start('Modes'));
 
     this.modeText.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
       this.row = 0;

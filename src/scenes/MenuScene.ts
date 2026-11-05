@@ -52,8 +52,7 @@ export class MenuScene extends Phaser.Scene {
           action: () =>
             save.storySeen.includes('intro') ? this.scene.start('Hub') : this.scene.start('Cutscene', { id: 'intro', next: { scene: 'Hub' } }),
         },
-        { label: '2 jogadores', action: () => this.scene.start('TwoPlayer') },
-        { label: 'Editor de fases', action: () => this.scene.start('Editor') },
+        { label: 'Modos de jogo', action: () => this.scene.start('Modes') },
         { label: 'Loja', action: () => this.scene.start('Shop') },
         { label: 'Conquistas', action: () => this.scene.start('Achievements') },
         { label: 'Opções', action: () => this.scene.start('Options') },

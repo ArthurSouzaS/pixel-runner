@@ -8,6 +8,7 @@ import { type VolumeSettings, defaultVolumes, sanitizeVolumes } from './audioSet
 import { clampUnlocked, unlockAfterClear } from './progress';
 import { type ShopState, defaultShopState, sanitizeShop } from './shop';
 import { type MissionState, emptyMissionState, sanitizeMissions } from './missions';
+import { type InfiniteEntry, sanitizeInfiniteBoard } from './powerups';
 import { type PlayerStats, emptyStats, sanitizeStats } from './stats';
 
 export const SAVE_KEY = 'pixel-runner:save';
@@ -31,6 +32,8 @@ export interface SaveData extends ShopState {
   storySeen: string[];
   /** Missões e itens de missão coletados. */
   missions: MissionState;
+  /** Melhores corridas do modo Infinito. */
+  infinite: InfiniteEntry[];
 }
 
 export interface StorageLike {
@@ -39,7 +42,7 @@ export interface StorageLike {
 }
 
 export function defaultSave(): SaveData {
-  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [], volumes: defaultVolumes(), storySeen: [], missions: emptyMissionState() };
+  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [], volumes: defaultVolumes(), storySeen: [], missions: emptyMissionState(), infinite: [] };
 }
 
 function toNonNegative(value: unknown, fallback: number): number {
@@ -79,6 +82,7 @@ export function sanitizeSave(raw: unknown, totalLevels: number): SaveData {
     achievements: sanitizeAchievements(data.achievements),
     volumes: sanitizeVolumes(data.volumes),
     missions: sanitizeMissions(data.missions),
+    infinite: sanitizeInfiniteBoard(data.infinite),
     storySeen: Array.isArray(data.storySeen) ? [...new Set(data.storySeen.filter((v): v is string => typeof v === 'string'))] : [],
   };
 }

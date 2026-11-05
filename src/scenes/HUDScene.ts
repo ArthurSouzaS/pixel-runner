@@ -5,6 +5,8 @@ import { isTouchDevice, touchState } from '../input/touchState';
 import { formatScore, formatTime } from '../logic/score';
 import { pixelText } from '../ui/text';
 import { TouchControls } from '../ui/TouchControls';
+import { POWERUPS } from '../logic/powerups';
+import { t } from '../i18n';
 import type { LevelScene } from './LevelScene';
 
 /** HUD: vidas, moedas, tempo, placar, barra do chefe e controles de toque. */
@@ -41,7 +43,12 @@ export class HUDScene extends Phaser.Scene {
 
     this.add.image(race ? 92 : 58, 10, 'coin', 0);
     this.coinsText = pixelText(this, race ? 100 : 66, 6, '0/0', { size: 8, color: COLORS.yellow });
-    pixelText(this, GAME_WIDTH / 2, 6, info.custom ? 'TESTE' : `FASE ${info.number}`, { size: 8, color: COLORS.cyan }).setOrigin(0.5, 0);
+    pixelText(this, GAME_WIDTH / 2, 6, info.label, { size: 8, color: COLORS.cyan }).setOrigin(0.5, 0);
+    if (info.powerup) {
+      const pu = POWERUPS.find((p) => p.id === info.powerup)!;
+      this.add.circle(GAME_WIDTH / 2 - 72, 10, 6, pu.color).setStrokeStyle(1, COLORS.white);
+      pixelText(this, GAME_WIDTH / 2 - 72, 26, t(`power.${pu.id}.name`), { size: 8, color: COLORS.white }).setOrigin(0.5, 0).setAlpha(0.8);
+    }
     this.timeText = pixelText(this, GAME_WIDTH / 2 + 46, 6, '0:00', { size: 8 });
 
     this.scoreText = pixelText(this, GAME_WIDTH - 30, 6, '0000000', { size: 8 }).setOrigin(1, 0);
@@ -61,7 +68,7 @@ export class HUDScene extends Phaser.Scene {
     else if (info.mode === 'coop') pixelText(this, GAME_WIDTH / 2, 24, 'COOPERATIVO', { size: 8, color: COLORS.lightGreen }).setOrigin(0.5, 0).setAlpha(0.8);
     this.level.events.on('panel', this.showPanel, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.level.events.off('panel', this.showPanel, this));
-    this.showLevelCard(info.custom ? 'CRIADA' : String(info.number), info.name, info.subtitle);
+    this.showLevelCard(info.custom ? 'FASE CRIADA' : info.label, info.name, info.subtitle);
 
     if (isTouchDevice()) this.touch = new TouchControls(this);
   }
@@ -105,7 +112,7 @@ export class HUDScene extends Phaser.Scene {
   private showLevelCard(n: string, name: string, subtitle: string): void {
     const card = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 30);
     card.add(this.add.rectangle(0, 0, 320, 56, COLORS.ink, 0.8).setStrokeStyle(2, COLORS.yellow));
-    card.add(pixelText(this, 0, -14, `FASE ${n}`, { size: 8, color: COLORS.cyan }).setOrigin(0.5));
+    card.add(pixelText(this, 0, -14, n, { size: 8, color: COLORS.cyan }).setOrigin(0.5));
     card.add(pixelText(this, 0, 2, name.toUpperCase(), { size: 12, color: COLORS.yellow }).setOrigin(0.5));
     card.add(pixelText(this, 0, 18, subtitle, { size: 8 }).setOrigin(0.5));
     card.setScale(0.6).setAlpha(0);

@@ -560,6 +560,6 @@ export class EditorScene extends Phaser.Scene {
 
   private exit(): void {
     this.remember();
-    this.scene.start('Menu');
+    this.scene.start('Modes');
   }
 }

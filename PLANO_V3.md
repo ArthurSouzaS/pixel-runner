@@ -28,11 +28,11 @@ Decisões tomadas sem consulta ficam em [DECISOES.md](DECISOES.md) (a partir da 
 - [x] Diário de missões
 
 ## Fase 4 — Modo Infinito (roguelike)
-- [ ] Blocos de fase prontos
-- [ ] Gerador procedural com seed
-- [ ] Dificuldade crescente
-- [ ] Power-ups temporários entre as salas
-- [ ] Seed compartilhável
+- [x] Blocos de fase prontos
+- [x] Gerador procedural com seed
+- [x] Dificuldade crescente
+- [x] Power-ups temporários entre as salas
+- [x] Seed compartilhável
 
 ## Fase 5 — Desafio diário
 - [ ] Fase gerada com a seed do dia (igual para todos)

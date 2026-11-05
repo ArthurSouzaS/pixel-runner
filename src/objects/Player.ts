@@ -92,6 +92,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private rushTimer = 0;
   private rushDir: 1 | -1 = 1;
   private wasInWater = false;
+  /** Multiplicadores de power-ups (modo Infinito). */
+  jumpScale = 1;
+  speedScale = 1;
   /** 1 = gravidade normal, -1 = invertida (anda no teto). */
   gravityDir: 1 | -1 = 1;
 
@@ -179,6 +182,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.canDash = true;
     this.dashTimer = 0;
     this.body.setAllowGravity(true);
+  }
+
+  /** Fica invulnerável por um tempo (escudo do modo Infinito). */
+  protect(ms: number): void {
+    this.invulnerableTimer = Math.max(this.invulnerableTimer, ms);
   }
 
   /** Congela o jogador por um tempo (usado na corrida ao ser puxado pela câmera). */
@@ -329,7 +337,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Corrida horizontal com aceleração ------------------------------------
     const speedScale = env.inWater ? T.waterSpeedScale : env.onIce && onGround ? 1.15 : 1;
-    const target = dir * T.runSpeed * speedScale + env.windX;
+    const target = dir * T.runSpeed * speedScale * this.speedScale + env.windX;
     const vx = body.velocity.x;
     let accel = dir !== 0 ? (onGround ? T.groundAccel : T.airAccel) : onGround ? T.groundDecel : T.airAccel * 0.4;
     if (onGround && env.onIce) accel = dir !== 0 ? T.iceAccel : T.iceDecel;
@@ -375,14 +383,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.onJump?.(false);
     } else if (this.jumpBuffer > 0) {
       if (this.coyoteTimer > 0) {
-        body.setVelocityY(-g * T.jumpVelocity);
+        body.setVelocityY(-g * T.jumpVelocity * this.jumpScale);
         this.jumping = true;
         this.coyoteTimer = 0;
         this.jumpBuffer = 0;
         sfx.play('jump');
         this.onJump?.(false);
       } else if (this.canDoubleJump && input.jumpPressed) {
-        body.setVelocityY(-g * T.doubleJumpVelocity);
+        body.setVelocityY(-g * T.doubleJumpVelocity * this.jumpScale);
         this.jumping = true;
         this.canDoubleJump = false;
         this.jumpBuffer = 0;

@@ -4,6 +4,7 @@ import type { AbilityId } from '../logic/abilities';
 import { type Achievement, type AchievementContext, findAchievement, newlyUnlocked } from '../logic/achievements';
 import { buy, deposit, equip, grantItem, type ShopCategory } from '../logic/shop';
 import { type Mission, type MissionEvent, accept, applyEvent, claim } from '../logic/missions';
+import { type InfiniteEntry, addInfiniteEntry } from '../logic/powerups';
 import { type StatKey, addStat, maxStat } from '../logic/stats';
 import { type VolumeChannel, stepVolume } from '../logic/audioSettings';
 import { type SaveData, type StorageLike, loadSave, recordLevelClear, saveWithAbility, submitScore, writeSave } from '../logic/save';
@@ -158,6 +159,13 @@ class SaveManager {
       this.flush();
       result.completed.forEach((m) => this.missionListeners.forEach((fn) => fn(m)));
     }
+  }
+
+  /** Registra uma corrida do Infinito. Retorna a posição no placar (0 = melhor) ou -1. */
+  recordInfinite(entry: InfiniteEntry): number {
+    const board = addInfiniteEntry(this.data.infinite, entry);
+    this.commit({ ...this.data, infinite: board });
+    return board.indexOf(entry);
   }
 
   /** Marca uma cena de história como vista. */

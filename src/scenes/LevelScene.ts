@@ -36,6 +36,9 @@ import { BASE_GRAVITY } from '../gfx/textures';
 import { saveManager } from '../systems/saveManager';
 import { cutsceneAfterLevel } from '../story/story';
 import { itemsToSpawn, type MissionItem } from '../logic/missions';
+import { generateRoom } from '../logic/procgen';
+import { type PowerUpId, powerUpEffects } from '../logic/powerups';
+import { todayString } from '../logic/daily';
 import { t } from '../i18n';
 import { pixelText } from '../ui/text';
 
@@ -46,6 +49,17 @@ export interface LevelSceneData {
   mode?: GameMode;
   /** Fase criada no editor (substitui `levelIndex`). */
   custom?: LevelData;
+  /** Modo Infinito / Desafio diário: sala gerada por seed. */
+  infinite?: InfiniteRunData;
+}
+
+export interface InfiniteRunData {
+  seed: string;
+  /** Sala atual (0, 1, 2...). */
+  room: number;
+  powerup: PowerUpId | null;
+  /** Data do Desafio diário (AAAA-MM-DD), se for o caso. */
+  daily?: string;
 }
 
 export interface HudState {
@@ -80,6 +94,10 @@ export class LevelScene extends Phaser.Scene {
   private runAtStart!: RunState;
   private mode: GameMode = 'single';
   private custom: LevelData | null = null;
+  private infinite: InfiniteRunData | null = null;
+  private shield = false;
+  private magnet = false;
+  private enemyScale = 1;
 
   private players: Player[] = [];
   private respawnPoints: { x: number; y: number }[] = [];
@@ -151,7 +169,12 @@ export class LevelScene extends Phaser.Scene {
   init(data: LevelSceneData): void {
     this.levelIndex = Phaser.Math.Clamp(data.levelIndex ?? 0, 0, TOTAL_LEVELS - 1);
     this.custom = data.custom ?? null;
-    this.level = this.custom ?? LEVELS[this.levelIndex];
+    this.infinite = data.infinite ?? null;
+    this.level = this.custom ?? (this.infinite ? generateRoom(this.infinite.seed, this.infinite.room).level : LEVELS[this.levelIndex]);
+    const fx = powerUpEffects(this.infinite?.powerup ?? null);
+    this.shield = fx.shield;
+    this.magnet = fx.magnet;
+    this.enemyScale = fx.enemyScale;
     this.mode = data.mode ?? 'single';
     this.run = data.run ? { ...data.run, levelIndex: this.levelIndex } : createRun(this.levelIndex);
     this.runAtStart = { ...this.run };
@@ -360,7 +383,7 @@ export class LevelScene extends Phaser.Scene {
     // Moedas
     this.coins = this.physics.add.group({ allowGravity: false, immovable: true });
     // Itens de missão ocupam o lugar de algumas moedas (só com a missão ativa).
-    const missionItems = this.custom || this.mode === 'race' ? [] : itemsToSpawn(saveManager.get().missions, this.levelIndex);
+    const missionItems = this.custom || this.infinite || this.mode === 'race' ? [] : itemsToSpawn(saveManager.get().missions, this.levelIndex);
     p.coins.forEach((coin, index) => {
       const c = tileCenter(coin);
       const item = missionItems.find((i) => i.coin === index);
@@ -400,9 +423,13 @@ export class LevelScene extends Phaser.Scene {
 
     // Jogadores
     const start = tileCenter(p.start ?? { x: 2, y: p.height - 3 });
+    const powerFx = powerUpEffects(this.infinite?.powerup ?? null);
     for (let i = 0; i < this.inputs.playerCount; i++) {
       const x = start.x + i * 14;
-      this.players.push(this.createPlayer(i, x, start.y));
+      const pl = this.createPlayer(i, x, start.y);
+      pl.jumpScale = powerFx.jumpScale;
+      pl.speedScale = powerFx.speedScale;
+      this.players.push(pl);
       this.respawnPoints.push({ x, y: start.y });
       this.raceCoins.push(0);
     }
@@ -541,6 +568,21 @@ export class LevelScene extends Phaser.Scene {
     saveManager.stat('gravityFlips');
     sfx.play('spring');
     this.fx.sparkle.explode(10, flipper.x, flipper.y);
+  }
+
+  /** Ímã do modo Infinito: moedas próximas vão até o jogador. */
+  private attractCoins(dt: number): void {
+    const p = this.player;
+    if (p.dead) return;
+    for (const coin of this.coins.getChildren() as Phaser.Physics.Arcade.Sprite[]) {
+      const d = Phaser.Math.Distance.Between(coin.x, coin.y, p.x, p.y);
+      if (d < 90 && d > 1) {
+        this.tweens.killTweensOf(coin);
+        const k = Math.min(1, (dt / 1000) * 6);
+        coin.setPosition(coin.x + (p.x - coin.x) * k, coin.y + (p.y - coin.y) * k);
+        (coin.body as Phaser.Physics.Arcade.Body).reset(coin.x, coin.y);
+      }
+    }
   }
 
   /** Pisão que respeita a direção da gravidade do jogador. */
@@ -698,6 +740,7 @@ export class LevelScene extends Phaser.Scene {
       this.elapsed += dt / 1000;
       this.playTime += dt / 1000;
     }
+    if (this.magnet) this.attractCoins(dt);
     if (this.trail) this.trail.emitting = !this.player.dead && this.player.visible && Math.abs(this.player.body.velocity.x) + Math.abs(this.player.body.velocity.y) > 60;
     for (const player of this.players) {
       this.updateEnvironment(player);
@@ -711,7 +754,7 @@ export class LevelScene extends Phaser.Scene {
     const ctx: EnemyContext = {
       player: this.player,
       layer: this.layer,
-      difficulty: 1 + this.levelIndex * 0.12,
+      difficulty: (this.infinite ? 1 + Math.min(this.infinite.room, 12) * 0.06 : 1 + this.levelIndex * 0.12) * this.enemyScale,
       fireBullet: (x, y, vx, vy) => this.fireBullet(x, y, vx, vy),
     };
     for (const enemy of this.enemies) {
@@ -1005,6 +1048,15 @@ export class LevelScene extends Phaser.Scene {
 
   private killPlayer(player: Player, fell = false): void {
     if (player.dead || this.finished) return;
+    if (this.shield && !fell) {
+      // Escudo do modo Infinito: absorve um golpe.
+      this.shield = false;
+      player.protect(1500);
+      sfx.play('clank');
+      this.fx.sparkle.explode(20, player.x, player.y);
+      this.floatingText(player.x, player.y - 16, t('power.shield.used'), COLORS.cyan);
+      return;
+    }
     player.die();
     this.deathsThisLevel++;
     saveManager.stat('deaths');
@@ -1063,6 +1115,10 @@ export class LevelScene extends Phaser.Scene {
     saveManager.flush();
     sfx.stopMusic();
     sfx.play('gameOver');
+    if (this.infinite) {
+      this.finishInfinite();
+      return;
+    }
     if (this.custom) {
       this.showPanel('FIM DE JOGO', ['Suas vidas acabaram.', 'Volte ao editor e ajuste a fase!'], '', COLORS.red);
       this.time.delayedCall(2500, () => this.fadeTo(() => this.scene.start('Editor')));
@@ -1098,6 +1154,10 @@ export class LevelScene extends Phaser.Scene {
     this.recordClearStats();
     this.commitPlayTime();
     saveManager.flush();
+    if (this.infinite) {
+      this.clearInfiniteRoom();
+      return;
+    }
     if (this.mode === 'race') {
       const winner = player.index + 1;
       this.showPanel(`JOGADOR ${winner} VENCEU!`, [`Tempo: ${formatTime(this.elapsed)}`, `Moedas P1: ${this.raceCoins[0]}   P2: ${this.raceCoins[1]}`], 'Boa corrida!', winner === 1 ? COLORS.lightGreen : COLORS.cyan);
@@ -1153,8 +1213,46 @@ export class LevelScene extends Phaser.Scene {
     saveManager.missionEvent({ type: 'item', item: item.item, key: item.key });
   }
 
+  /** Sala do Infinito concluída: bônus e escolha de power-up para a próxima. */
+  private clearInfiniteRoom(): void {
+    const inf = this.infinite!;
+    const bonus = levelClearBonus({ seconds: this.elapsed, parSeconds: this.level.par, coinsCollected: this.coinsCollected, coinsTotal: this.parsed.coins.length });
+    const roomBonus = 200 + inf.room * 100;
+    this.run = addPoints(this.run, bonus.time + bonus.coins + roomBonus);
+    saveManager.stat('levelsCleared');
+    if (inf.daily) {
+      this.finishDaily();
+      return;
+    }
+    this.showPanel(t('infinite.roomClear', { n: inf.room + 1 }), [t('infinite.bonus', { points: roomBonus + bonus.time + bonus.coins }), t('infinite.seed', { seed: inf.seed })], t('infinite.next'));
+    this.time.delayedCall(2600, () =>
+      this.fadeTo(() => this.scene.start('PowerUp', { seed: inf.seed, room: inf.room + 1, run: this.run })),
+    );
+  }
+
+  /** Fim da corrida do Infinito (vidas acabaram ou o jogador saiu). */
+  private finishInfinite(goToResult = true): void {
+    const inf = this.infinite!;
+    const entry = { seed: inf.seed, rooms: inf.room, score: this.run.score, date: todayString() };
+    if (inf.daily) {
+      this.finishDaily(false);
+      return;
+    }
+    const rank = saveManager.recordInfinite(entry);
+    if (!goToResult) return;
+    this.cameras.main.fadeOut(600, 26, 28, 44);
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+      this.scene.start('GameOver', { victory: false, score: this.run.score, levelIndex: 0, isNewRecord: rank === 0, mode: 'single', infinite: { ...entry, rank } });
+    });
+  }
+
+  /** Desafio diário (implementado na fase 5). */
+  private finishDaily(_cleared = true): void {
+    this.fadeTo(() => this.scene.start('Menu'));
+  }
+
   private recordClearStats(): void {
-    if (this.custom) return;
+    if (this.custom || this.infinite) return;
     if (this.mode === 'race') {
       saveManager.stat('raceFinishes');
       return;
@@ -1195,7 +1293,13 @@ export class LevelScene extends Phaser.Scene {
   /** Reinicia a fase atual com o estado da partida do início da fase. */
   restartLevel(): void {
     this.depositCoins();
-    this.scene.restart({ levelIndex: this.levelIndex, run: this.runAtStart, mode: this.mode, custom: this.custom ?? undefined } satisfies LevelSceneData);
+    this.scene.restart({
+      levelIndex: this.levelIndex,
+      run: this.runAtStart,
+      mode: this.mode,
+      custom: this.custom ?? undefined,
+      infinite: this.infinite ?? undefined,
+    } satisfies LevelSceneData);
   }
 
   /** Sai para o menu, registrando a pontuação alcançada. */
@@ -1205,6 +1309,11 @@ export class LevelScene extends Phaser.Scene {
     sfx.stopMusic();
     if (this.custom) {
       this.scene.start('Editor');
+      return;
+    }
+    if (this.infinite) {
+      this.finishInfinite(false);
+      this.scene.start('Menu');
       return;
     }
     if (this.mode !== 'race') saveManager.submitScore(this.run.score);
@@ -1236,7 +1345,17 @@ export class LevelScene extends Phaser.Scene {
     return this.players.map((p) => p.texture.key);
   }
 
-  getLevelInfo(): { number: number; name: string; subtitle: string; mode: GameMode; custom: boolean } {
-    return { number: this.level.id, name: this.level.name, subtitle: this.level.subtitle, mode: this.mode, custom: this.custom !== null };
+  getLevelInfo(): { number: number; name: string; subtitle: string; mode: GameMode; custom: boolean; label: string; powerup: PowerUpId | null } {
+    const inf = this.infinite;
+    const label = this.custom ? 'TESTE' : inf ? (inf.daily ? t('daily.label') : t('infinite.label', { n: inf.room + 1 })) : `FASE ${this.level.id}`;
+    return {
+      number: this.level.id,
+      name: inf ? (inf.daily ? t('daily.title') : t('infinite.title')) : this.level.name,
+      subtitle: inf ? t('infinite.seed', { seed: inf.seed }) : this.level.subtitle,
+      mode: this.mode,
+      custom: this.custom !== null,
+      label,
+      powerup: inf?.powerup ?? null,
+    };
   }
 }
