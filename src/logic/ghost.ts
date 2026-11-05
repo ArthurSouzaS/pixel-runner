@@ -132,16 +132,32 @@ export function ghostPositionAt(keys: readonly Keyframe[], timeMs: number): { x:
   return { x: a[1] + (b[1] - a[1]) * k, y: a[2] + (b[2] - a[2]) * k, frame: a[3], flip: a[4] === 1 };
 }
 
+/** Limite de quadros de um fantasma (~4 horas a 60 FPS), contra dados corrompidos. */
+export const GHOST_MAX_FRAMES = 60 * 60 * 60 * 4;
+
+/** Total de quadros de um RLE válido, ou -1 se tiver contagens inválidas. */
+function rleFrames(v: unknown): number {
+  if (!Array.isArray(v)) return -1;
+  let total = 0;
+  for (const p of v) {
+    if (!Array.isArray(p) || p.length !== 2 || !p.every((n) => Number.isFinite(n))) return -1;
+    if (!Number.isInteger(p[1]) || p[1] < 1 || p[0] < 0) return -1;
+    total += p[1];
+    if (total > GHOST_MAX_FRAMES) return -1;
+  }
+  return total;
+}
+
 export function isGhostData(raw: unknown): raw is GhostData {
   if (!raw || typeof raw !== 'object') return false;
   const g = raw as Partial<GhostData>;
-  const pairs = (v: unknown) => Array.isArray(v) && v.every((p) => Array.isArray(p) && p.length === 2 && p.every((n) => Number.isFinite(n)));
+  const frames = rleFrames(g.inputs);
   return (
     g.version === 1 &&
     typeof g.time === 'number' &&
     g.time > 0 &&
-    pairs(g.inputs) &&
-    pairs(g.steps) &&
+    frames >= 0 &&
+    rleFrames(g.steps) === frames &&
     Array.isArray(g.keys) &&
     g.keys.every((k) => Array.isArray(k) && k.length === 5 && k.every((n) => Number.isFinite(n)))
   );

@@ -1068,6 +1068,8 @@ export class LevelScene extends Phaser.Scene {
 
   private hitBoss(boss: BossLike): void {
     if (!boss.hit()) return;
+    // Golpe final: some com os tiros para ninguém morrer durante a explosão do chefe.
+    if (boss.hp <= 0) this.bullets.clear(true, true);
     this.run = addPoints(this.run, POINTS.bossHit);
     this.floatingText(boss.x, boss.y - 24, String(POINTS.bossHit), COLORS.yellow);
   }
@@ -1172,7 +1174,8 @@ export class LevelScene extends Phaser.Scene {
   private respawn(player: Player, point: { x: number; y: number }, resetBoss = true): void {
     if (resetBoss && this.mode !== 'race' && this.alivePlayers().length === 0) {
       this.bullets.clear(true, true);
-      if (this.boss?.active && !this.bossDefeated) {
+      // Só reinicia um chefe em luta: durante a explosão final ele já foi vencido.
+      if (this.boss?.active && this.boss.isActive && !this.bossDefeated) {
         this.boss.reset();
         this.bossHud.visible = false;
         this.setGate(false);

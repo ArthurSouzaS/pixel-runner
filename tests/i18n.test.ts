@@ -57,6 +57,16 @@ describe('traduções', () => {
     expect(missing).toEqual([]);
   });
 
+  it('toda chave usada com tOr("...") tem versão em inglês', () => {
+    const used = new Set<string>();
+    for (const file of sourceFiles(fileURLToPath(new URL('../src', import.meta.url)))) {
+      const src = readFileSync(file, 'utf8');
+      for (const m of src.matchAll(/\btOr\('([a-zA-Z0-9_-]+\.[a-zA-Z0-9_.-]+)'/g)) used.add(m[1]);
+    }
+    expect(used.size).toBeGreaterThan(0);
+    expect([...used].filter((k) => !hasKey(k, 'en'))).toEqual([]);
+  });
+
   it('dados do jogo têm versão em inglês', () => {
     const need: string[] = [];
     for (const l of LEVELS) {

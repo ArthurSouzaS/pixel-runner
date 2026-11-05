@@ -115,3 +115,58 @@ describe('fantasma: gravar e reproduzir', () => {
     expect(isGhostData(null)).toBe(false);
   });
 });
+
+describe('fantasma: gravação longa com quadros irregulares', () => {
+  it('sobrevive ao JSON e reproduz tudo, mesmo avançando em saltos irregulares', () => {
+    const random = mulberry(7);
+    const rec = new GhostRecorder();
+    const script: { input: GhostInput; ms: number }[] = [];
+    for (let i = 0; i < 2000; i++) {
+      const input: GhostInput = {
+        left: random() < 0.2,
+        right: random() < 0.6,
+        jumpHeld: random() < 0.3,
+        jumpPressed: random() < 0.05,
+        dashPressed: random() < 0.02,
+        chargeHeld: random() < 0.1,
+      };
+      // Quadros de 8 a 33 ms (celular lento, monitor de 120 Hz...).
+      const ms = 8 + Math.floor(random() * 26);
+      script.push({ input, ms });
+      rec.push(input, ms, i, i * 2, i % 7, i % 2 === 0);
+    }
+    const data = JSON.parse(JSON.stringify(rec.finish(33.3, 1, 2, 0, false))) as unknown;
+    expect(isGhostData(data)).toBe(true);
+    if (!isGhostData(data)) return;
+    expect(data.keys.length).toBe(Math.ceil(2000 / KEYFRAME_EVERY) + 1);
+
+    const playback = new GhostPlayback(data);
+    const replayed: { input: GhostInput; ms: number }[] = [];
+    let t = 0;
+    while (!playback.finished) {
+      t += 5 + Math.floor(random() * 60);
+      replayed.push(...playback.advance(t));
+    }
+    expect(replayed).toEqual(script);
+  });
+
+  it('rejeita fantasmas com quadros inconsistentes ou absurdos', () => {
+    const base = { version: 1, time: 3, keys: [[0, 0, 0, 0, 0]] };
+    expect(isGhostData({ ...base, inputs: [[1, 10]], steps: [[16, 10]] })).toBe(true);
+    expect(isGhostData({ ...base, inputs: [[1, 10]], steps: [[16, 9]] })).toBe(false);
+    expect(isGhostData({ ...base, inputs: [[1, 1e12]], steps: [[16, 1e12]] })).toBe(false);
+    expect(isGhostData({ ...base, inputs: [[1, -2]], steps: [[16, -2]] })).toBe(false);
+    expect(isGhostData({ ...base, inputs: [[1, 1.5]], steps: [[16, 1.5]] })).toBe(false);
+  });
+});
+
+function mulberry(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}

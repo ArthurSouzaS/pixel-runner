@@ -144,7 +144,10 @@ export class HUDScene extends Phaser.Scene {
       this.timeText.setText(formatTimePrecise(s.time));
       this.speedText ??= pixelText(this, GAME_WIDTH / 2, 24, '', { size: 8 }).setOrigin(0.5, 0);
       const delta = s.speedrun.delta;
-      this.speedText.setText(`TOTAL ${formatTimePrecise(s.speedrun.total)}${delta !== null ? `  +${formatTimePrecise(delta)}` : ''}`).setColor(delta !== null ? '#b13e53' : '#73eff7');
+      this.speedText.setText(`TOTAL ${formatTimePrecise(s.speedrun.total)}${delta !== null ? `  +${formatTimePrecise(delta)}` : ''}`);
+      // setColor redesenha o texto; só chama quando a cor muda.
+      const color = delta !== null ? '#b13e53' : '#73eff7';
+      if (this.speedText.style.color !== color) this.speedText.setColor(color);
     }
     const t = Math.floor(s.time);
     if (t !== this.last.time && !s.speedrun) this.timeText.setText(formatTime(t));

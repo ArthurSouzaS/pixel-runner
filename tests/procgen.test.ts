@@ -119,3 +119,24 @@ describe('power-ups e placar do Infinito', async () => {
     expect(sanitizeInfiniteBoard([{ seed: 'Z', rooms: 1.7, score: -3, date: '2026-01-02T10' }, { nope: 1 }])).toEqual([{ seed: 'Z', rooms: 1, score: 0, date: '2026-01-02' }]);
   });
 });
+
+describe('geração procedural em massa', () => {
+  it('300 seeds aleatórias: salas determinísticas, válidas e possíveis de terminar', () => {
+    const random = mulberry32(20261105);
+    for (let i = 0; i < 300; i++) {
+      const seed = randomSeed(random);
+      const room = Math.floor(random() * 15);
+      const a = generateRoom(seed, room);
+      expect(generateRoom(seed, room), `${seed}#${room}`).toEqual(a);
+      const parsed = parseLevel(a.level.map);
+      expect(validateLevel(parsed), `${seed}#${room}`).toEqual([]);
+      expect(isCompletable(a.level.map), `${seed}#${room}`).toBe(true);
+    }
+  });
+
+  it('seeds digitadas em minúsculas ou com espaços geram a mesma sala', () => {
+    const typed = normalizeSeed('  pixel1 ');
+    expect(typed).toBe('PIXEL1');
+    expect(generateRoom(typed!, 2)).toEqual(generateRoom('PIXEL1', 2));
+  });
+});

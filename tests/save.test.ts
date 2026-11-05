@@ -174,3 +174,82 @@ describe('save da versão 2', () => {
     expect(save.bestTimes).toEqual({ 9: 50 });
   });
 });
+
+describe('migração completa de saves antigos para a v3', () => {
+  const TOTAL_V3 = 15;
+  /** Save típico de quem jogou a parte 2 inteira (formato gravado pela v2). */
+  const v2Save = {
+    version: 2,
+    highScore: 48210,
+    unlockedLevels: 10,
+    bestTimes: { 0: 31.2, 1: 44, 5: 70.5, 9: 182.4 },
+    muted: false,
+    abilities: ['wallClimb', 'glide', 'charge'],
+    wallet: 1234,
+    ownedSkins: ['classic', 'ruby', 'gold'],
+    equippedSkin: 'gold',
+    ownedTrails: ['none', 'fire'],
+    equippedTrail: 'fire',
+    stats: { jumps: 5400, dashes: 800, coins: 2100 },
+    achievements: ['first-steps', 'coins-100'],
+    volumes: { master: 0.6, music: 0.3, sfx: 0.9 },
+  };
+
+  it('mantém tudo da parte 2, libera o Mundo 3 e cria os campos novos', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(SAVE_KEY, JSON.stringify(v2Save));
+    const save = loadSave(storage, TOTAL_V3);
+    expect(save).toMatchObject({
+      version: 3,
+      highScore: 48210,
+      unlockedLevels: 11,
+      bestTimes: { 0: 31.2, 1: 44, 5: 70.5, 9: 182.4 },
+      abilities: ['wallClimb', 'glide', 'charge'],
+      wallet: 1234,
+      ownedSkins: ['classic', 'ruby', 'gold'],
+      equippedSkin: 'gold',
+      ownedTrails: ['none', 'fire'],
+      equippedTrail: 'fire',
+      achievements: ['first-steps', 'coins-100'],
+      volumes: { master: 0.6, music: 0.3, sfx: 0.9 },
+    });
+    expect(save.stats.jumps).toBe(5400);
+    expect(save.stats.coins).toBe(2100);
+    const fresh = defaultSave();
+    expect(save.storySeen).toEqual([]);
+    expect(save.missions).toEqual(fresh.missions);
+    expect(save.infinite).toEqual([]);
+    expect(save.daily).toEqual(fresh.daily);
+    expect(save.speedrun).toEqual({});
+    expect(save.access).toEqual(fresh.access);
+    expect(save.lang).toBe('');
+  });
+
+  it('a migração é estável: migrar de novo não muda nada', () => {
+    const once = sanitizeSave(v2Save, TOTAL_V3);
+    const twice = sanitizeSave(JSON.parse(JSON.stringify(once)), TOTAL_V3);
+    expect(twice).toEqual(once);
+  });
+
+  it('gravar e ler o save migrado preserva tudo', () => {
+    const storage = new MemoryStorage();
+    const migrated = sanitizeSave(v2Save, TOTAL_V3);
+    writeSave(storage, migrated);
+    expect(loadSave(storage, TOTAL_V3)).toEqual(migrated);
+  });
+
+  it('campos com tipos errados voltam ao padrão sem perder o resto', () => {
+    const broken = { ...v2Save, wallet: 'muito', stats: 'x', achievements: [1, null, 'first-steps'], access: 42, missions: [], daily: 'hoje', speedrun: null, lang: 'fr' };
+    const save = sanitizeSave(broken, TOTAL_V3);
+    const fresh = defaultSave();
+    expect(save.highScore).toBe(48210);
+    expect(save.wallet).toBe(0);
+    expect(save.stats).toEqual(fresh.stats);
+    expect(save.achievements).toEqual(['first-steps']);
+    expect(save.access).toEqual(fresh.access);
+    expect(save.missions).toEqual(fresh.missions);
+    expect(save.daily).toEqual(fresh.daily);
+    expect(save.speedrun).toEqual({});
+    expect(save.lang).toBe('');
+  });
+});

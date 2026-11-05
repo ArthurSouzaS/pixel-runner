@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
-import { COLORS, hex } from '../gfx/palette';
+import { COLORS } from '../gfx/palette';
 import { ensurePixSkin } from '../gfx/skins';
 import { createBackgroundTextures, createTileset, GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
 import { t } from '../i18n';
@@ -152,7 +152,7 @@ export class HubScene extends Phaser.Scene {
     this.add.image(GAME_WIDTH - 130, 10, 'coin', 0).setScrollFactor(0).setDepth(101);
     pixelText(this, GAME_WIDTH - 122, 6, String(save.wallet), { size: 8, color: COLORS.yellow }).setScrollFactor(0).setDepth(101);
     pixelText(this, GAME_WIDTH - 8, 6, t('hub.menu'), { size: 8, color: COLORS.gray }).setOrigin(1, 0).setScrollFactor(0).setDepth(101);
-    this.prompt = pixelText(this, 0, 0, '', { size: 8, color: COLORS.white }).setOrigin(0.5).setDepth(50).setVisible(false);
+    this.prompt = pixelText(this, 0, 0, '', { size: 8, color: COLORS.yellow }).setOrigin(0.5).setDepth(50).setVisible(false);
     this.prompt.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.interact());
 
     this.dialogue = new DialogueBox(this);
@@ -292,7 +292,7 @@ export class HubScene extends Phaser.Scene {
     if (this.nearby && !frozen) {
       const verb = this.nearby.kind === 'npc' ? t('hub.talk') : t('hub.enter');
       const key = isTouchDevice() || gamepads.connectedCount > 0 ? '!' : '↓';
-      this.prompt.setText(`${key} ${verb}`).setPosition(this.nearby.x, this.nearby.y - 40).setVisible(true).setColor(hex(COLORS.yellow));
+      this.prompt.setText(`${key} ${verb}`).setPosition(this.nearby.x, this.nearby.y - 40).setVisible(true);
     } else {
       this.prompt.setVisible(false);
     }
