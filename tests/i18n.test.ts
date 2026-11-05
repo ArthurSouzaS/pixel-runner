@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { dictionaries, hasKey, setLang, t, tOr } from '../src/i18n';
 import { LEVELS, WORLDS } from '../src/levels';
@@ -47,7 +48,7 @@ describe('traduções', () => {
 
   it('toda chave usada no código com t("...") existe nos dois idiomas', () => {
     const used = new Set<string>();
-    for (const file of sourceFiles(join(__dirname, '../src'))) {
+    for (const file of sourceFiles(fileURLToPath(new URL('../src', import.meta.url)))) {
       const src = readFileSync(file, 'utf8');
       for (const m of src.matchAll(/\bt\('([a-zA-Z0-9_-]+\.[a-zA-Z0-9_.-]+)'/g)) used.add(m[1]);
     }
