@@ -10,6 +10,8 @@ export interface DialogueLine {
   speaker: Speaker;
   /** Chave de tradução do texto. */
   key: string;
+  /** Valores para os marcadores `{nome}` do texto. */
+  params?: Record<string, string | number>;
 }
 
 export interface NpcInfo {

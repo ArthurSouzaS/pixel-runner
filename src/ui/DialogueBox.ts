@@ -81,7 +81,7 @@ export class DialogueBox {
       this.portrait.setTexture(NPCS[line.speaker as NpcId].texture, 0);
     }
     this.nameText.setText(t(isPix ? 'npc.pix' : NPCS[line.speaker as NpcId].nameKey));
-    this.full = t(line.key);
+    this.full = t(line.key, line.params);
     this.shown = 0;
     this.body.setText('');
     this.arrow.setVisible(false);

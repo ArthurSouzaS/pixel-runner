@@ -2,7 +2,8 @@ import { sfx } from '../audio/Sfx';
 import { TOTAL_LEVELS } from '../levels';
 import type { AbilityId } from '../logic/abilities';
 import { type Achievement, type AchievementContext, findAchievement, newlyUnlocked } from '../logic/achievements';
-import { buy, deposit, equip, type ShopCategory } from '../logic/shop';
+import { buy, deposit, equip, grantItem, type ShopCategory } from '../logic/shop';
+import { type Mission, type MissionEvent, accept, applyEvent, claim } from '../logic/missions';
 import { type StatKey, addStat, maxStat } from '../logic/stats';
 import { type VolumeChannel, stepVolume } from '../logic/audioSettings';
 import { type SaveData, type StorageLike, loadSave, recordLevelClear, saveWithAbility, submitScore, writeSave } from '../logic/save';
@@ -25,6 +26,7 @@ class SaveManager {
   private data: SaveData = loadSave(this.storage, TOTAL_LEVELS);
   private dirty = false;
   private listeners = new Set<(achievement: Achievement) => void>();
+  private missionListeners = new Set<(mission: Mission) => void>();
 
   constructor() {
     sfx.setMuted(this.data.muted);
@@ -112,7 +114,7 @@ class SaveManager {
   }
 
   /** Compra (e equipa) um item da loja. */
-  buyItem(category: ShopCategory, id: string): 'ok' | 'owned' | 'funds' | 'unknown' {
+  buyItem(category: ShopCategory, id: string): 'ok' | 'owned' | 'funds' | 'unknown' | 'exclusive' {
     const result = buy(this.data, category, id);
     if (!result.ok) return result.reason;
     this.data = { ...result.state, stats: addStat(result.state.stats, 'purchases') };
@@ -122,6 +124,40 @@ class SaveManager {
 
   equipItem(category: ShopCategory, id: string): void {
     this.commit(equip(this.data, category, id));
+  }
+
+  onMissionComplete(listener: (mission: Mission) => void): () => void {
+    this.missionListeners.add(listener);
+    return () => this.missionListeners.delete(listener);
+  }
+
+  acceptMission(id: string): void {
+    this.commit({ ...this.data, missions: accept(this.data.missions, id) });
+  }
+
+  /** Entrega a recompensa de uma missão concluída. */
+  claimMission(id: string): Mission['reward'] | null {
+    const result = claim(this.data.missions, id);
+    if (!result.reward) return null;
+    let next: SaveData = { ...this.data, missions: result.state };
+    next = deposit(next, result.reward.coins);
+    if (result.reward.skin) next = grantItem(next, 'skin', result.reward.skin);
+    this.commit(next);
+    return result.reward;
+  }
+
+  /** Repassa um acontecimento do jogo para as missões (moedas, itens, fase concluída). */
+  missionEvent(event: MissionEvent): void {
+    const hasActive = Object.values(this.data.missions.missions).some((m) => m.status === 'active');
+    if (!hasActive) return;
+    const result = applyEvent(this.data.missions, event);
+    if (result.state === this.data.missions) return;
+    this.data = { ...this.data, missions: result.state };
+    this.dirty = true;
+    if (result.completed.length > 0) {
+      this.flush();
+      result.completed.forEach((m) => this.missionListeners.forEach((fn) => fn(m)));
+    }
   }
 
   /** Marca uma cena de história como vista. */

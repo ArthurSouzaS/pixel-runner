@@ -35,6 +35,8 @@ import { Asteroid, Laser } from '../objects/spaceHazards';
 import { BASE_GRAVITY } from '../gfx/textures';
 import { saveManager } from '../systems/saveManager';
 import { cutsceneAfterLevel } from '../story/story';
+import { itemsToSpawn, type MissionItem } from '../logic/missions';
+import { t } from '../i18n';
 import { pixelText } from '../ui/text';
 
 export interface LevelSceneData {
@@ -100,6 +102,7 @@ export class LevelScene extends Phaser.Scene {
   private waterRects: Phaser.Geom.Rectangle[] = [];
   private windZones: { rect: Phaser.Geom.Rectangle; vx: number; vy: number }[] = [];
   private flippers: Phaser.Physics.Arcade.Sprite[] = [];
+  private missionSprites: Phaser.Physics.Arcade.Sprite[] = [];
   private portals: { a: Phaser.GameObjects.Sprite; b: Phaser.GameObjects.Sprite }[] = [];
   private asteroids: Asteroid[] = [];
   private lasers: Laser[] = [];
@@ -177,6 +180,7 @@ export class LevelScene extends Phaser.Scene {
     this.waterRects = [];
     this.windZones = [];
     this.flippers = [];
+    this.missionSprites = [];
     this.portals = [];
     this.asteroids = [];
     this.lasers = [];
@@ -355,12 +359,23 @@ export class LevelScene extends Phaser.Scene {
 
     // Moedas
     this.coins = this.physics.add.group({ allowGravity: false, immovable: true });
-    for (const coin of p.coins) {
+    // Itens de missão ocupam o lugar de algumas moedas (só com a missão ativa).
+    const missionItems = this.custom || this.mode === 'race' ? [] : itemsToSpawn(saveManager.get().missions, this.levelIndex);
+    p.coins.forEach((coin, index) => {
       const c = tileCenter(coin);
+      const item = missionItems.find((i) => i.coin === index);
+      if (item) {
+        const sprite = this.physics.add.staticSprite(c.x, c.y, `item-${item.item}`).setDepth(5);
+        this.tweens.add({ targets: sprite, y: c.y - 3, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        this.tweens.add({ targets: sprite, angle: item.item === 'gear' ? 360 : 0, scale: 1.2, duration: 900, yoyo: item.item !== 'gear', repeat: -1 });
+        sprite.setData('mission', item);
+        this.missionSprites.push(sprite);
+        return;
+      }
       const sprite = this.coins.create(c.x, c.y, 'coin') as Phaser.Physics.Arcade.Sprite;
       sprite.play({ key: 'coin-spin', startFrame: (coin.x + coin.y) % 4 });
       this.tweens.add({ targets: sprite, y: c.y - 2, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: (coin.x % 5) * 80 });
-    }
+    });
 
     // Checkpoints
     this.checkpoints = this.physics.add.staticGroup();
@@ -625,6 +640,7 @@ export class LevelScene extends Phaser.Scene {
         }
       });
       this.physics.add.overlap(player, this.springs, (_p, s) => this.touchSpring(player, s as Spring));
+      this.physics.add.overlap(player, this.missionSprites, (_p, item) => this.collectMissionItem(player, item as Phaser.Physics.Arcade.Sprite));
       this.physics.add.overlap(player, this.flippers, (_p, f) => this.touchFlipper(player, f as Phaser.Physics.Arcade.Sprite));
       this.physics.add.overlap(player, this.asteroids, () => {
         if (!player.isInvulnerable) this.killPlayer(player);
@@ -789,6 +805,7 @@ export class LevelScene extends Phaser.Scene {
     this.coinsCollected++;
     this.raceCoins[player.index]++;
     saveManager.stat('coins');
+    saveManager.missionEvent({ type: 'coin' });
     const result = collectCoin(this.run);
     this.run = result.run;
     sfx.play('coin');
@@ -1126,12 +1143,23 @@ export class LevelScene extends Phaser.Scene {
     );
   }
 
+  private collectMissionItem(player: Player, sprite: Phaser.Physics.Arcade.Sprite): void {
+    if (!sprite.active || player.dead) return;
+    const item = sprite.getData('mission') as { item: MissionItem; key: string };
+    this.fx.confetti.explode(16, sprite.x, sprite.y);
+    this.floatingText(sprite.x, sprite.y - 12, `+1 ${t(`item.${item.item}`)}`, COLORS.cyan);
+    sprite.destroy();
+    sfx.play('extraLife');
+    saveManager.missionEvent({ type: 'item', item: item.item, key: item.key });
+  }
+
   private recordClearStats(): void {
     if (this.custom) return;
     if (this.mode === 'race') {
       saveManager.stat('raceFinishes');
       return;
     }
+    saveManager.missionEvent({ type: 'levelClear', level: this.levelIndex, seconds: this.elapsed, deaths: this.deathsThisLevel });
     saveManager.stat('levelsCleared');
     if (this.parsed.coins.length > 0 && this.coinsCollected >= this.parsed.coins.length) saveManager.stat('perfectLevels');
     if (this.deathsThisLevel === 0) saveManager.stat('flawlessLevels');

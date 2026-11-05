@@ -920,3 +920,52 @@ export const NPC_ASTRO_FRAMES: PixelArt[] = [
     '...kkkk.kkkk....',
   ],
 ];
+
+// ---------------------------------------------------------------------------
+// Itens de missão (12x12)
+// ---------------------------------------------------------------------------
+
+export const GEAR_ART: PixelArt = [
+  '....kkkk....',
+  '..k.kggk.k..',
+  '.kgkkggkkgk.',
+  '..kgggggggk.',
+  'kkggkkkkggkk',
+  'kgggk..kgggk',
+  'kgggk..kgggk',
+  'kkggkkkkggkk',
+  '..kgggggggk.',
+  '.kgkkGGkkgk.',
+  '..k.kGGk.k..',
+  '....kkkk....',
+];
+
+export const SHELL_ART: PixelArt = [
+  '............',
+  '.....kk.....',
+  '...kkookk...',
+  '..kowoowok..',
+  '.kowooowook.',
+  '.koowoowook.',
+  'kooowowowook',
+  'kooooooooook',
+  '.kkoooooookk',
+  '...kkkkkk...',
+  '............',
+  '............',
+];
+
+export const SHARD_ITEM_ART: PixelArt = [
+  '.....kk.....',
+  '....kcck....',
+  '....kcwk....',
+  '...kcwwck...',
+  '...kcwBck...',
+  '..kcwBBcck..',
+  '..kcBBbBck..',
+  '..kcBbbBck..',
+  '...kcBBck...',
+  '...kcbBck...',
+  '....kcck....',
+  '.....kk.....',
+];

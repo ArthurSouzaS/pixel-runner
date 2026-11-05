@@ -77,7 +77,7 @@ export class ShopScene extends Phaser.Scene {
     this.index = Math.max(0, items.findIndex((i) => i.id === equipped));
     this.rows.forEach((r) => r.destroy());
     this.rows = items.map((_item, i) => {
-      const row = pixelText(this, 30, 70 + i * 20, '', { size: 8 }).setInteractive({ useHandCursor: true });
+      const row = pixelText(this, 30, 66 + i * 15, '', { size: 8 }).setInteractive({ useHandCursor: true });
       row.on('pointerdown', () => {
         if (this.index === i) this.activate();
         else {
@@ -113,7 +113,7 @@ export class ShopScene extends Phaser.Scene {
       } else {
         sfx.play('hurt');
         this.cameras.main.shake(150, 0.006);
-        this.infoText.setText('Moedas insuficientes!').setColor(hex(COLORS.red));
+        this.infoText.setText(result === 'exclusive' ? 'Recompensa de missão!' : 'Moedas insuficientes!').setColor(hex(COLORS.red));
         return;
       }
     }
@@ -127,7 +127,8 @@ export class ShopScene extends Phaser.Scene {
     items.forEach((item, i) => {
       const owned = isOwned(save, this.category, item.id);
       const equipped = isEquipped(save, this.category, item.id);
-      const status = equipped ? 'EQUIPADO' : owned ? 'COMPRADO' : `${item.price} moedas`;
+      const exclusive = (item as { exclusive?: boolean }).exclusive;
+      const status = equipped ? 'EQUIPADO' : owned ? 'COMPRADO' : exclusive ? 'MISSÃO' : `${item.price} moedas`;
       const selected = i === this.index;
       this.rows[i]
         .setText(`${selected ? '>' : ' '} ${item.name.padEnd(10, ' ')} ${status}`)
@@ -143,7 +144,15 @@ export class ShopScene extends Phaser.Scene {
     this.setTrail(trail);
     const owned = isOwned(save, this.category, selected.id);
     this.infoText
-      .setText(owned ? (isEquipped(save, this.category, selected.id) ? 'Equipado' : 'Enter para equipar') : `Custa ${selected.price} moedas`)
+      .setText(
+        owned
+          ? isEquipped(save, this.category, selected.id)
+            ? 'Equipado'
+            : 'Enter para equipar'
+          : (selected as { exclusive?: boolean }).exclusive
+            ? 'Recompensa de missão'
+            : `Custa ${selected.price} moedas`,
+      )
       .setColor(hex(owned || save.wallet >= selected.price ? COLORS.cyan : COLORS.red));
   }
 

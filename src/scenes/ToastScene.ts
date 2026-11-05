@@ -3,6 +3,7 @@ import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
 import { GAME_WIDTH } from '../gfx/textures';
 import { gamepads } from '../input/gamepad';
+import { t } from '../i18n';
 import { saveManager } from '../systems/saveManager';
 import { pixelText } from '../ui/text';
 
@@ -17,9 +18,13 @@ export class ToastScene extends Phaser.Scene {
 
   create(): void {
     const off = saveManager.onAchievement((a) => this.notify('CONQUISTA!', a.name, 'star'));
+    const offMission = saveManager.onMissionComplete((m) =>
+      this.notify(t('mission.complete'), t(`mission.${m.id}.title`), 'item-gear'),
+    );
     gamepads.onConnect = (_name, connected) => this.notify('CONTROLE', connected ? 'Conectado!' : 'Desconectado', 'heart');
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       off();
+      offMission();
       gamepads.onConnect = undefined;
     });
   }

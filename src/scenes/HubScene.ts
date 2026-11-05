@@ -11,7 +11,9 @@ import { LEVELS, WORLDS } from '../levels';
 import { SOLID_TILES, TILE_SIZE, parseLevel } from '../logic/levelParser';
 import { findSkin } from '../logic/shop';
 import { Player } from '../objects/Player';
-import { type NpcId, NPCS, hubChatter } from '../story/story';
+import { type DialogueLine, type NpcId, NPCS, hubChatter } from '../story/story';
+import { MISSIONS, availableFor, doneFor, objectiveTarget } from '../logic/missions';
+import { findSkin as skinById } from '../logic/shop';
 import { saveManager } from '../systems/saveManager';
 import { DialogueBox } from '../ui/DialogueBox';
 import { pixelText } from '../ui/text';
@@ -61,6 +63,7 @@ export class HubScene extends Phaser.Scene {
   private far!: Phaser.GameObjects.TileSprite;
   private near!: Phaser.GameObjects.TileSprite;
   private leaving = false;
+  private markers = new Map<NpcId, Phaser.GameObjects.Text>();
 
   constructor() {
     super('Hub');
@@ -68,6 +71,7 @@ export class HubScene extends Phaser.Scene {
 
   create(): void {
     this.items = [];
+    this.markers = new Map();
     this.nearby = null;
     this.leaving = false;
     sfx.playMusic('menu');
@@ -108,7 +112,20 @@ export class HubScene extends Phaser.Scene {
       if (!visible) continue;
       this.add.sprite(x, 14 * TILE_SIZE, NPCS[id].texture, 0).setDepth(3).play(`npc-${id}-idle`);
       this.addItem('npc', x, 14 * TILE_SIZE, t(NPCS[id].nameKey), { npc: id });
+      // Marcador: "!" = missão nova, "?" = missão concluída para entregar.
+      const mark = pixelText(this, x, 14 * TILE_SIZE - 38, '', { size: 10, color: COLORS.yellow }).setOrigin(0.5).setDepth(5);
+      this.tweens.add({ targets: mark, y: mark.y - 3, duration: 400, yoyo: true, repeat: -1 });
+      this.markers.set(id, mark);
     }
+    this.refreshMarkers();
+
+    // Quadro de missões
+    const bx = 36 * TILE_SIZE + 8;
+    const board = this.add.graphics().setDepth(1);
+    board.fillStyle(0x5e3a28).fillRect(bx - 2, 12 * TILE_SIZE + 16, 4, 16).fillRect(bx - 14, 12 * TILE_SIZE, 28, 18);
+    board.fillStyle(0xffcd75).fillRect(bx - 12, 12 * TILE_SIZE + 2, 24, 14);
+    board.fillStyle(0x1a1c2c).fillRect(bx - 9, 12 * TILE_SIZE + 5, 18, 1).fillRect(bx - 9, 12 * TILE_SIZE + 9, 14, 1).fillRect(bx - 9, 12 * TILE_SIZE + 13, 16, 1);
+    this.addItem('board', bx, 13 * TILE_SIZE, t('mission.board'));
 
     // Loja
     this.addItem('shop', 30 * TILE_SIZE + 8, 14 * TILE_SIZE, t('hub.shop'));
@@ -185,7 +202,7 @@ export class HubScene extends Phaser.Scene {
     const save = saveManager.get();
     switch (item.kind) {
       case 'npc':
-        this.dialogue.play(hubChatter(item.npc!, save.unlockedLevels, save.stats.bossEclipse > 0));
+        this.dialogue.play(this.npcLines(item.npc!), () => this.refreshMarkers());
         break;
       case 'portal': {
         const world = WORLDS[item.world!];
@@ -201,7 +218,47 @@ export class HubScene extends Phaser.Scene {
         this.leave('Shop', { from: 'Hub' });
         break;
       case 'board':
+        this.leave('MissionLog', { from: 'Hub' });
         break;
+    }
+  }
+
+  /** O que o NPC diz: entrega missões concluídas, oferece novas, lembra as ativas ou conversa. */
+  private npcLines(npc: NpcId): DialogueLine[] {
+    const save = saveManager.get();
+    const done = doneFor(save.missions, npc)[0];
+    if (done) {
+      const reward = saveManager.claimMission(done.id);
+      const title = t(`mission.${done.id}.title`);
+      const lines: DialogueLine[] = [{ speaker: npc, key: 'mission.thanks', params: { title } }];
+      if (reward) {
+        sfx.play('extraLife');
+        lines.push({ speaker: npc, key: 'mission.reward', params: { coins: reward.coins } });
+        if (reward.skin) lines.push({ speaker: npc, key: 'mission.rewardSkin', params: { skin: skinById(reward.skin).name } });
+      }
+      return lines;
+    }
+    const offer = availableFor(save.missions, npc, save.unlockedLevels)[0];
+    if (offer) {
+      saveManager.acceptMission(offer.id);
+      return [
+        { speaker: npc, key: `mission.${offer.id}.offer` },
+        { speaker: npc, key: 'mission.accepted', params: { title: t(`mission.${offer.id}.title`) } },
+      ];
+    }
+    const active = MISSIONS.find((m) => m.giver === npc && save.missions.missions[m.id]?.status === 'active');
+    if (active && Math.random() < 0.5) {
+      const prog = save.missions.missions[active.id];
+      return [{ speaker: npc, key: 'mission.reminder', params: { title: t(`mission.${active.id}.title`), progress: `${prog.progress}/${objectiveTarget(active.objective)}` } }];
+    }
+    return hubChatter(npc, save.unlockedLevels, save.stats.bossEclipse > 0);
+  }
+
+  private refreshMarkers(): void {
+    const save = saveManager.get();
+    for (const [npc, mark] of this.markers) {
+      const text = doneFor(save.missions, npc).length > 0 ? '?' : availableFor(save.missions, npc, save.unlockedLevels).length > 0 ? '!' : '';
+      mark.setText(text);
     }
   }
 

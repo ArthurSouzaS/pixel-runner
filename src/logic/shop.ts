@@ -11,6 +11,8 @@ export interface SkinItem {
   price: number;
   /** Troca de letras da paleta do Pix: l/t/T = capacete (brilho/base/sombra), o = cachecol. */
   colors: Record<string, string>;
+  /** Exclusiva: não é vendida, só ganha como recompensa de missão. */
+  exclusive?: boolean;
 }
 
 export interface TrailItem {
@@ -33,6 +35,10 @@ export const SKINS: readonly SkinItem[] = [
   { id: 'snow', name: 'Neve', price: 180, colors: { l: 'w', t: 'g', T: 'G', o: 'B' } },
   { id: 'lavender', name: 'Lavanda', price: 220, colors: { l: 'w', t: 'p', T: 'n', o: 'c' } },
   { id: 'mint', name: 'Menta', price: 300, colors: { l: 'w', t: 'l', T: 't', o: 'p' } },
+  { id: 'lantern', name: 'Lanterna', price: 0, exclusive: true, colors: { l: 'w', t: 'y', T: 'o', o: 'B' } },
+  { id: 'sailor', name: 'Marujo', price: 0, exclusive: true, colors: { l: 'w', t: 'w', T: 'g', o: 'b' } },
+  { id: 'astronaut', name: 'Astronauta', price: 0, exclusive: true, colors: { l: 'w', t: 'g', T: 'G', o: 'o' } },
+  { id: 'stellar', name: 'Estelar', price: 0, exclusive: true, colors: { l: 'y', t: 'p', T: 'k', o: 'y' } },
 ];
 
 export const TRAILS: readonly TrailItem[] = [
@@ -98,19 +104,27 @@ export function deposit<T extends ShopState>(state: T, coins: number): T {
   return { ...state, wallet: state.wallet + Math.floor(coins) };
 }
 
-export type PurchaseResult<T> = { ok: true; state: T } | { ok: false; state: T; reason: 'unknown' | 'owned' | 'funds' };
+export type PurchaseResult<T> = { ok: true; state: T } | { ok: false; state: T; reason: 'unknown' | 'owned' | 'funds' | 'exclusive' };
 
 /** Compra um item e já o equipa. */
 export function buy<T extends ShopState>(state: T, category: ShopCategory, id: string): PurchaseResult<T> {
   const item = findItem(category, id);
   if (!item) return { ok: false, state, reason: 'unknown' };
   if (isOwned(state, category, id)) return { ok: false, state, reason: 'owned' };
+  if ((item as SkinItem).exclusive) return { ok: false, state, reason: 'exclusive' };
   if (state.wallet < item.price) return { ok: false, state, reason: 'funds' };
   const key = ownedKey(category);
   return {
     ok: true,
     state: { ...state, wallet: state.wallet - item.price, [key]: [...state[key], id], [equippedKey(category)]: id },
   };
+}
+
+/** Dá um item de presente (recompensa de missão) e o equipa. */
+export function grantItem<T extends ShopState>(state: T, category: ShopCategory, id: string): T {
+  if (!findItem(category, id) || isOwned(state, category, id)) return state;
+  const key = ownedKey(category);
+  return { ...state, [key]: [...state[key], id], [equippedKey(category)]: id };
 }
 
 /** Equipa um item já comprado. */

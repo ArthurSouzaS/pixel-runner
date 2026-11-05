@@ -7,6 +7,7 @@ import { sanitizeAchievements } from './achievements';
 import { type VolumeSettings, defaultVolumes, sanitizeVolumes } from './audioSettings';
 import { clampUnlocked, unlockAfterClear } from './progress';
 import { type ShopState, defaultShopState, sanitizeShop } from './shop';
+import { type MissionState, emptyMissionState, sanitizeMissions } from './missions';
 import { type PlayerStats, emptyStats, sanitizeStats } from './stats';
 
 export const SAVE_KEY = 'pixel-runner:save';
@@ -28,6 +29,8 @@ export interface SaveData extends ShopState {
   volumes: VolumeSettings;
   /** Cenas de história já vistas. */
   storySeen: string[];
+  /** Missões e itens de missão coletados. */
+  missions: MissionState;
 }
 
 export interface StorageLike {
@@ -36,7 +39,7 @@ export interface StorageLike {
 }
 
 export function defaultSave(): SaveData {
-  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [], volumes: defaultVolumes(), storySeen: [] };
+  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [], volumes: defaultVolumes(), storySeen: [], missions: emptyMissionState() };
 }
 
 function toNonNegative(value: unknown, fallback: number): number {
@@ -75,6 +78,7 @@ export function sanitizeSave(raw: unknown, totalLevels: number): SaveData {
     stats: sanitizeStats(data.stats),
     achievements: sanitizeAchievements(data.achievements),
     volumes: sanitizeVolumes(data.volumes),
+    missions: sanitizeMissions(data.missions),
     storySeen: Array.isArray(data.storySeen) ? [...new Set(data.storySeen.filter((v): v is string => typeof v === 'string'))] : [],
   };
 }

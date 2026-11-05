@@ -22,10 +22,10 @@ Decisões tomadas sem consulta ficam em [DECISOES.md](DECISOES.md) (a partir da 
 - [x] Vila central (hub) ligando os 3 mundos
 
 ## Fase 3 — Missões
-- [ ] Missões principais e secundárias dadas pelos NPCs
-- [ ] Objetivos: coletar itens, vencer fase sem dano, terminar abaixo de um tempo
-- [ ] Recompensas em moedas e skins exclusivas
-- [ ] Diário de missões
+- [x] Missões principais e secundárias dadas pelos NPCs
+- [x] Objetivos: coletar itens, vencer fase sem dano, terminar abaixo de um tempo
+- [x] Recompensas em moedas e skins exclusivas
+- [x] Diário de missões
 
 ## Fase 4 — Modo Infinito (roguelike)
 - [ ] Blocos de fase prontos
