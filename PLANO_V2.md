@@ -14,11 +14,11 @@ Decisões tomadas sem consulta ficam registradas em [DECISOES.md](DECISOES.md).
 - [x] Testes das fases novas
 
 ## Fase 2 — Habilidades desbloqueáveis
-- [ ] Escalar paredes
-- [ ] Planar
-- [ ] Ataque em investida
-- [ ] Itens de habilidade nas fases e tutorial curto ao ganhar cada uma
-- [ ] Habilidades salvas no save
+- [x] Escalar paredes
+- [x] Planar
+- [x] Ataque em investida
+- [x] Itens de habilidade nas fases e tutorial curto ao ganhar cada uma
+- [x] Habilidades salvas no save
 
 ## Fase 3 — 2 jogadores no mesmo teclado
 - [ ] Modo cooperativo

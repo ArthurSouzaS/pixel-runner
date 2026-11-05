@@ -8,7 +8,7 @@ import { pixelText } from '../ui/text';
 import type { LevelScene } from './LevelScene';
 
 interface TouchButton {
-  id: 'left' | 'right' | 'jump' | 'dash';
+  id: 'left' | 'right' | 'jump' | 'dash' | 'charge';
   x: number;
   y: number;
   r: number;
@@ -134,6 +134,10 @@ export class HUDScene extends Phaser.Scene {
   }
 
   update(): void {
+    // O botão da investida aparece assim que a habilidade é conquistada.
+    if (this.buttons.length > 0 && !this.buttons.some((b) => b.id === 'charge') && this.level.hasAbility('charge')) {
+      this.makeButton('charge', GAME_WIDTH - 150, GAME_HEIGHT - 26, 18, 'C');
+    }
     this.updateTouches();
     const s = this.level.getHudState();
     if (s.lives !== this.last.lives) {

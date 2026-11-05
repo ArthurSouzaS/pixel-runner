@@ -5,6 +5,7 @@ import { createBackgroundTextures, createMoverTexture, createTileset, GAME_HEIGH
 import { isTouchDevice, touchState } from '../input/touchState';
 import { LEVELS, TOTAL_LEVELS, worldOfLevel, type LevelData } from '../levels';
 import { SOLID_TILES, TILE_SIZE, TileIndex, parseLevel, tileCenter, type ParsedLevel } from '../logic/levelParser';
+import { ABILITIES, type AbilityId } from '../logic/abilities';
 import { nextLevelIndex } from '../logic/progress';
 import {
   POINTS,
@@ -46,7 +47,7 @@ export interface HudState {
   bossName: string;
 }
 
-type Keys = Record<'left' | 'right' | 'a' | 'd' | 'up' | 'w' | 'space' | 'z', Phaser.Input.Keyboard.Key>;
+type Keys = Record<'left' | 'right' | 'a' | 'd' | 'up' | 'w' | 'space' | 'z' | 'c' | 'l', Phaser.Input.Keyboard.Key>;
 
 const JUMP_CODES = new Set(['Space', 'ArrowUp', 'KeyW', 'KeyZ']);
 const DASH_CODES = new Set(['ShiftLeft', 'ShiftRight', 'KeyX', 'KeyK']);
@@ -71,6 +72,7 @@ export class LevelScene extends Phaser.Scene {
   private goal!: Phaser.Physics.Arcade.Sprite;
   private boss: BossLike | null = null;
   private springs: Spring[] = [];
+  private abilityOrb: Phaser.Physics.Arcade.Sprite | null = null;
   private fallers: FallingPlatform[] = [];
   private waterRects: Phaser.Geom.Rectangle[] = [];
   private windZones: { rect: Phaser.Geom.Rectangle; vx: number; vy: number }[] = [];
@@ -114,6 +116,7 @@ export class LevelScene extends Phaser.Scene {
     this.finished = false;
     this.bossHud = { hp: BOSS_MAX_HP, max: BOSS_MAX_HP, visible: false, name: '' };
     this.springs = [];
+    this.abilityOrb = null;
     this.fallers = [];
     this.waterRects = [];
     this.windZones = [];
@@ -263,6 +266,21 @@ export class LevelScene extends Phaser.Scene {
     const start = tileCenter(p.start ?? { x: 2, y: p.height - 3 });
     this.respawnPoint = { x: start.x, y: start.y };
     this.player = new Player(this, start.x, start.y);
+    for (const a of saveManager.get().abilities) this.player.abilities.add(a);
+    this.player.isWallAt = (x, y) => {
+      const tile = this.layer.getTileAtWorldXY(x, y);
+      return !!tile && tile.collides && tile.index !== TileIndex.Platform;
+    };
+
+    // Orbe de habilidade (só aparece se ainda não foi conquistada)
+    const abilityId = this.level.ability;
+    if (p.ability && abilityId && !this.player.abilities.has(abilityId)) {
+      const c = tileCenter(p.ability);
+      const orb = this.physics.add.staticSprite(c.x, c.y, 'orb').setTint(ABILITIES[abilityId].color).setDepth(6);
+      this.tweens.add({ targets: orb, y: c.y - 4, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      this.tweens.add({ targets: orb, scale: 1.15, duration: 350, yoyo: true, repeat: -1 });
+      this.abilityOrb = orb;
+    }
     this.player.onLand = () => this.fx.dust.explode(6, this.player.x, this.player.body.bottom);
     this.player.onJump = (double) => this.fx.dust.explode(double ? 10 : 5, this.player.x, this.player.body.bottom);
     this.player.onDash = () => {
@@ -408,6 +426,7 @@ export class LevelScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.enemies, (_p, enemy) => this.touchEnemy(enemy as Enemy));
     this.physics.add.overlap(this.player, this.bullets, (_p, bullet) => this.touchBullet(bullet as Phaser.Physics.Arcade.Image));
     this.physics.add.overlap(this.player, this.goal, () => this.reachGoal());
+    if (this.abilityOrb) this.physics.add.overlap(this.player, this.abilityOrb, () => this.collectAbility());
 
     if (this.boss) {
       this.physics.add.collider(this.boss, this.layer);
@@ -422,6 +441,7 @@ export class LevelScene extends Phaser.Scene {
     this.keys = kb.addKeys({
       left: K.LEFT, right: K.RIGHT, a: K.A, d: K.D,
       up: K.UP, w: K.W, space: K.SPACE, z: K.Z,
+      c: K.C, l: K.L,
     }) as Keys;
     kb.addCapture([K.SPACE, K.UP, K.DOWN, K.LEFT, K.RIGHT]);
     // Pressionamentos vão para uma fila: assim nem um toque muito rápido
@@ -446,6 +466,7 @@ export class LevelScene extends Phaser.Scene {
       jumpHeld: (k?.space.isDown || k?.up.isDown || k?.w.isDown || k?.z.isDown || touchState.jump) ?? false,
       jumpPressed: touchState.consume('jumpQueued'),
       dashPressed: touchState.consume('dashQueued'),
+      chargeHeld: (k?.c.isDown || k?.l.isDown || touchState.charge) ?? false,
     };
   }
 
@@ -472,6 +493,7 @@ export class LevelScene extends Phaser.Scene {
     for (const f of this.fallers) f.step(dt, worldBottom);
 
     this.updateEnvironment();
+    if (this.player.isRushing) this.breakBlocksAhead();
     const input = this.readInput();
     if (!this.finished && !this.player.dead) this.elapsed += dt / 1000;
     this.player.update(input, dt);
@@ -547,7 +569,19 @@ export class LevelScene extends Phaser.Scene {
     if (enemy.dead || this.player.dead || this.finished) return;
     const pb = this.player.body;
     const stomp = pb.velocity.y > 0 && pb.bottom <= enemy.body.top + 10;
-    if (stomp || this.player.isDashing) {
+    if (enemy.armored && !this.player.isRushing) {
+      // Blindado: pisão e dash só ricocheteiam. Encostar de lado machuca.
+      if (stomp || this.player.isDashing) {
+        sfx.play('clank');
+        this.fx.sparkle.explode(6, enemy.x, enemy.body.top);
+        if (stomp) this.player.bounce(false, this.readHeldJump());
+        else this.player.setVelocityX(this.player.x < enemy.x ? -160 : 160);
+      } else if (!this.player.isInvulnerable) {
+        this.killPlayer();
+      }
+      return;
+    }
+    if (stomp || this.player.isDashing || this.player.isRushing) {
       if (stomp) {
         this.player.combo++;
         this.player.bounce(false, this.readHeldJump());
@@ -562,6 +596,52 @@ export class LevelScene extends Phaser.Scene {
     } else if (!this.player.isInvulnerable) {
       this.killPlayer();
     }
+  }
+
+  /** Investida: quebra blocos rachados à frente do jogador. */
+  private breakBlocksAhead(): void {
+    const p = this.player;
+    let broke = false;
+    // Abre uma passagem de dois blocos de altura à frente.
+    for (const dx of [10, 20]) {
+      for (const y of [p.body.top - 10, p.body.center.y, p.body.bottom - 2]) {
+        const tile = this.layer.getTileAtWorldXY(p.x + p.facingRush * dx, y);
+        if (tile?.index === TileIndex.Breakable) {
+          this.layer.removeTileAt(tile.x, tile.y);
+          this.fx.pop.explode(10, tile.getCenterX(), tile.getCenterY());
+          broke = true;
+        }
+      }
+    }
+    if (broke) {
+      sfx.play('break');
+      this.cameras.main.shake(100, 0.006);
+    }
+  }
+
+  private collectAbility(): void {
+    const orb = this.abilityOrb;
+    const id = this.level.ability;
+    if (!orb || !id || !orb.active || this.player.dead) return;
+    orb.destroy();
+    this.abilityOrb = null;
+    this.grantAbility(id);
+  }
+
+  private grantAbility(id: AbilityId): void {
+    saveManager.grantAbility(id);
+    this.player.abilities.add(id);
+    sfx.play('ability');
+    this.fx.confetti.explode(40, this.player.x, this.player.y);
+    this.cameras.main.flash(250, 255, 255, 255);
+    touchState.reset();
+    this.scene.pause();
+    this.scene.launch('Tutorial', { ability: id });
+    this.scene.bringToTop('Tutorial');
+  }
+
+  hasAbility(id: AbilityId): boolean {
+    return this.player?.abilities.has(id) ?? false;
   }
 
   private touchSpring(spring: Spring): void {
@@ -591,7 +671,7 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private touchBullet(bullet: Phaser.Physics.Arcade.Image): void {
-    if (this.player.dead || this.player.isDashing || this.player.isInvulnerable) return;
+    if (this.player.dead || this.player.isDashing || this.player.isRushing || this.player.isInvulnerable) return;
     this.popBullet(bullet);
     this.killPlayer();
   }
@@ -601,7 +681,14 @@ export class LevelScene extends Phaser.Scene {
     if (!boss || !boss.active || this.player.dead) return;
     const pb = this.player.body;
     const stomp = pb.velocity.y > 0 && pb.bottom <= boss.body.top + 12;
-    if (stomp) {
+    if (this.player.isRushing) {
+      // A investida também fere os chefes, mas ricocheteia o jogador.
+      if (boss.hit()) {
+        this.run = addPoints(this.run, POINTS.bossHit);
+        this.floatingText(boss.x, boss.y - 24, String(POINTS.bossHit), COLORS.yellow);
+      }
+      this.player.stopRush(true);
+    } else if (stomp) {
       if (boss.hit()) {
         this.run = addPoints(this.run, POINTS.bossHit);
         this.floatingText(boss.x, boss.y - 24, String(POINTS.bossHit), COLORS.yellow);

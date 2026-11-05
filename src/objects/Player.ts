@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
+import { CHARGE_TIME_MS, type AbilityId } from '../logic/abilities';
 
 export interface PlayerInput {
   left: boolean;
@@ -7,6 +8,8 @@ export interface PlayerInput {
   jumpHeld: boolean;
   jumpPressed: boolean;
   dashPressed: boolean;
+  /** Botão da investida segurado. */
+  chargeHeld: boolean;
 }
 
 /** Parâmetros de movimento (px/s e ms). Ajustados para um controle responsivo. */
@@ -33,6 +36,14 @@ export const PLAYER_TUNING = {
   waterGravityScale: 0.32,
   waterMaxFall: 85,
   waterSpeedScale: 0.62,
+  // Habilidades
+  climbSpeed: 85,
+  wallJumpX: 230,
+  wallJumpY: 310,
+  wallJumpLockMs: 170,
+  glideFall: 55,
+  rushSpeed: 420,
+  rushMs: 320,
 };
 
 /** Condições do ambiente onde o jogador está, atualizadas pela cena a cada frame. */
@@ -69,6 +80,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private jumping = false;
 
   env: PlayerEnvironment = { onIce: false, inWater: false, windX: 0, windY: 0 };
+  /** Habilidades desbloqueadas. */
+  abilities = new Set<AbilityId>();
+  /** Diz se há uma parede sólida (tile) no ponto, para escalar só paredes de verdade. */
+  isWallAt?: (x: number, y: number) => boolean;
+  /** -1/1 quando agarrado numa parede à esquerda/direita. */
+  onWall: -1 | 0 | 1 = 0;
+  gliding = false;
+  private wallJumpLock = 0;
+  private chargeMs = 0;
+  private rushTimer = 0;
+  private rushDir: 1 | -1 = 1;
   private wasInWater = false;
 
   /** Disparados para a cena criar partículas/efeitos. */
@@ -90,6 +112,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     return this.dashTimer > 0;
   }
 
+  /** Em investida: derrota qualquer inimigo e quebra blocos rachados. */
+  get isRushing(): boolean {
+    return this.rushTimer > 0;
+  }
+
+  get facingRush(): 1 | -1 {
+    return this.rushDir;
+  }
+
+  get isCharging(): boolean {
+    return this.chargeMs > 0;
+  }
+
   get isInvulnerable(): boolean {
     return this.invulnerableTimer > 0;
   }
@@ -107,6 +142,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setAngle(0);
     this.setAlpha(1);
     this.dashTimer = 0;
+    this.rushTimer = 0;
+    this.chargeMs = 0;
     this.combo = 0;
     this.invulnerableTimer = PLAYER_TUNING.invulnerableMs;
   }
@@ -136,6 +173,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.dead) return;
     this.dead = true;
     this.dashTimer = 0;
+    this.rushTimer = 0;
+    this.chargeMs = 0;
+    this.onWall = 0;
+    this.gliding = false;
     this.body.setAllowGravity(true);
     this.setFrame(9);
     this.anims.stop();
@@ -200,6 +241,32 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
     if (env.windY !== 0 && !this.isDashing) body.setVelocityY(body.velocity.y + env.windY * dt);
 
+    // Investida: segurar para carregar, soltar para avançar ------------------
+    if (this.abilities.has('charge') && !this.isRushing) {
+      if (input.chargeHeld) {
+        this.chargeMs += delta;
+        const ready = this.chargeMs >= CHARGE_TIME_MS;
+        this.setTint(ready ? (Math.floor(this.chargeMs / 60) % 2 ? 0xff6060 : 0xffffff) : 0xffb0b0);
+      } else if (this.chargeMs > 0) {
+        if (this.chargeMs >= CHARGE_TIME_MS) this.startRush(dir);
+        this.chargeMs = 0;
+        this.clearTint();
+      }
+    }
+    if (this.isRushing) {
+      this.rushTimer -= delta;
+      body.setVelocity(this.rushDir * T.rushSpeed, 0);
+      this.ghostTimer -= delta;
+      if (this.ghostTimer <= 0) {
+        this.ghostTimer = 24;
+        this.spawnGhost(0xb13e53);
+      }
+      const blocked = this.rushDir > 0 ? body.blocked.right : body.blocked.left;
+      if (this.rushTimer <= 0 || blocked) this.endRush();
+      this.updateAnimation();
+      return;
+    }
+
     // Dash ---------------------------------------------------------------
     if (input.dashPressed && this.canDash && this.dashCooldown <= 0 && !this.isDashing) {
       this.dashDir = dir !== 0 ? (dir as 1 | -1) : this.facing;
@@ -217,7 +284,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.ghostTimer -= delta;
       if (this.ghostTimer <= 0) {
         this.ghostTimer = 28;
-        this.spawnGhost();
+        this.spawnGhost(0x73eff7);
       }
       if (this.dashTimer <= 0) {
         body.setAllowGravity(true);
@@ -233,10 +300,27 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const vx = body.velocity.x;
     let accel = dir !== 0 ? (onGround ? T.groundAccel : T.airAccel) : onGround ? T.groundDecel : T.airAccel * 0.4;
     if (onGround && env.onIce) accel = dir !== 0 ? T.iceAccel : T.iceDecel;
+    if (this.isCharging && onGround) accel *= 0.5;
     let next = vx;
     if (vx < target) next = Math.min(target, vx + accel * dt);
     else if (vx > target) next = Math.max(target, vx - accel * dt);
-    body.setVelocityX(next);
+    this.wallJumpLock -= delta;
+    if (this.wallJumpLock <= 0) body.setVelocityX(next);
+
+    // Escalar paredes ------------------------------------------------------
+    let wallDir: -1 | 0 | 1 = 0;
+    if (this.abilities.has('wallClimb') && !onGround && !env.inWater) {
+      if (body.blocked.left && this.isWallAt?.(body.left - 2, body.center.y)) wallDir = -1;
+      else if (body.blocked.right && this.isWallAt?.(body.right + 2, body.center.y)) wallDir = 1;
+    }
+    this.onWall = wallDir !== 0 && dir === wallDir ? wallDir : 0;
+    if (this.onWall !== 0) {
+      body.setVelocityY(-T.climbSpeed);
+      this.facing = this.onWall;
+      this.canDoubleJump = true;
+      this.canDash = true;
+      this.jumping = false;
+    }
 
     // Pulo, pulo duplo e altura variável ----------------------------------
     if (env.inWater && input.jumpPressed) {
@@ -245,6 +329,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.jumpBuffer = 0;
       this.jumping = false;
       sfx.play('swim');
+      this.onJump?.(false);
+    } else if (this.onWall !== 0 && input.jumpPressed) {
+      // Salto na parede: impulso para o lado oposto.
+      body.setVelocity(-this.onWall * T.wallJumpX, -T.wallJumpY);
+      this.facing = this.onWall === 1 ? -1 : 1;
+      this.wallJumpLock = T.wallJumpLockMs;
+      this.onWall = 0;
+      this.jumping = true;
+      this.jumpBuffer = 0;
+      sfx.play('jump');
       this.onJump?.(false);
     } else if (this.jumpBuffer > 0) {
       if (this.coyoteTimer > 0) {
@@ -270,14 +364,46 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.jumping = false;
     }
 
+    // Planar ----------------------------------------------------------------
+    this.gliding =
+      this.abilities.has('glide') && !onGround && !env.inWater && this.onWall === 0 && input.jumpHeld && !this.jumping && body.velocity.y > 0;
+    if (this.gliding) {
+      body.setVelocityY(Math.min(body.velocity.y, T.glideFall));
+      // Correntes de ar sobem ainda mais com o cachecol aberto.
+      if (env.windY < 0) body.setVelocityY(body.velocity.y + env.windY * dt * 0.6);
+    }
+
     this.updateAnimation();
   }
 
-  private spawnGhost(): void {
+  private startRush(dir: number): void {
+    this.rushDir = dir !== 0 ? (dir as 1 | -1) : this.facing;
+    this.facing = this.rushDir;
+    this.rushTimer = PLAYER_TUNING.rushMs;
+    this.body.setAllowGravity(false);
+    sfx.play('rush');
+    this.scene.cameras.main.shake(120, 0.004);
+    this.onDash?.();
+  }
+
+  /** Interrompe a investida, opcionalmente ricocheteando para trás. */
+  stopRush(knockback = false): void {
+    if (!this.isRushing) return;
+    this.endRush();
+    if (knockback) this.body.setVelocity(-this.rushDir * 180, -220);
+  }
+
+  private endRush(): void {
+    this.rushTimer = 0;
+    this.body.setAllowGravity(true);
+    this.body.setVelocityX(this.rushDir * PLAYER_TUNING.runSpeed);
+  }
+
+  private spawnGhost(color: number): void {
     const ghost = this.scene.add
-      .image(this.x, this.y, 'pix', 8)
+      .image(this.x, this.y, this.texture.key, 8)
       .setFlipX(this.flipX)
-      .setTint(0x73eff7)
+      .setTint(color)
       .setAlpha(0.6)
       .setDepth(9)
       .setBlendMode(Phaser.BlendModes.ADD);
@@ -286,9 +412,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   private updateAnimation(): void {
     this.setFlipX(this.facing < 0);
-    if (this.isDashing) {
+    if (this.isDashing || this.isRushing) {
       this.anims.stop();
       this.setFrame(8);
+      return;
+    }
+    if (this.onWall !== 0) {
+      this.anims.stop();
+      this.setFrame(11);
+      return;
+    }
+    if (this.gliding) {
+      this.anims.stop();
+      this.setFrame(10);
       return;
     }
     if (!this.onGround) {

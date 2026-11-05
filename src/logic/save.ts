@@ -2,6 +2,7 @@
  * Persistência do progresso no localStorage.
  * Recebe um "StorageLike" para poder ser testado sem navegador.
  */
+import { type AbilityId, grantAbility, isAbilityId } from './abilities';
 import { clampUnlocked, unlockAfterClear } from './progress';
 
 export const SAVE_KEY = 'pixel-runner:save';
@@ -15,6 +16,8 @@ export interface SaveData {
   /** Melhor tempo (segundos) por índice de fase. */
   bestTimes: Record<number, number>;
   muted: boolean;
+  /** Habilidades já conquistadas. */
+  abilities: AbilityId[];
 }
 
 export interface StorageLike {
@@ -23,7 +26,7 @@ export interface StorageLike {
 }
 
 export function defaultSave(): SaveData {
-  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false };
+  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [] };
 }
 
 function toNonNegative(value: unknown, fallback: number): number {
@@ -52,7 +55,16 @@ export function sanitizeSave(raw: unknown, totalLevels: number): SaveData {
     unlockedLevels: clampUnlocked(toNonNegative(data.unlockedLevels, 1), totalLevels),
     bestTimes,
     muted: data.muted === true,
+    abilities: Array.isArray(data.abilities) ? grantAllValid(data.abilities) : [],
   };
+}
+
+function grantAllValid(list: unknown[]): AbilityId[] {
+  return list.filter(isAbilityId).reduce<AbilityId[]>((acc, id) => grantAbility(acc, id), []);
+}
+
+export function saveWithAbility(save: SaveData, id: AbilityId): SaveData {
+  return { ...save, abilities: grantAbility(save.abilities, id) };
 }
 
 export function loadSave(storage: StorageLike | null | undefined, totalLevels: number): SaveData {

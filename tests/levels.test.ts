@@ -78,7 +78,7 @@ describe('fases do jogo', () => {
 
   it('usa vários tipos de inimigo ao longo do jogo', () => {
     const kinds = new Set(LEVELS.flatMap((l) => parseLevel(l.map).enemies.map((e) => e.kind)));
-    expect([...kinds].sort()).toEqual(['bat', 'fish', 'hopper', 'turret', 'walker']);
+    expect([...kinds].sort()).toEqual(['armored', 'bat', 'fish', 'hopper', 'turret', 'walker']);
   });
 
   it('o Mundo 2 apresenta as mecânicas novas', () => {

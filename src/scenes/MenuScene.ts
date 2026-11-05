@@ -63,10 +63,10 @@ export class MenuScene extends Phaser.Scene {
     c.add(this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.ink, 0.92).setOrigin(0).setInteractive());
     c.add(pixelText(this, cx, 30, 'CONTROLES', { size: 16, color: COLORS.yellow }).setOrigin(0.5));
     const lines = isTouchDevice()
-      ? ['Setas da tela .... correr', 'Botão A .......... pular', 'A no ar .......... pulo duplo', 'Botão B .......... dash', 'II ............... pausa']
-      : ['Setas / A D ......... correr', 'Espaço / W / Z / Up . pular', 'Pular no ar ......... pulo duplo', 'Shift / X / K ....... dash', 'Esc / P ............. pausa', 'M ................... som'];
-    c.add(pixelText(this, cx, 110, lines.join('\n'), { size: 8 }).setOrigin(0.5).setLineSpacing(8));
-    c.add(pixelText(this, cx, 180, 'Pise nos inimigos ou acerte-os com o dash.\nO chefe só é derrotado com pisões!', { size: 8, color: COLORS.cyan, align: 'center' }).setOrigin(0.5).setLineSpacing(6));
+      ? ['Setas da tela .... correr', 'Botão A .......... pular', 'A no ar .......... pulo duplo', 'Botão B .......... dash', 'Segurar C ........ investida*', 'II ............... pausa']
+      : ['Setas / A D ......... correr', 'Espaço / W / Z / Up . pular', 'Pular no ar ......... pulo duplo', 'Shift / X / K ....... dash', 'Segurar C / L ....... investida*', 'Esc / P ............. pausa', 'M ................... som'];
+    c.add(pixelText(this, cx, 106, lines.join('\n'), { size: 8 }).setOrigin(0.5).setLineSpacing(7));
+    c.add(pixelText(this, cx, 190, '* Escalar, planar e investida são conquistadas\nno Mundo 2. Pise nos inimigos ou use o dash!', { size: 8, color: COLORS.cyan, align: 'center' }).setOrigin(0.5).setLineSpacing(6));
     c.add(pixelText(this, cx, 240, 'Toque ou Esc para voltar', { size: 8, color: COLORS.gray }).setOrigin(0.5));
     c.list[0].on('pointerdown', () => this.toggleControls(false));
     return c;

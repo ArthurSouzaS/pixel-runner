@@ -44,9 +44,17 @@ const LEGS = {
   fall: ['......kGk.kGk...', '......kGk.kGk...', '......kkk.kkk...', '................'],
 };
 
+const PIX_HEAD_GLIDE = PIX_HEAD.map((row, i) => {
+  if (i === 5) return 'o...ktkkkkkkk..o';
+  if (i === 6) return 'oo.okttttttTk.oo';
+  if (i === 7) return 'oooookooooooooko';
+  if (i === 8) return '....kttttttTk...';
+  return row;
+});
+
 const frame = (head: string[], legs: string[]): PixelArt => [...head, ...legs];
 
-/** Frames: 0-1 parado, 2-5 correndo, 6 pulo, 7 queda, 8 dash, 9 dano. */
+/** Frames: 0-1 parado, 2-5 correndo, 6 pulo, 7 queda, 8 dash, 9 dano, 10 planando, 11 escalando. */
 export const PIX_FRAMES: PixelArt[] = [
   frame(PIX_HEAD, LEGS.idle),
   frame(PIX_HEAD_BLINK, LEGS.idle),
@@ -58,6 +66,8 @@ export const PIX_FRAMES: PixelArt[] = [
   frame(PIX_HEAD, LEGS.fall),
   frame(PIX_HEAD_DASH, LEGS.jump),
   frame(PIX_HEAD_HURT, LEGS.fall),
+  frame(PIX_HEAD_GLIDE, LEGS.fall),
+  frame(PIX_HEAD, ['......kGkkGk....', '.......kGGk.....', '......kGk.......', '......kkk.......']),
 ];
 
 // ---------------------------------------------------------------------------
@@ -536,3 +546,36 @@ export const STORM_FRAMES: PixelArt[] = [
 
 /** Fragmento de gelo (projétil do chefe do Mundo 2). */
 export const SHARD_ART: PixelArt = ['..kk..', '.kwck.', '.kcBk.', 'kcBBbk', '.kBbk.', '..kk..'];
+
+/** Gosma blindada: só a investida consegue derrotá-la. */
+export const ARMORED_FRAMES: PixelArt[] = WALKER_FRAMES.map((art) =>
+  art.map((row, i) => {
+    if (i === 4) return '....k..k..k.....';
+    if (i === 5) return '...kgkkgkkgk....';
+    if (i === 6) return '..kgggggggggk...';
+    if (i === 7) return '..kGGGGGGGGGGk..';
+    return row.replace(/r/g, 'G').replace(/p/g, 'd').replace(/o/g, 'g');
+  }),
+);
+
+/** Orbe de habilidade (a cor é aplicada com tint). */
+export const ORB_FRAMES: PixelArt[] = [
+  [
+    '.....kkkkkk.....',
+    '...kkwwwwwwkk...',
+    '..kwwwggggwwwk..',
+    '.kwwgggggggwwgk.',
+    '.kwggwwgggggggk.',
+    'kwgggwwggggggggk',
+    'kwgggggggggggggk',
+    'kwgggggggggggggk',
+    'kwgggggggggggGgk',
+    'kwgggggggggggGgk',
+    'kwggggggggggGGgk',
+    '.kgggggggggGGgk.',
+    '.kggggggggGGggk.',
+    '..kgggGGGGGggk..',
+    '...kkggggggkk...',
+    '.....kkkkkk.....',
+  ],
+];

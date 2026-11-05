@@ -1,3 +1,5 @@
+import type { AbilityId } from '../logic/abilities';
+
 /** Tipos das fases. As fases em si ficam em arquivos de dados (level1.ts ... level5.ts). */
 
 export type ThemeKey = 'grass' | 'cave' | 'factory' | 'ice' | 'castle' | 'frost' | 'reef' | 'ruins' | 'sky' | 'storm';
@@ -66,6 +68,7 @@ export interface LevelData {
    *  `o` moeda  `P` início  `K` checkpoint  `G` chegada
    *  `w` andarilho  `h` saltador  `b` morcego  `t` torreta  `f` peixe  `B` chefe
    *  `I` bloco de gelo (escorregadio)  `S` mola  `F` plataforma que cai
+   *  `Q` bloco rachado (quebra com a investida)  `a` inimigo blindado  `A` orbe de habilidade
    *  `|` portão da arena do chefe (fecha quando o jogador entra)
    *  `.` vazio
    */
@@ -78,4 +81,6 @@ export interface LevelData {
   winds?: WindZone[];
   /** Tipo de chefe, se a fase tiver um (`B` no mapa). */
   boss?: BossKind;
+  /** Habilidade concedida pelo orbe `A` desta fase. */
+  ability?: AbilityId;
 }

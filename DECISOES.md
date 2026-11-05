@@ -10,3 +10,8 @@ Registro das decisões tomadas durante o desenvolvimento da v2 sem consulta pré
 | 4 | 1 | Na água a gravidade cai para 32%, a queda é limitada e cada pulo vira uma braçada (ilimitada); pulo duplo e dash são recarregados. | Nado simples de entender, sem medidor de ar. |
 | 5 | 1 | Chefe do Mundo 2, "Tempestade Rubra": 12 de vida e 3 fases de ataque (12–9, 8–5, 4–1), dano só por pisão. | Mesma regra do primeiro chefe; as fases mudam o padrão em vez de exigir outra mecânica. |
 | 6 | 1 | Peixe-espinho adicionado como inimigo aquático. | Torna as seções de nado desafiadoras. |
+| 7 | 2 | As habilidades são conquistadas por orbes nas fases 6 (escalar), 7 (planar) e 8 (investida) e ficam salvas para sempre; o orbe não reaparece depois de coletado. | Progressão clara e coerente com o desbloqueio linear. |
+| 8 | 2 | Escalar: no ar, segurar a direção de uma parede (tile sólido) faz o Pix subir; pular na parede dá impulso para o lado oposto. Paredes do limite do mundo não contam. | Usa só os controles existentes, sem tecla nova. |
+| 9 | 2 | Planar: segurar o pulo enquanto cai limita a queda; correntes de ar sobem 60% mais forte planando. | Combina com as zonas de vento do Mundo 2. |
+| 10 | 2 | Investida: nova tecla `C`/`L` (botão C no toque). Segura ~0,35 s para carregar e solta; quebra blocos rachados (`Q`), derrota o novo inimigo blindado (`a`) e também fere os chefes. | Dá um papel único à habilidade e cria obstáculos que só ela resolve. |
+| 11 | 2 | O inimigo blindado ignora pisões e dash (ricocheteia o jogador); encostar de lado machuca. | Exige o uso da investida. |

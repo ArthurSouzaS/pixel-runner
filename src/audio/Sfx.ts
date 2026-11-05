@@ -47,7 +47,11 @@ export type SfxName =
   | 'swim'
   | 'splash'
   | 'crumble'
-  | 'thunder';
+  | 'thunder'
+  | 'rush'
+  | 'break'
+  | 'clank'
+  | 'ability';
 
 // Notas (Hz) usadas nas melodias.
 const N: Record<string, number> = {
@@ -262,6 +266,22 @@ class SoundEngine {
         break;
       case 'crumble':
         this.noise({ duration: 0.25, volume: 0.18, filter: 900, filterTo: 150 });
+        break;
+      case 'rush':
+        this.noise({ duration: 0.3, volume: 0.3, filter: 5000, filterTo: 300 });
+        this.tone({ freq: 120, to: 600, duration: 0.25, type: 'sawtooth', volume: 0.15 });
+        break;
+      case 'break':
+        this.noise({ duration: 0.35, volume: 0.35, filter: 2500, filterTo: 200 });
+        this.tone({ freq: 160, to: 50, duration: 0.25, type: 'square', volume: 0.15 });
+        break;
+      case 'clank':
+        this.tone({ freq: 1200, to: 800, duration: 0.08, type: 'square', volume: 0.15 });
+        this.tone({ freq: 1500, to: 900, duration: 0.12, type: 'triangle', volume: 0.12, delay: 0.03 });
+        break;
+      case 'ability':
+        this.arpeggio(['C5', 'E5', 'G5', 'C6', 'E5', 'G5', 'C6'], 0.08, 0.18, 'triangle', 0.25);
+        this.arpeggio(['C4', 'G4', 'C5'], 0.18, 0.4, 'square', 0.1);
         break;
       case 'thunder':
         this.noise({ duration: 1, volume: 0.45, filter: 1200, filterTo: 40 });

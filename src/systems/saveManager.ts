@@ -1,6 +1,7 @@
 import { sfx } from '../audio/Sfx';
 import { TOTAL_LEVELS } from '../levels';
-import { type SaveData, type StorageLike, loadSave, recordLevelClear, submitScore, writeSave } from '../logic/save';
+import type { AbilityId } from '../logic/abilities';
+import { type SaveData, type StorageLike, loadSave, recordLevelClear, saveWithAbility, submitScore, writeSave } from '../logic/save';
 
 function getStorage(): StorageLike | null {
   try {
@@ -43,6 +44,10 @@ class SaveManager {
     const result = recordLevelClear(this.data, levelIndex, seconds, TOTAL_LEVELS);
     this.commit(result.save);
     return result.isBestTime;
+  }
+
+  grantAbility(id: AbilityId): void {
+    this.commit(saveWithAbility(this.data, id));
   }
 
   toggleMute(): boolean {

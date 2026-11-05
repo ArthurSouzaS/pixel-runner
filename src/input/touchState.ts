@@ -7,13 +7,14 @@ export const touchState = {
   right: false,
   jump: false,
   dash: false,
+  charge: false,
   /** Pressionamentos ainda não consumidos pela fase (para "acabou de apertar"). */
   jumpQueued: false,
   dashQueued: false,
   pauseQueued: false,
 
   reset(): void {
-    this.left = this.right = this.jump = this.dash = false;
+    this.left = this.right = this.jump = this.dash = this.charge = false;
     this.jumpQueued = this.dashQueued = this.pauseQueued = false;
   },
 

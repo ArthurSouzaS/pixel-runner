@@ -23,6 +23,8 @@ import {
   FISH_FRAMES,
   STORM_FRAMES,
   SHARD_ART,
+  ARMORED_FRAMES,
+  ORB_FRAMES,
 } from './sprites';
 
 export const GAME_WIDTH = 480;
@@ -49,6 +51,8 @@ export function createSpriteTextures(scene: Phaser.Scene): void {
   createSheet(scene, 'fish', FISH_FRAMES);
   createSheet(scene, 'storm', STORM_FRAMES, 2);
   createSheet(scene, 'shard', [SHARD_ART]);
+  createSheet(scene, 'armored', ARMORED_FRAMES);
+  createSheet(scene, 'orb', ORB_FRAMES);
 
   // Partícula: quadradinho branco que é colorido com tint.
   createCanvasTexture(scene, 'px', 2, 2, (ctx) => {
@@ -184,12 +188,12 @@ function drawFill(ctx: CanvasRenderingContext2D, ox: number, c: TileColors, rand
   }
 }
 
-/** Tileset com 5 tiles: topo, preenchimento, bloco, plataforma atravessável e gelo. */
+/** Tileset com 6 tiles: topo, preenchimento, bloco, plataforma atravessável, gelo e bloco rachado. */
 export function createTileset(scene: Phaser.Scene, theme: ThemeKey): string {
   const key = `tiles-${theme}`;
   const c = TILE_COLORS[theme];
   const rand = seededRandom(theme.length * 977);
-  createCanvasTexture(scene, key, TILE_SIZE * 5, TILE_SIZE, (ctx) => {
+  createCanvasTexture(scene, key, TILE_SIZE * 6, TILE_SIZE, (ctx) => {
     // 0: topo (superfície)
     drawFill(ctx, 0, c, rand);
     px(ctx, c.top, 0, 0, 16, 5);
@@ -253,6 +257,22 @@ export function createTileset(scene: Phaser.Scene, theme: ThemeKey): string {
     px(ctx, PALETTE.w, ix + 9, 9, 4, 1);
     px(ctx, PALETTE.w, ix + 12, 6, 1, 3);
     px(ctx, PALETTE.b, ix + 6, 11, 2, 1);
+
+    // 5: bloco rachado (quebra com a investida)
+    const qx = 80;
+    px(ctx, c.block, qx, 0, 16, 16);
+    px(ctx, c.blockLight, qx, 0, 16, 1);
+    px(ctx, c.blockDark, qx, 15, 16, 1);
+    px(ctx, c.blockDark, qx + 15, 0, 1, 16);
+    px(ctx, PALETTE.k, qx + 7, 1, 1, 3);
+    px(ctx, PALETTE.k, qx + 6, 4, 1, 3);
+    px(ctx, PALETTE.k, qx + 8, 6, 3, 1);
+    px(ctx, PALETTE.k, qx + 10, 7, 1, 4);
+    px(ctx, PALETTE.k, qx + 5, 7, 1, 3);
+    px(ctx, PALETTE.k, qx + 3, 10, 2, 1);
+    px(ctx, PALETTE.k, qx + 11, 11, 2, 1);
+    px(ctx, PALETTE.r, qx + 2, 2, 2, 2);
+    px(ctx, PALETTE.r, qx + 12, 13, 2, 1);
   });
   return key;
 }

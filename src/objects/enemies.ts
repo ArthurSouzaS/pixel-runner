@@ -18,6 +18,8 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   dead = false;
   /** Se colide com o cenário (andarilhos e saltadores sim, voadores não). */
   readonly solid: boolean = true;
+  /** Blindados resistem a pisões e dash: só a investida os derrota. */
+  readonly armored: boolean = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number, texture: string) {
     super(scene, x, y, texture, 0);
@@ -52,13 +54,14 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
 
 /** Gosma: patrulha e vira ao bater numa parede ou chegar na beirada. */
 export class Walker extends Enemy {
-  readonly kind = 'walker';
-  private dir: 1 | -1 = -1;
+  readonly kind: EnemyKind = 'walker';
+  protected dir: 1 | -1 = -1;
+  protected speed = 38;
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, 'walker');
+  constructor(scene: Phaser.Scene, x: number, y: number, texture = 'walker') {
+    super(scene, x, y, texture);
     this.body.setSize(14, 9).setOffset(1, 7);
-    this.anims.play('walker-move');
+    this.anims.play(`${texture}-move`);
   }
 
   think(ctx: EnemyContext): void {
@@ -71,8 +74,20 @@ export class Walker extends Enemy {
       const ground = ctx.layer.getTileAtWorldXY(aheadX, body.bottom + 4);
       if (!ground) this.dir = this.dir > 0 ? -1 : 1;
     }
-    body.setVelocityX(this.dir * 38 * ctx.difficulty);
+    body.setVelocityX(this.dir * this.speed * ctx.difficulty);
     this.setFlipX(this.dir > 0);
+  }
+}
+
+/** Gosma blindada: capacete com espinhos, mais lenta e resistente. */
+export class Armored extends Walker {
+  override readonly kind: EnemyKind = 'armored';
+  override readonly armored = true;
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, 'armored');
+    this.speed = 28;
+    this.body.setSize(14, 11).setOffset(1, 5);
   }
 }
 
@@ -204,5 +219,7 @@ export function createEnemy(scene: Phaser.Scene, kind: EnemyKind, x: number, y: 
       return new Turret(scene, x, y);
     case 'fish':
       return new Fish(scene, x, y);
+    case 'armored':
+      return new Armored(scene, x, y);
   }
 }

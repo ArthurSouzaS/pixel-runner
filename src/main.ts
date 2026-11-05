@@ -9,6 +9,7 @@ import { LevelScene } from './scenes/LevelScene';
 import { LevelSelectScene } from './scenes/LevelSelectScene';
 import { MenuScene } from './scenes/MenuScene';
 import { PauseScene } from './scenes/PauseScene';
+import { TutorialScene } from './scenes/TutorialScene';
 import { touchState } from './input/touchState';
 import { saveManager } from './systems/saveManager';
 
@@ -35,7 +36,7 @@ const config: Phaser.Types.Core.GameConfig = {
   input: {
     activePointers: 4,
   },
-  scene: [BootScene, MenuScene, LevelSelectScene, LevelScene, HUDScene, PauseScene, GameOverScene],
+  scene: [BootScene, MenuScene, LevelSelectScene, LevelScene, HUDScene, PauseScene, TutorialScene, GameOverScene],
 };
 
 // O AudioContext só pode começar após um gesto do usuário.
