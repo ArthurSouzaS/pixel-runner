@@ -50,8 +50,15 @@ Decisões tomadas sem consulta ficam registradas em [DECISOES.md](DECISOES.md).
 - [x] Controles por gamepad (jogo e menus), junto com teclado e toque
 
 ## Fase 9 — Testes e revisão
-- [ ] Testes do editor (validar e serializar), conquistas, loja e save
-- [ ] Revisão do código: bugs e performance
+- [x] Testes do editor (validar e serializar), conquistas, loja e save
+- [x] Revisão do código: bugs e performance
+  - Corrigido: o handler de "resume" da fase acumulava a cada reinício (vazamento de listeners).
+  - Corrigido: morcegos e peixes longe da câmera continuavam com a última velocidade e saíam da rota.
+  - Desempenho: o tempo de jogo deixou de gerar um objeto novo de save a cada quadro (agora soma ao pausar/sair/terminar).
+  - Desempenho: partículas de água e vento só emitem quando a região está visível na câmera.
+  - Desempenho: o HUD não cria arrays por quadro fora do modo corrida.
+  - Save passa a ter `version: 2`, com migração automática do save da v1 (testada).
+  - Teste de fumaça no navegador passou por todas as cenas, as 10 fases e os modos sem erros, a 60 FPS.
 
 ## Fase 10 — Documentação
 - [ ] README atualizado com as novidades e o link do jogo

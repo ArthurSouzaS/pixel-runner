@@ -60,6 +60,8 @@ export interface HudState {
   raceCoins: number[];
 }
 
+const NO_NUMBERS: number[] = [];
+
 /** Zoom mínimo da câmera quando os dois jogadores se afastam. */
 const MIN_ZOOM = 0.6;
 
@@ -102,6 +104,9 @@ export class LevelScene extends Phaser.Scene {
   private finished = false;
   private deposited = false;
   private deathsThisLevel = 0;
+  private playTime = 0;
+  private envEmitters: { emitter: Phaser.GameObjects.Particles.ParticleEmitter; rect: Phaser.Geom.Rectangle }[] = [];
+  private frame = 0;
   private trail: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
   private bossHud = { hp: BOSS_MAX_HP, max: BOSS_MAX_HP, visible: false, name: '' };
 
@@ -149,6 +154,9 @@ export class LevelScene extends Phaser.Scene {
     this.finished = false;
     this.deposited = false;
     this.deathsThisLevel = 0;
+    this.playTime = 0;
+    this.envEmitters = [];
+    this.frame = 0;
     this.trail = null;
     this.bossHud = { hp: BOSS_MAX_HP, max: BOSS_MAX_HP, visible: false, name: '' };
     this.springs = [];
@@ -192,12 +200,27 @@ export class LevelScene extends Phaser.Scene {
     this.scene.launch('HUD', { level: this });
     this.game.events.on(Phaser.Core.Events.BLUR, this.autoPause, this);
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.autoPause, this);
-    this.events.on(Phaser.Scenes.Events.RESUME, () => this.inputs.reset());
+    // Os eventos da cena sobrevivem a reinícios: tudo que é registrado aqui é removido no shutdown.
+    this.events.on(Phaser.Scenes.Events.RESUME, this.onResume, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.game.events.off(Phaser.Core.Events.BLUR, this.autoPause, this);
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.autoPause, this);
+      this.events.off(Phaser.Scenes.Events.RESUME, this.onResume, this);
+      this.commitPlayTime();
+      saveManager.flush();
       this.scene.stop('HUD');
     });
+  }
+
+  private onResume(): void {
+    this.inputs.reset();
+  }
+
+  /** Soma o tempo de jogo acumulado nas estatísticas (evita mexer no save a cada quadro). */
+  private commitPlayTime(): void {
+    if (this.playTime <= 0) return;
+    saveManager.stat('playSeconds', this.playTime, false);
+    this.playTime = 0;
   }
 
   // -------------------------------------------------------------------------
@@ -409,7 +432,7 @@ export class LevelScene extends Phaser.Scene {
       this.add.rectangle(rect.x, rect.y, rect.width, rect.height, COLORS.blue, 0.42).setOrigin(0).setDepth(12);
       const surface = this.add.tileSprite(rect.x, rect.y - 2, rect.width, 4, 'px').setOrigin(0).setDepth(12).setTint(COLORS.cyan).setAlpha(0.7);
       this.tweens.add({ targets: surface, y: rect.y - 1, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-      this.add.particles(0, 0, 'px', {
+      const bubbles = this.add.particles(0, 0, 'px', {
         emitZone: { type: 'random', source: new Phaser.Geom.Rectangle(rect.x, rect.y + 8, rect.width, rect.height - 8), quantity: 1 } as Phaser.Types.GameObjects.Particles.EmitZoneData,
         frequency: 380,
         lifespan: 1400,
@@ -417,12 +440,13 @@ export class LevelScene extends Phaser.Scene {
         alpha: { start: 0.8, end: 0 },
         tint: 0xf4f4f4,
       }).setDepth(12);
+      this.envEmitters.push({ emitter: bubbles, rect });
     }
     for (const z of this.level.winds ?? []) {
       const rect = new Phaser.Geom.Rectangle(z.x * TILE_SIZE, z.y * TILE_SIZE, z.w * TILE_SIZE, z.h * TILE_SIZE);
       this.windZones.push({ rect, vx: z.vx, vy: z.vy });
       const updraft = z.vy < 0;
-      this.add.particles(0, 0, 'px', {
+      const streaks = this.add.particles(0, 0, 'px', {
         emitZone: { type: 'random', source: rect, quantity: 1 } as Phaser.Types.GameObjects.Particles.EmitZoneData,
         frequency: updraft ? 70 : 90,
         lifespan: 700,
@@ -433,6 +457,7 @@ export class LevelScene extends Phaser.Scene {
         alpha: { start: 0.6, end: 0 },
         tint: this.level.theme.key === 'sky' || this.level.theme.key === 'frost' ? 0x3b5dc9 : 0xf4f4f4,
       }).setDepth(1);
+      this.envEmitters.push({ emitter: streaks, rect });
     }
   }
 
@@ -521,6 +546,11 @@ export class LevelScene extends Phaser.Scene {
     const dt = Math.min(delta, 50);
     this.updateCamera();
     this.updateBackground(dt);
+    // A cada 10 quadros, liga só os efeitos de água/vento visíveis na câmera.
+    if (this.frame++ % 10 === 0 && this.envEmitters.length > 0) {
+      const view = this.cameras.main.worldView;
+      for (const e of this.envEmitters) e.emitter.emitting = Phaser.Geom.Rectangle.Overlaps(view, e.rect);
+    }
 
     if (this.inputs.consumePause()) {
       this.openPause();
@@ -534,7 +564,7 @@ export class LevelScene extends Phaser.Scene {
 
     if (!this.finished && this.alivePlayers().length > 0) {
       this.elapsed += dt / 1000;
-      saveManager.stat('playSeconds', dt / 1000, false);
+      this.playTime += dt / 1000;
     }
     if (this.trail) this.trail.emitting = !this.player.dead && this.player.visible && Math.abs(this.player.body.velocity.x) + Math.abs(this.player.body.velocity.y) > 60;
     for (const player of this.players) {
@@ -557,7 +587,8 @@ export class LevelScene extends Phaser.Scene {
       ctx.player = this.nearestPlayer(enemy.x);
       // Só "pensa" quem está perto de algum jogador, para economizar e ser justo.
       if (Math.abs(enemy.x - ctx.player.x) < GAME_WIDTH) enemy.think(ctx, dt);
-      else enemy.body.setVelocityX(0);
+      else if (enemy.solid) enemy.body.setVelocityX(0);
+      else enemy.body.setVelocity(0, 0);
       if (enemy.y > worldBottom + 32) enemy.destroy();
     }
 
@@ -933,6 +964,7 @@ export class LevelScene extends Phaser.Scene {
       return;
     }
     this.recordClearStats();
+    this.commitPlayTime();
     saveManager.flush();
     if (this.mode === 'race') {
       const winner = player.index + 1;
@@ -1001,6 +1033,7 @@ export class LevelScene extends Phaser.Scene {
   openPause(): void {
     if (this.finished || this.alivePlayers().length === 0 || !this.scene.isActive()) return;
     sfx.play('pause');
+    this.commitPlayTime();
     saveManager.flush();
     this.inputs.reset();
     this.scene.pause();
@@ -1042,8 +1075,8 @@ export class LevelScene extends Phaser.Scene {
       bossMax: this.bossHud.max,
       bossVisible: this.bossHud.visible,
       bossName: this.bossHud.name,
-      raceProgress: this.players.map((p) => Phaser.Math.Clamp(p.x / width, 0, 1)),
-      raceCoins: [...this.raceCoins],
+      raceProgress: this.mode === 'race' ? this.players.map((p) => Phaser.Math.Clamp(p.x / width, 0, 1)) : NO_NUMBERS,
+      raceCoins: this.mode === 'race' ? this.raceCoins : NO_NUMBERS,
     };
   }
 

@@ -36,3 +36,4 @@ Registro das decisões tomadas durante o desenvolvimento da v2 sem consulta pré
 | 30 | 8 | Gamepads lidos direto pela Gamepad API (mapeamento padrão): analógico/direcional movem, A pula, X/Y/RB dão dash, B/LB fazem a investida, Start pausa. | Funciona com controles de Xbox, PlayStation e genéricos sem configuração. |
 | 31 | 8 | Fora da fase (menus, mapa, pausa, tutorial) o controle simula teclas: direcional = setas (com repetição ao segurar), A/Start = Enter, B/Select = Esc. | Todos os menus passam a funcionar com controle sem reescrever cada um. |
 | 32 | 8 | Em 2 jogadores, com dois controles cada um comanda um jogador; com um só controle, ele fica com o jogador 2 e o jogador 1 usa o teclado. | Permite jogar a dois com apenas um controle extra. |
+| 33 | 9 | O save passou para `version: 2`; saves da v1 são lidos normalmente e recebem valores padrão para os campos novos. | Ninguém perde o progresso da v1. |

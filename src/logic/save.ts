@@ -10,7 +10,7 @@ import { type ShopState, defaultShopState, sanitizeShop } from './shop';
 import { type PlayerStats, emptyStats, sanitizeStats } from './stats';
 
 export const SAVE_KEY = 'pixel-runner:save';
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export interface SaveData extends ShopState {
   version: number;
