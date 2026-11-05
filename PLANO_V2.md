@@ -42,9 +42,9 @@ Decisões tomadas sem consulta ficam registradas em [DECISOES.md](DECISOES.md).
 - [x] Tela de créditos
 
 ## Fase 7 — Mapa de mundos e áudio
-- [ ] Mapa de seleção de mundos
-- [ ] Trilha sonora por mundo (Web Audio)
-- [ ] Opções de volume
+- [x] Mapa de seleção de mundos
+- [x] Trilha sonora por mundo (Web Audio)
+- [x] Opções de volume
 
 ## Fase 8 — Gamepad
 - [ ] Controles por gamepad (jogo e menus), junto com teclado e toque

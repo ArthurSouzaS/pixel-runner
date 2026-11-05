@@ -1,3 +1,5 @@
+import { type VolumeSettings, defaultVolumes } from '../logic/audioSettings';
+
 /**
  * Efeitos sonoros e música gerados em tempo real com a Web Audio API.
  * Nenhum arquivo de áudio é carregado: tudo é sintetizado com osciladores e ruído.
@@ -58,10 +60,27 @@ const N: Record<string, number> = {
   C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.0, A3: 220.0, B3: 246.94,
   C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.0, A4: 440.0, B4: 493.88,
   C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880.0, C6: 1046.5,
+  Bb2: 116.54, B2: 123.47, Eb3: 155.56, 'F#3': 185.0, Ab3: 207.65, Bb3: 233.08,
+  Eb4: 311.13, 'F#4': 369.99, Ab4: 415.3, Bb4: 466.16, 'C#5': 554.37, Eb5: 622.25, 'F#5': 739.99, Ab5: 830.61, Bb5: 932.33, B5: 987.77, D6: 1174.66, E6: 1318.51,
 };
 
+type Pattern = (string | null)[];
+
+interface Song {
+  tempo: number;
+  bass: Pattern;
+  lead: Pattern;
+  /** Arpejo/contracanto opcional (onda triangular suave). */
+  arp?: Pattern;
+  /** Bumbo nos passos marcados com 1. */
+  kick?: number[];
+}
+
+const KICK_4 = [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0];
+const KICK_DRIVE = [1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0];
+
 /** Padrões de música por tema: [baixo, melodia], 16 passos cada (null = pausa). */
-const SONGS: Record<string, { tempo: number; bass: (string | null)[]; lead: (string | null)[] }> = {
+const SONGS: Record<string, Song> = {
   menu: {
     tempo: 118,
     bass: ['C3', null, 'C3', null, 'A3', null, 'A3', null, 'F3', null, 'F3', null, 'G3', null, 'G3', null],
@@ -91,6 +110,65 @@ const SONGS: Record<string, { tempo: number; bass: (string | null)[]; lead: (str
     tempo: 150,
     bass: ['A3', 'A3', 'A3', null, 'F3', 'F3', 'F3', null, 'G3', 'G3', 'G3', null, 'E3', 'E3', 'E3', null],
     lead: ['A4', 'C5', 'E5', 'A5', 'G5', null, 'E5', null, 'F5', 'E5', 'D5', 'C5', 'B4', null, 'E5', null],
+    kick: KICK_4,
+  },
+  // ---- Mundo 2: Arquipélago Celeste (tons mais abertos, com arpejos) ----
+  frost: {
+    tempo: 112,
+    bass: ['D3', null, 'A3', null, 'Bb2', null, 'F3', null, 'G3', null, 'D3', null, 'A3', null, 'A3', null],
+    lead: ['F5', null, 'E5', 'D5', null, 'A4', null, 'D5', 'E5', null, 'F5', 'G5', 'A5', null, 'E5', null],
+    arp: ['D5', 'F5', 'A5', 'F5', 'Bb4', 'D5', 'F5', 'D5', 'G4', 'Bb4', 'D5', 'Bb4', 'A4', 'C#5', 'E5', 'C#5'],
+  },
+  reef: {
+    tempo: 100,
+    bass: ['F3', null, null, 'C3', 'F3', null, 'A3', null, 'Bb3', null, null, 'F3', 'C3', null, 'E3', null],
+    lead: ['A4', null, 'C5', 'F5', null, 'E5', 'C5', null, 'D5', null, 'F5', null, 'E5', 'C5', null, null],
+    arp: [null, 'F4', 'A4', null, 'C5', null, 'A4', null, null, 'Bb4', 'D5', null, 'C5', null, 'G4', null],
+  },
+  ruins: {
+    tempo: 128,
+    bass: ['E3', 'E3', null, 'G3', 'A3', null, 'E3', null, 'C3', 'C3', null, 'D3', 'B2', null, 'B2', null],
+    lead: ['E5', null, 'G5', 'F#5', 'E5', null, 'B4', null, 'C5', 'D5', 'E5', null, 'D5', null, 'B4', null],
+    kick: KICK_4,
+  },
+  sky: {
+    tempo: 136,
+    bass: ['G3', null, 'D3', null, 'E3', null, 'B2', null, 'C3', null, 'G3', null, 'D3', null, 'D3', null],
+    lead: ['B4', 'D5', 'G5', null, 'F#5', null, 'D5', 'B4', 'C5', 'E5', 'G5', null, 'A5', null, 'F#5', null],
+    arp: ['G4', 'B4', 'D5', 'B4', 'E4', 'G4', 'B4', 'G4', 'C5', 'E5', 'G5', 'E5', 'D5', 'F#5', 'A5', 'F#5'],
+    kick: KICK_4,
+  },
+  storm: {
+    tempo: 146,
+    bass: ['C3', 'C3', 'Eb3', 'C3', 'Ab3', null, 'G3', null, 'C3', 'C3', 'Eb3', 'F3', 'G3', null, 'B2', null],
+    lead: ['C5', null, 'Eb5', 'G5', null, 'F5', 'Eb5', null, 'D5', null, 'Eb5', 'F5', 'G5', null, 'B4', null],
+    kick: KICK_DRIVE,
+  },
+  // ---- Chefes, mapa e créditos ----
+  boss1: {
+    tempo: 164,
+    bass: ['A3', 'A3', 'C3', 'A3', 'Bb3', 'A3', 'G3', 'E3', 'A3', 'A3', 'C3', 'A3', 'F3', 'E3', 'Eb3', 'E3'],
+    lead: ['A5', null, 'E5', null, 'F5', 'E5', 'D5', null, 'C5', null, 'D5', 'E5', 'C5', 'B4', null, 'E5'],
+    kick: KICK_DRIVE,
+  },
+  boss2: {
+    tempo: 172,
+    bass: ['D3', 'D3', 'F3', 'D3', 'Eb3', 'D3', 'C3', 'A3', 'D3', 'D3', 'F3', 'G3', 'Ab3', 'G3', 'F3', 'Eb3'],
+    lead: ['D5', 'F5', 'A5', null, 'Ab5', null, 'G5', 'F5', 'Eb5', null, 'F5', 'G5', 'A5', null, 'D6', null],
+    arp: ['D4', 'A4', 'D5', 'A4', 'Eb4', 'Bb4', 'Eb5', 'Bb4', 'C5', 'G4', 'C5', 'G4', 'D5', 'A4', 'F#4', 'A4'],
+    kick: KICK_DRIVE,
+  },
+  worldmap: {
+    tempo: 96,
+    bass: ['F3', null, 'C3', null, 'D3', null, 'A3', null, 'Bb3', null, 'F3', null, 'C3', null, 'C3', null],
+    lead: ['A4', null, 'C5', null, 'F5', null, 'E5', 'D5', 'D5', null, 'C5', null, 'A4', 'Bb4', 'C5', null],
+    arp: ['F4', 'A4', 'C5', 'A4', 'D4', 'F4', 'A4', 'F4', 'Bb3', 'D4', 'F4', 'D4', 'C4', 'E4', 'G4', 'E4'],
+  },
+  credits: {
+    tempo: 104,
+    bass: ['C3', null, 'G3', null, 'A3', null, 'E3', null, 'F3', null, 'C3', null, 'F3', null, 'G3', null],
+    lead: ['E5', 'D5', 'C5', null, 'G5', null, 'E5', null, 'F5', 'E5', 'D5', null, 'C5', null, 'D5', null],
+    arp: ['C4', 'E4', 'G4', 'C5', 'A3', 'C4', 'E4', 'A4', 'F3', 'A3', 'C4', 'F4', 'G3', 'B3', 'D4', 'G4'],
   },
 };
 
@@ -98,6 +176,8 @@ class SoundEngine {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private musicGain: GainNode | null = null;
+  private sfxBus: GainNode | null = null;
+  private volumes: VolumeSettings = defaultVolumes();
   private noiseBuffer: AudioBuffer | null = null;
   private muted = false;
 
@@ -113,11 +193,12 @@ class SoundEngine {
       if (!Ctor) return;
       this.ctx = new Ctor();
       this.master = this.ctx.createGain();
-      this.master.gain.value = this.muted ? 0 : 0.5;
       this.master.connect(this.ctx.destination);
       this.musicGain = this.ctx.createGain();
-      this.musicGain.gain.value = 0.22;
       this.musicGain.connect(this.master);
+      this.sfxBus = this.ctx.createGain();
+      this.sfxBus.connect(this.master);
+      this.applyVolumes(true);
       this.noiseBuffer = this.createNoise();
       if (this.songKey) this.startScheduler();
     }
@@ -126,7 +207,21 @@ class SoundEngine {
 
   setMuted(muted: boolean): void {
     this.muted = muted;
-    if (this.master && this.ctx) this.master.gain.setTargetAtTime(muted ? 0 : 0.5, this.ctx.currentTime, 0.02);
+    this.applyVolumes();
+  }
+
+  setVolumes(volumes: VolumeSettings): void {
+    this.volumes = { ...volumes };
+    this.applyVolumes();
+  }
+
+  private applyVolumes(immediate = false): void {
+    if (!this.ctx || !this.master || !this.musicGain || !this.sfxBus) return;
+    const t = this.ctx.currentTime;
+    const set = (node: GainNode, value: number) => (immediate ? (node.gain.value = value) : node.gain.setTargetAtTime(value, t, 0.03));
+    set(this.master, this.muted ? 0 : this.volumes.master * 0.65);
+    set(this.musicGain, this.volumes.music * 0.35);
+    set(this.sfxBus, this.volumes.sfx);
   }
 
   isMuted(): boolean {
@@ -155,7 +250,7 @@ class SoundEngine {
     const vol = o.volume ?? 0.3;
     gain.gain.setValueAtTime(vol, t);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + o.duration);
-    osc.connect(gain).connect(destination ?? this.master);
+    osc.connect(gain).connect(destination ?? this.sfxBus ?? this.master);
     osc.start(t);
     osc.stop(t + o.duration + 0.02);
   }
@@ -172,7 +267,7 @@ class SoundEngine {
     const gain = this.ctx.createGain();
     gain.gain.setValueAtTime(o.volume ?? 0.3, t);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + o.duration);
-    src.connect(filter).connect(gain).connect(this.master);
+    src.connect(filter).connect(gain).connect(this.sfxBus ?? this.master);
     src.start(t);
     src.stop(t + o.duration + 0.02);
   }
@@ -330,6 +425,9 @@ class SoundEngine {
       if (!this.muted) {
         if (bass) this.tone({ freq: N[bass], duration: stepDur * 0.9, type: 'triangle', volume: 0.5, delay }, this.musicGain);
         if (lead) this.tone({ freq: N[lead], duration: stepDur * 0.8, type: 'square', volume: 0.16, delay }, this.musicGain);
+        const arp = song.arp?.[i];
+        if (arp) this.tone({ freq: N[arp], duration: stepDur * 0.6, type: 'triangle', volume: 0.12, delay }, this.musicGain);
+        if (song.kick?.[i]) this.tone({ freq: 120, to: 40, duration: 0.12, type: 'sine', volume: 0.55, delay }, this.musicGain);
         if (i % 4 === 2) this.hat(delay);
       }
       this.step++;

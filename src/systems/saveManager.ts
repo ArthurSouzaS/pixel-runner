@@ -4,6 +4,7 @@ import type { AbilityId } from '../logic/abilities';
 import { type Achievement, type AchievementContext, findAchievement, newlyUnlocked } from '../logic/achievements';
 import { buy, deposit, equip, type ShopCategory } from '../logic/shop';
 import { type StatKey, addStat, maxStat } from '../logic/stats';
+import { type VolumeChannel, stepVolume } from '../logic/audioSettings';
 import { type SaveData, type StorageLike, loadSave, recordLevelClear, saveWithAbility, submitScore, writeSave } from '../logic/save';
 
 function getStorage(): StorageLike | null {
@@ -27,6 +28,14 @@ class SaveManager {
 
   constructor() {
     sfx.setMuted(this.data.muted);
+    sfx.setVolumes(this.data.volumes);
+  }
+
+  /** Muda um canal de volume em um passo (e aplica na hora). */
+  changeVolume(channel: VolumeChannel, direction: 1 | -1): void {
+    const volumes = stepVolume(this.data.volumes, channel, direction);
+    sfx.setVolumes(volumes);
+    this.commit({ ...this.data, volumes });
   }
 
   get(): Readonly<SaveData> {

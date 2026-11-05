@@ -74,6 +74,7 @@ export class GameOverScene extends Phaser.Scene {
     const retryLevel = data.victory ? 0 : data.levelIndex;
     new MenuList(this, cx, 170, [
       { label: data.victory ? 'Jogar de novo' : 'Tentar de novo', action: () => this.scene.start('Level', { levelIndex: retryLevel, mode: data.mode ?? 'single' }) },
+      { label: 'Mapa do mundo', action: () => this.scene.start('WorldMap') },
       { label: 'Menu principal', action: () => this.scene.start('Menu') },
     ]);
   }

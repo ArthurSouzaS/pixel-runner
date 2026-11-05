@@ -4,6 +4,7 @@
  */
 import { type AbilityId, grantAbility, isAbilityId } from './abilities';
 import { sanitizeAchievements } from './achievements';
+import { type VolumeSettings, defaultVolumes, sanitizeVolumes } from './audioSettings';
 import { clampUnlocked, unlockAfterClear } from './progress';
 import { type ShopState, defaultShopState, sanitizeShop } from './shop';
 import { type PlayerStats, emptyStats, sanitizeStats } from './stats';
@@ -24,6 +25,7 @@ export interface SaveData extends ShopState {
   stats: PlayerStats;
   /** Ids das conquistas desbloqueadas. */
   achievements: string[];
+  volumes: VolumeSettings;
 }
 
 export interface StorageLike {
@@ -32,7 +34,7 @@ export interface StorageLike {
 }
 
 export function defaultSave(): SaveData {
-  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [] };
+  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState(), stats: emptyStats(), achievements: [], volumes: defaultVolumes() };
 }
 
 function toNonNegative(value: unknown, fallback: number): number {
@@ -65,6 +67,7 @@ export function sanitizeSave(raw: unknown, totalLevels: number): SaveData {
     ...sanitizeShop(data),
     stats: sanitizeStats(data.stats),
     achievements: sanitizeAchievements(data.achievements),
+    volumes: sanitizeVolumes(data.volumes),
   };
 }
 

@@ -817,6 +817,7 @@ export class LevelScene extends Phaser.Scene {
     }
     this.setGate(true);
     sfx.play('gate');
+    sfx.playMusic(this.level.boss === 'storm' ? 'boss2' : 'boss1');
     this.cameras.main.shake(400, 0.01);
     this.bossHud.visible = true;
     this.boss.wake();
@@ -825,6 +826,7 @@ export class LevelScene extends Phaser.Scene {
   private onBossDefeated(x: number, y: number): void {
     this.bossDefeated = true;
     this.bossHud.visible = false;
+    sfx.playMusic(this.level.theme.key);
     saveManager.stat(this.level.boss === 'storm' ? 'bossStorm' : 'bossCore');
     this.run = addPoints(this.run, POINTS.boss);
     this.floatingText(x, y - 20, `+${POINTS.boss}`, COLORS.yellow);
@@ -873,6 +875,7 @@ export class LevelScene extends Phaser.Scene {
         this.boss.reset();
         this.bossHud.visible = false;
         this.setGate(false);
+        sfx.playMusic(this.level.theme.key);
       }
     }
     player.setVisible(true);
