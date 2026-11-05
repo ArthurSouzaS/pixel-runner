@@ -1,6 +1,7 @@
 import { sfx } from '../audio/Sfx';
 import { TOTAL_LEVELS } from '../levels';
 import type { AbilityId } from '../logic/abilities';
+import { buy, deposit, equip, type ShopCategory } from '../logic/shop';
 import { type SaveData, type StorageLike, loadSave, recordLevelClear, saveWithAbility, submitScore, writeSave } from '../logic/save';
 
 function getStorage(): StorageLike | null {
@@ -44,6 +45,23 @@ class SaveManager {
     const result = recordLevelClear(this.data, levelIndex, seconds, TOTAL_LEVELS);
     this.commit(result.save);
     return result.isBestTime;
+  }
+
+  /** Guarda na carteira as moedas coletadas. */
+  depositCoins(coins: number): void {
+    if (coins > 0) this.commit(deposit(this.data, coins));
+  }
+
+  /** Compra (e equipa) um item da loja. */
+  buyItem(category: ShopCategory, id: string): 'ok' | 'owned' | 'funds' | 'unknown' {
+    const result = buy(this.data, category, id);
+    if (!result.ok) return result.reason;
+    this.commit(result.state);
+    return 'ok';
+  }
+
+  equipItem(category: ShopCategory, id: string): void {
+    this.commit(equip(this.data, category, id));
   }
 
   grantAbility(id: AbilityId): void {

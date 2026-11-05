@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
 import { ensurePixSkin, PLAYER2_COLORS } from '../gfx/skins';
+import { findSkin, findTrail } from '../logic/shop';
+import { createTrailEmitter } from './ShopScene';
 import { createBackgroundTextures, createMoverTexture, createTileset, GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
 import { InputHub, type GameMode } from '../input/controls';
 import { isTouchDevice } from '../input/touchState';
@@ -97,6 +99,8 @@ export class LevelScene extends Phaser.Scene {
   private moverClock = 0;
   private coinsCollected = 0;
   private finished = false;
+  private deposited = false;
+  private trail: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
   private bossHud = { hp: BOSS_MAX_HP, max: BOSS_MAX_HP, visible: false, name: '' };
 
   private bg!: {
@@ -141,6 +145,8 @@ export class LevelScene extends Phaser.Scene {
     this.moverClock = 0;
     this.coinsCollected = 0;
     this.finished = false;
+    this.deposited = false;
+    this.trail = null;
     this.bossHud = { hp: BOSS_MAX_HP, max: BOSS_MAX_HP, visible: false, name: '' };
     this.springs = [];
     this.abilityOrb = null;
@@ -253,7 +259,8 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private createPlayer(index: number, x: number, y: number): Player {
-    const texture = index === 0 ? 'pix' : ensurePixSkin(this, 'p2', PLAYER2_COLORS);
+    const skin = findSkin(saveManager.get().equippedSkin);
+    const texture = index === 0 ? ensurePixSkin(this, skin.id, skin.colors) : ensurePixSkin(this, 'p2', PLAYER2_COLORS);
     const player = new Player(this, x, y, texture, index);
     for (const a of saveManager.get().abilities) player.abilities.add(a);
     player.isWallAt = (wx, wy) => {
@@ -266,6 +273,10 @@ export class LevelScene extends Phaser.Scene {
       this.fx.dust.explode(8, player.x, player.y);
       this.cameras.main.shake(60, 0.002);
     };
+    if (index === 0) {
+      this.trail = createTrailEmitter(this, findTrail(saveManager.get().equippedTrail), player);
+      this.trail?.setDepth(9);
+    }
     if (this.mode !== 'single') {
       const tag = pixelText(this, x, y - 16, `P${index + 1}`, { size: 8, color: index === 0 ? COLORS.lightGreen : COLORS.cyan }).setOrigin(0.5).setDepth(31);
       player.setData('tag', tag);
@@ -509,6 +520,7 @@ export class LevelScene extends Phaser.Scene {
     for (const f of this.fallers) f.step(dt, worldBottom);
 
     if (!this.finished && this.alivePlayers().length > 0) this.elapsed += dt / 1000;
+    if (this.trail) this.trail.emitting = !this.player.dead && this.player.visible && Math.abs(this.player.body.velocity.x) + Math.abs(this.player.body.velocity.y) > 60;
     for (const player of this.players) {
       this.updateEnvironment(player);
       if (player.isRushing) this.breakBlocksAhead(player);
@@ -847,8 +859,16 @@ export class LevelScene extends Phaser.Scene {
     this.fx.sparkle.explode(16, point.x, point.y);
   }
 
+  /** Guarda as moedas coletadas na carteira da loja (uma vez por fase). */
+  private depositCoins(): void {
+    if (this.deposited || this.custom) return;
+    this.deposited = true;
+    saveManager.depositCoins(this.coinsCollected);
+  }
+
   private gameOver(): void {
     this.finished = true;
+    this.depositCoins();
     sfx.stopMusic();
     sfx.play('gameOver');
     if (this.custom) {
@@ -871,6 +891,7 @@ export class LevelScene extends Phaser.Scene {
   private reachGoal(player: Player): void {
     if (this.finished || player.dead || !this.goal.visible) return;
     this.finished = true;
+    this.depositCoins();
     for (const p of this.players) p.frozen = true;
     sfx.stopMusic();
     sfx.play(this.mode === 'race' ? 'victory' : 'levelClear');
@@ -943,11 +964,13 @@ export class LevelScene extends Phaser.Scene {
 
   /** Reinicia a fase atual com o estado da partida do início da fase. */
   restartLevel(): void {
+    this.depositCoins();
     this.scene.restart({ levelIndex: this.levelIndex, run: this.runAtStart, mode: this.mode, custom: this.custom ?? undefined } satisfies LevelSceneData);
   }
 
   /** Sai para o menu, registrando a pontuação alcançada. */
   quitToMenu(): void {
+    this.depositCoins();
     sfx.stopMusic();
     if (this.custom) {
       this.scene.start('Editor');

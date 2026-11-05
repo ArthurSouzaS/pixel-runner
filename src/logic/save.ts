@@ -4,11 +4,12 @@
  */
 import { type AbilityId, grantAbility, isAbilityId } from './abilities';
 import { clampUnlocked, unlockAfterClear } from './progress';
+import { type ShopState, defaultShopState, sanitizeShop } from './shop';
 
 export const SAVE_KEY = 'pixel-runner:save';
 export const SAVE_VERSION = 1;
 
-export interface SaveData {
+export interface SaveData extends ShopState {
   version: number;
   highScore: number;
   /** Quantidade de fases desbloqueadas (base 1). */
@@ -26,7 +27,7 @@ export interface StorageLike {
 }
 
 export function defaultSave(): SaveData {
-  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [] };
+  return { version: SAVE_VERSION, highScore: 0, unlockedLevels: 1, bestTimes: {}, muted: false, abilities: [], ...defaultShopState() };
 }
 
 function toNonNegative(value: unknown, fallback: number): number {
@@ -56,6 +57,7 @@ export function sanitizeSave(raw: unknown, totalLevels: number): SaveData {
     bestTimes,
     muted: data.muted === true,
     abilities: Array.isArray(data.abilities) ? grantAllValid(data.abilities) : [],
+    ...sanitizeShop(data),
   };
 }
 

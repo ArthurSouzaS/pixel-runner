@@ -32,9 +32,9 @@ Decisões tomadas sem consulta ficam registradas em [DECISOES.md](DECISOES.md).
 - [x] Jogar a fase criada
 
 ## Fase 5 — Loja
-- [ ] Carteira de moedas
-- [ ] Skins de cores do Pix
-- [ ] Rastros de partícula
+- [x] Carteira de moedas
+- [x] Skins de cores do Pix
+- [x] Rastros de partícula
 
 ## Fase 6 — Conquistas, estatísticas e créditos
 - [ ] Pelo menos 15 conquistas

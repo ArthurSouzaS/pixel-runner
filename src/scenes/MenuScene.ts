@@ -44,6 +44,7 @@ export class MenuScene extends Phaser.Scene {
       { label: 'Selecionar fase', action: () => this.scene.start('LevelSelect') },
       { label: '2 jogadores', action: () => this.scene.start('TwoPlayer') },
       { label: 'Editor de fases', action: () => this.scene.start('Editor') },
+      { label: 'Loja', action: () => this.scene.start('Shop') },
       { label: 'Controles', action: () => this.toggleControls(true) },
       { label: () => `Som: ${sfx.isMuted() ? 'Desligado' : 'Ligado'}`, action: () => saveManager.toggleMute() },
     ]);
