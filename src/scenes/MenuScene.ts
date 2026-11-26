@@ -10,6 +10,7 @@ import { ensurePixSkin } from '../gfx/skins';
 import { saveManager } from '../systems/saveManager';
 import { MenuList } from '../ui/MenuList';
 import { pixelText } from '../ui/text';
+import { TILE_SIZE } from '../logic/levelParser';
 import { createMenuBackdrop } from './menuBackdrop';
 
 /** Menu inicial. */
@@ -36,7 +37,8 @@ export class MenuScene extends Phaser.Scene {
     // Pix correndo no chão do menu.
     const skin = findSkin(saveManager.get().equippedSkin);
     const skinKey = ensurePixSkin(this, skin.id, skin.colors);
-    const pix = this.add.sprite(70, GAME_HEIGHT - 40, skinKey).play(`${skinKey}-run`).setScale(2);
+    // Pés no topo do chão do cenário (2 tiles acima da base da tela); pelo centro ele afundava 8 px.
+    const pix = this.add.sprite(70, GAME_HEIGHT - TILE_SIZE * 2, skinKey).setOrigin(0.5, 1).play(`${skinKey}-run`).setScale(2);
     this.tweens.add({ targets: pix, x: GAME_WIDTH - 70, duration: 5000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', onYoyo: () => pix.setFlipX(true), onRepeat: () => pix.setFlipX(false) });
 
     const panel = this.add.rectangle(cx, 140, 220, 126, COLORS.ink, 0.65).setStrokeStyle(2, COLORS.white, 0.4);
