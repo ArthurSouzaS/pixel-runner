@@ -21,10 +21,10 @@ export class ModesScene extends Phaser.Scene {
     pixelText(this, cx, 30, t('modes.title'), { size: 16, color: COLORS.yellow }).setOrigin(0.5);
     const desc = pixelText(this, cx, GAME_HEIGHT - 30, '', { size: 8, color: COLORS.cyan, align: 'center', wrap: 440 }).setOrigin(0.5);
     const items: { key: string; scene: string }[] = [
+      { key: 'twoPlayers', scene: 'TwoPlayer' },
       { key: 'infinite', scene: 'Infinite' },
       { key: 'daily', scene: 'Daily' },
       { key: 'speedrun', scene: 'Speedrun' },
-      { key: 'twoPlayers', scene: 'TwoPlayer' },
       { key: 'editor', scene: 'Editor' },
     ];
     const list = new MenuList(this, cx, 80, [
@@ -32,12 +32,14 @@ export class ModesScene extends Phaser.Scene {
       { label: t('common.back'), action: () => this.scene.start('Menu') },
     ], 22, 10);
     const texts = list.getTexts();
+    // "Voltar" um pouco separado dos modos.
+    texts[texts.length - 1].y += 12;
     texts.forEach((txt, i) => txt.on('pointerover', () => desc.setText(items[i] ? t(`modes.${items[i].key}.desc`) : '')));
     this.input.keyboard?.on('keydown', () => {
       const idx = texts.findIndex((tx) => tx.style.color === '#ffcd75');
       desc.setText(items[idx] ? t(`modes.${items[idx].key}.desc`) : '');
     });
-    desc.setText(t('modes.infinite.desc'));
+    desc.setText(t(`modes.${items[0].key}.desc`));
     this.input.keyboard?.on('keydown-ESC', () => this.scene.start('Menu'));
   }
 

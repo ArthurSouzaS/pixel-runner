@@ -14,6 +14,9 @@ export class HUDScene extends Phaser.Scene {
   private level!: LevelScene;
   private livesText!: Phaser.GameObjects.Text;
   private coinsText!: Phaser.GameObjects.Text;
+  /** Cooperativo: vidas de cada jogador e o ícone de moeda que acompanha o contador. */
+  private coopLives: Phaser.GameObjects.Text[] = [];
+  private coinIcon!: Phaser.GameObjects.Image;
   private timeText!: Phaser.GameObjects.Text;
   private scoreText!: Phaser.GameObjects.Text;
   private bossBar!: Phaser.GameObjects.Container;
@@ -40,13 +43,26 @@ export class HUDScene extends Phaser.Scene {
 
     const info = this.level.getLevelInfo();
     const race = info.mode === 'race';
-    this.add.image(10, 10, race ? 'star' : 'heart').setScale(1.25);
-    this.livesText = pixelText(this, 18, 6, race ? t('hud.race') : '', { size: 8, color: race ? COLORS.yellow : COLORS.white });
-
-    // No cooperativo as vidas de cada jogador aparecem lado a lado (P1x5 P2x5).
-    const wide = race || info.mode === 'coop';
-    this.add.image(wide ? 100 : 58, 10, 'coin', 0);
-    this.coinsText = pixelText(this, wide ? 108 : 66, 6, '0/0', { size: 8, color: COLORS.yellow });
+    const coop = info.mode === 'coop';
+    this.coopLives = [];
+    if (coop) {
+      // Cooperativo: "P1 ♥ 5   P2 ♥ 5" à esquerda, nas cores das etiquetas dos jogadores.
+      this.livesText = pixelText(this, 0, 0, '', { size: 8 }).setVisible(false);
+      [COLORS.lightGreen, COLORS.cyan].forEach((color, i) => {
+        const x0 = 8 + i * 62;
+        pixelText(this, x0, 6, `P${i + 1}`, { size: 8, color });
+        this.add.image(x0 + 28, 10, 'heart').setScale(1.25);
+        this.coopLives.push(pixelText(this, x0 + 38, 6, '', { size: 8 }).setOrigin(0, 0));
+      });
+      // Moedas à esquerda do nome da fase, espelhando o tempo do outro lado.
+      this.coinsText = pixelText(this, GAME_WIDTH / 2 - 46, 6, '0/0', { size: 8, color: COLORS.yellow }).setOrigin(1, 0);
+      this.coinIcon = this.add.image(0, 10, 'coin', 0);
+    } else {
+      this.add.image(10, 10, race ? 'star' : 'heart').setScale(1.25);
+      this.livesText = pixelText(this, 18, 6, race ? t('hud.race') : '', { size: 8, color: race ? COLORS.yellow : COLORS.white });
+      this.coinIcon = this.add.image(race ? 100 : 58, 10, 'coin', 0);
+      this.coinsText = pixelText(this, race ? 108 : 66, 6, '0/0', { size: 8, color: COLORS.yellow });
+    }
     pixelText(this, GAME_WIDTH / 2, 6, info.label, { size: 8, color: COLORS.cyan }).setOrigin(0.5, 0);
     if (info.powerup) {
       const pu = POWERUPS.find((p) => p.id === info.powerup)!;
@@ -133,16 +149,26 @@ export class HUDScene extends Phaser.Scene {
     const s = this.level.getHudState();
     const livesKey = s.lives2 === null ? s.lives : s.lives * 100 + s.lives2;
     if (s.mode !== 'race' && livesKey !== this.last.lives) {
-      if (this.last.lives !== -1) {
-        // No cooperativo o texto é mais largo: pulsa menos para não cobrir as moedas.
-        this.tweens.add({ targets: this.livesText, scale: s.lives2 === null ? 1.4 : 1.1, duration: 120, yoyo: true });
+      if (s.lives2 !== null && this.coopLives.length === 2) {
+        [s.lives, s.lives2].forEach((lives, i) => {
+          const text = this.coopLives[i];
+          if (text.text === String(lives)) return;
+          if (this.last.lives !== -1) this.tweens.add({ targets: text, scale: 1.4, duration: 120, yoyo: true });
+          text.setText(String(lives)).setColor(lives === 0 ? '#b13e53' : '#f4f4f4');
+        });
+      } else {
+        if (this.last.lives !== -1) this.tweens.add({ targets: this.livesText, scale: 1.4, duration: 120, yoyo: true });
+        this.livesText.setText(`x${s.lives}`);
       }
-      this.livesText.setText(s.lives2 === null ? `x${s.lives}` : `P1x${s.lives} P2x${s.lives2}`);
     }
     if (s.mode === 'race') {
       this.coinsText.setText(`P1 ${s.raceCoins[0]}  P2 ${s.raceCoins[1]}`);
       this.raceMarkers.forEach((m, i) => m.setX((m.getData('x0') as number) + (m.getData('w') as number) * (s.raceProgress[i] ?? 0)));
-    } else if (s.coins !== this.last.coins) this.coinsText.setText(`${s.coins}/${s.coinsTotal}`);
+    } else if (s.coins !== this.last.coins) {
+      this.coinsText.setText(`${s.coins}/${s.coinsTotal}`);
+      // No cooperativo o texto cresce para a esquerda: o ícone acompanha.
+      if (this.coopLives.length > 0) this.coinIcon.setX(this.coinsText.x - this.coinsText.width - 8);
+    }
     if (s.score !== this.last.score) this.scoreText.setText(formatScore(s.score));
     if (s.speedrun) {
       this.timeText.setText(formatTimePrecise(s.time));
