@@ -108,6 +108,9 @@ const NO_NUMBERS: number[] = [];
 /** Invencibilidade depois que o escudo do chefe quebra (ms). */
 const BOSS_SHIELD_PROTECT_MS = 2500;
 
+/** Depois de pisar no chefe, encostar nele por este tempo (ms) não machuca. */
+const BOSS_STOMP_GRACE_MS = 300;
+
 /** Zoom mínimo da câmera quando os dois jogadores se afastam. */
 const MIN_ZOOM = 0.6;
 
@@ -677,9 +680,21 @@ export class LevelScene extends Phaser.Scene {
   }
 
   /** Pisão que respeita a direção da gravidade do jogador. */
+  /**
+   * Pisão: o jogador desce em relação ao alvo e, no passo anterior, estava acima dele.
+   * Usa as posições do passo anterior e a velocidade relativa, para contar mesmo quando
+   * o alvo sobe rápido de encontro ao jogador (ex.: chefe pulando) — antes isso virava dano.
+   */
   private isStomp(player: Player, target: Phaser.Physics.Arcade.Body, tolerance: number): boolean {
     const pb = player.body;
-    return player.gravityDir > 0 ? pb.velocity.y > 0 && pb.bottom <= target.top + tolerance : pb.velocity.y < 0 && pb.top >= target.bottom - tolerance;
+    if (player.gravityDir > 0) {
+      const descending = pb.velocity.y > 0 || pb.velocity.y > target.velocity.y;
+      const wasAbove = Math.min(pb.bottom, pb.prev.y + pb.height) <= Math.max(target.top, target.prev.y) + tolerance;
+      return descending && wasAbove;
+    }
+    const descending = pb.velocity.y < 0 || pb.velocity.y < target.velocity.y;
+    const wasAbove = Math.max(pb.top, pb.prev.y) >= Math.min(target.bottom, target.prev.y + target.height) - tolerance;
+    return descending && wasAbove;
   }
 
   /** Água e vento (regiões definidas nos dados da fase). */
@@ -866,7 +881,10 @@ export class LevelScene extends Phaser.Scene {
       shield?.setPosition(player.x, player.y).setVisible(player.visible);
       const tag = player.getData('tag') as Phaser.GameObjects.Text | undefined;
       tag?.setPosition(player.x, player.y - 16).setVisible(player.visible && !player.dead);
-      if (!player.dead && (player.y > worldBottom + 16 || player.y < -24)) this.killPlayer(player, true);
+      // Sair por cima só mata com a gravidade invertida ("caindo" para o vazio). Com a gravidade
+      // normal existe um teto invisível acima da tela, e um pulo alto não pode matar.
+      const fellOff = player.y > worldBottom + 16 || (player.gravityDir < 0 && player.y < -24);
+      if (!player.dead && fellOff) this.killPlayer(player, true);
     }
 
     const ctx: EnemyContext = {
@@ -1141,6 +1159,9 @@ export class LevelScene extends Phaser.Scene {
       this.hitBoss(boss);
       this.fx.pop.explode(16, player.x, pb.bottom);
       player.bounce(true);
+      player.setData('bossStompAt', this.time.now);
+    } else if (this.time.now - ((player.getData('bossStompAt') as number | undefined) ?? -1e9) < BOSS_STOMP_GRACE_MS) {
+      // Logo depois do pisão o jogador ainda encosta no chefe enquanto sobe: não é golpe.
     } else if (boss.isActive && !player.isInvulnerable) {
       this.killPlayer(player);
     }

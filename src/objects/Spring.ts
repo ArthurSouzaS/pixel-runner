@@ -3,7 +3,8 @@ import Phaser from 'phaser';
 /** Mola: lança o jogador bem alto ao ser pisada. */
 export class Spring extends Phaser.Physics.Arcade.Sprite {
   declare body: Phaser.Physics.Arcade.Body;
-  static readonly LAUNCH_VELOCITY = 560;
+  /** ~12,6 blocos de altura com a gravidade normal (antes 560 ≈ 10, curto para algumas plataformas). */
+  static readonly LAUNCH_VELOCITY = 620;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'spring', 0);

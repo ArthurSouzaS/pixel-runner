@@ -22,6 +22,8 @@ export const PLAYER_TUNING = {
   doubleJumpVelocity: 300,
   jumpCutVelocity: 130,
   maxFall: 430,
+  /** Limite de subida (molas). O de queda não pode valer para cima: cortava a mola em 430. */
+  maxRise: 1000,
   coyoteMs: 90,
   jumpBufferMs: 120,
   dashSpeed: 330,
@@ -206,6 +208,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   /** Lançamento vertical (mola). */
   launch(velocity: number): void {
+    // Libera o limite antes do próximo passo da física (senão a mola é cortada na velocidade de queda).
+    this.body.setMaxVelocityY(Math.max(velocity, PLAYER_TUNING.maxRise));
     this.setVelocityY(-this.gravityDir * velocity);
     this.jumping = false;
     this.canDoubleJump = true;
@@ -282,7 +286,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const gravity = this.scene.physics.world.gravity.y;
     // Gravidade invertida: soma -2g à gravidade do mundo para o resultado ser -g.
     body.setGravityY(env.inWater ? -gravity * (1 - T.waterGravityScale) : g < 0 ? -2 * gravity : 0);
-    body.setMaxVelocityY(env.inWater ? T.waterMaxFall : T.maxFall);
+    // O Arcade limita a velocidade nos dois sentidos: o limite de queda só vale caindo.
+    // Subindo (molas) o limite é maior, exceto nas correntes de ar, ajustadas com o limite antigo.
+    const falling = body.velocity.y * g > 0;
+    body.setMaxVelocityY(env.inWater ? T.waterMaxFall : falling || env.windY !== 0 ? T.maxFall : T.maxRise);
     if (env.inWater) {
       this.canDoubleJump = true;
       this.canDash = true;
