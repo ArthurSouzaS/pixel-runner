@@ -51,7 +51,7 @@ Todo o visual e o som são gerados por código, sem arquivos de imagem ou áudio
 - **Sprites** desenhados como pixel art em texto (`src/gfx/sprites.ts`) e convertidos em texturas na inicialização.
 - **Tiles e cenários** com parallax gerados proceduralmente para cada um dos 15 temas.
 - **Efeitos sonoros e trilha sonora** sintetizados em tempo real com a **Web Audio API** (uma música por tema, mais chefes, vila, mapa e créditos).
-- **Ícones do app** desenhados por um script (`scripts/generate-icons.mjs`).
+- **Ícone do jogo** feito a partir da arte do Pix em `art/pix-icon-source.png`; os tamanhos (aba do navegador, PWA, Android e iPhone) são gerados por `scripts/generate-icons.py`.
 
 ## Novidades do Pixel Runner 3
 
@@ -212,7 +212,8 @@ src/
 ├── systems/              # Save no localStorage, fantasmas, acessibilidade global e instalação do PWA
 └── ui/                   # Texto pixelado, menus navegáveis, caixa de diálogo e botões de toque
 build/serviceWorker.ts    # Plugin do Vite que gera o service worker no build
-scripts/generate-icons.mjs# Gera os ícones PNG do app
+scripts/generate-icons.py # Gera os ícones a partir de art/pix-icon-source.png
+art/                      # Arte original do Pix usada no ícone
 public/                   # Manifest do PWA e ícones
 tests/                    # 207 testes do Vitest
 ```

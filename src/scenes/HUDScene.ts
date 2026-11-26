@@ -51,14 +51,15 @@ export class HUDScene extends Phaser.Scene {
       [COLORS.lightGreen, COLORS.cyan].forEach((color, i) => {
         const x0 = 8 + i * 62;
         pixelText(this, x0, 6, `P${i + 1}`, { size: 8, color });
-        this.add.image(x0 + 28, 10, 'heart').setScale(1.25);
+        this.heartIcon(x0 + 27);
         this.coopLives.push(pixelText(this, x0 + 38, 6, '', { size: 8 }).setOrigin(0, 0));
       });
       // Moedas à esquerda do nome da fase, espelhando o tempo do outro lado.
       this.coinsText = pixelText(this, GAME_WIDTH / 2 - 46, 6, '0/0', { size: 8, color: COLORS.yellow }).setOrigin(1, 0);
       this.coinIcon = this.add.image(0, 10, 'coin', 0);
     } else {
-      this.add.image(10, 10, race ? 'star' : 'heart').setScale(1.25);
+      if (race) this.add.image(10, 10, 'star').setScale(1.25);
+      else this.heartIcon(10);
       this.livesText = pixelText(this, 18, 6, race ? t('hud.race') : '', { size: 8, color: race ? COLORS.yellow : COLORS.white });
       this.coinIcon = this.add.image(race ? 100 : 58, 10, 'coin', 0);
       this.coinsText = pixelText(this, race ? 108 : 66, 6, '0/0', { size: 8, color: COLORS.yellow });
@@ -91,6 +92,14 @@ export class HUDScene extends Phaser.Scene {
     this.showLevelCard(info.custom ? t('hud.custom') : info.label, info.name, info.subtitle);
 
     if (isTouchDevice() || usingTouch()) this.touch = new TouchControls(this);
+  }
+
+  /**
+   * Coração das vidas. O desenho ocupa só 7x7 da textura 8x8 (sobra embaixo e à direita),
+   * então a origem vai para o centro do desenho e ele desce até a linha média dos textos.
+   */
+  private heartIcon(x: number): void {
+    this.add.image(x, 11, 'heart').setOrigin(3.5 / 8, 3.5 / 8).setScale(1.25);
   }
 
   private createBossBar(): void {
