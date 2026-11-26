@@ -18,10 +18,13 @@ export const DEFAULT_KEYS: KeyMap = {
   left: ['ArrowLeft', 'KeyA'],
   right: ['ArrowRight', 'KeyD'],
   jump: ['Space', 'ArrowUp', 'KeyW', 'KeyZ'],
-  dash: ['ShiftLeft', 'ShiftRight', 'KeyX', 'KeyK'],
+  dash: ['ShiftLeft', 'ShiftRight', 'KeyX', 'KeyK', 'KeyS', 'ArrowDown'],
   charge: ['KeyC', 'KeyL'],
   pause: ['Escape', 'KeyP'],
 };
+
+/** Teclas de dash padrão antes de S e seta para baixo entrarem (saves antigos). */
+const OLD_DEFAULT_DASH = ['ShiftLeft', 'ShiftRight', 'KeyX', 'KeyK'];
 
 export const DEFAULT_PAD: PadMap = { jump: [0], dash: [2, 3, 5], charge: [1, 4], pause: [9] };
 
@@ -103,6 +106,11 @@ export function sanitizeAccess(raw: unknown): AccessSettings {
       const v = (d.keys as Record<string, unknown>)[a];
       const codes = Array.isArray(v) ? v.filter((c): c is string => typeof c === 'string' && c.length > 0 && c.length < 24) : [];
       if (codes.length > 0) keys[a] = [...new Set(codes)];
+    }
+    // Quem nunca remapeou o dash ganha as teclas novas (S e seta para baixo), se estiverem livres.
+    if (keys.dash.length === OLD_DEFAULT_DASH.length && keys.dash.every((c, i) => c === OLD_DEFAULT_DASH[i])) {
+      const used = new Set(ACTIONS.filter((a) => a !== 'dash').flatMap((a) => keys[a]));
+      keys.dash = [...keys.dash, ...['KeyS', 'ArrowDown'].filter((c) => !used.has(c))];
     }
   }
   const pad = { ...base.pad };

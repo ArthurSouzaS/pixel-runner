@@ -95,3 +95,18 @@ describe('acessibilidade: daltonismo', () => {
     expect(cm.slice(15)).toEqual([0, 0, 0, 1, 0]);
   });
 });
+
+describe('dash com S e seta para baixo', () => {
+  it('fazem parte das teclas padrão de dash', () => {
+    expect(defaultAccess().keys.dash).toEqual(expect.arrayContaining(['KeyS', 'ArrowDown', 'ShiftLeft', 'KeyX']));
+  });
+
+  it('saves antigos com o dash padrão ganham as teclas novas; remapeados ficam como estão', () => {
+    const old = { keys: { dash: ['ShiftLeft', 'ShiftRight', 'KeyX', 'KeyK'] } };
+    expect(sanitizeAccess(old).keys.dash).toEqual(['ShiftLeft', 'ShiftRight', 'KeyX', 'KeyK', 'KeyS', 'ArrowDown']);
+    expect(sanitizeAccess({ keys: { dash: ['KeyQ'] } }).keys.dash).toEqual(['KeyQ']);
+    // Se o jogador usou S para outra ação, o dash não pega o S.
+    const taken = sanitizeAccess({ keys: { dash: ['ShiftLeft', 'ShiftRight', 'KeyX', 'KeyK'], charge: ['KeyS'] } });
+    expect(taken.keys.dash).toEqual(['ShiftLeft', 'ShiftRight', 'KeyX', 'KeyK', 'ArrowDown']);
+  });
+});

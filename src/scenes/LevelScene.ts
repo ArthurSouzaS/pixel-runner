@@ -946,9 +946,15 @@ export class LevelScene extends Phaser.Scene {
   // Interações
   // -------------------------------------------------------------------------
 
-  private floatingText(x: number, y: number, text: string, color: number = COLORS.white): void {
-    const t = pixelText(this, x, y, text, { size: 8, color }).setOrigin(0.5).setDepth(30);
-    this.tweens.add({ targets: t, y: y - 22, alpha: 0, duration: 800, ease: 'Quad.easeOut', onComplete: () => t.destroy() });
+  private floatingText(x: number, y: number, text: string, color: number = COLORS.white, duration = 800): void {
+    const t = pixelText(this, x, y, text, { size: 8, color, align: 'center' }).setOrigin(0.5).setDepth(30);
+    if (duration <= 800) {
+      this.tweens.add({ targets: t, y: y - 22, alpha: 0, duration, ease: 'Quad.easeOut', onComplete: () => t.destroy() });
+      return;
+    }
+    // Avisos importantes: sobem pouco e ficam legíveis antes de sumir.
+    this.tweens.add({ targets: t, y: y - 8, duration, ease: 'Sine.easeOut' });
+    this.tweens.add({ targets: t, alpha: 0, delay: duration * 0.7, duration: duration * 0.3, onComplete: () => t.destroy() });
   }
 
   private collectCoin(player: Player, coin: Phaser.Physics.Arcade.Sprite): void {
@@ -987,7 +993,7 @@ export class LevelScene extends Phaser.Scene {
           const out = this.players[i];
           if (out?.dead) {
             this.respawn(out, { x: point.x, y: point.y - 8 }, false);
-            this.floatingText(point.x, point.y - 34, t('level.playerBack', { p: i + 1 }), COLORS.lightGreen);
+            this.floatingText(point.x, point.y - 34, t('level.playerBack', { p: i + 1 }), COLORS.lightGreen, 2000);
           }
         }
       }
@@ -1209,7 +1215,7 @@ export class LevelScene extends Phaser.Scene {
         player.setVisible(false).setVelocity(0, 0);
         // Aviso no centro da tela (perto do parceiro ele podia sair cortado na borda).
         const view = this.cameras.main.worldView;
-        this.floatingText(view.centerX, view.y + view.height * 0.3, t('level.playerOut', { p: player.index + 1 }), COLORS.red);
+        this.floatingText(view.centerX, view.y + view.height * 0.3, t('level.playerOut', { p: player.index + 1 }), COLORS.red, 3000);
         return;
       }
       // Cooperativo: renasce ao lado do parceiro, se ele estiver vivo.

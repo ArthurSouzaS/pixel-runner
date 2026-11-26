@@ -48,6 +48,8 @@ interface Interactable {
   npc?: NpcId;
   world?: number;
   label: Phaser.GameObjects.Text;
+  /** Altura do aviso "Falar/Entrar" (acima do "!" dos NPCs e do telhado da loja). */
+  promptY?: number;
 }
 
 /** Vila central: NPCs para conversar, a loja e os portais dos 3 mundos. */
@@ -112,7 +114,8 @@ export class HubScene extends Phaser.Scene {
       if (!visible) continue;
       // Ancorado pelos pés no chão da vila (topo da linha 15); com o centro na linha 14 eles flutuavam.
       this.add.sprite(x, 15 * TILE_SIZE, NPCS[id].texture, 0).setOrigin(0.5, 1).setDepth(3).play(`npc-${id}-idle`);
-      this.addItem('npc', x, 14 * TILE_SIZE, t(NPCS[id].nameKey), { npc: id });
+      // O aviso "Falar" fica acima do marcador "!"/"?" para não sobrepor.
+      this.addItem('npc', x, 14 * TILE_SIZE, t(NPCS[id].nameKey), { npc: id, promptY: 14 * TILE_SIZE - 56 });
       // Marcador: "!" = missão nova, "?" = missão concluída para entregar.
       const mark = pixelText(this, x, 14 * TILE_SIZE - 38, '', { size: 10, color: COLORS.yellow }).setOrigin(0.5).setDepth(5);
       this.tweens.add({ targets: mark, y: mark.y - 3, duration: 400, yoyo: true, repeat: -1 });
@@ -129,7 +132,9 @@ export class HubScene extends Phaser.Scene {
     this.addItem('board', bx, 13 * TILE_SIZE, t('mission.board'));
 
     // Loja
-    this.addItem('shop', 30 * TILE_SIZE + 8, 14 * TILE_SIZE, t('hub.shop'));
+    // A casa já tem a placa "LOJA": sem nome flutuante, e o aviso fica acima do telhado.
+    this.addItem('shop', 30 * TILE_SIZE + 8, 14 * TILE_SIZE, t('hub.shop'), { promptY: 15 * TILE_SIZE - 54 - 24 - 8 });
+    this.items[this.items.length - 1].label.setVisible(false);
 
     // Jogador
     const skin = findSkin(save.equippedSkin);
@@ -302,7 +307,7 @@ export class HubScene extends Phaser.Scene {
     if (this.nearby && !frozen) {
       const verb = this.nearby.kind === 'npc' ? t('hub.talk') : t('hub.enter');
       const key = usingTouch() || gamepads.connectedCount > 0 ? '!' : '↓';
-      this.prompt.setText(`${key} ${verb}`).setPosition(this.nearby.x, this.nearby.y - 40).setVisible(true);
+      this.prompt.setText(`${key} ${verb}`).setPosition(this.nearby.x, this.nearby.promptY ?? this.nearby.y - 40).setVisible(true);
     } else {
       this.prompt.setVisible(false);
     }

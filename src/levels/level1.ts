@@ -43,6 +43,6 @@ export const level1: LevelData = {
     { x: 29, y: 7, text: 'Pule de novo no ar: pulo duplo!', touchText: 'Toque em A no ar: pulo duplo!' },
     { x: 45, y: 7, text: 'Pise nos inimigos para derrotá-los', touchText: 'Pise nos inimigos para derrotá-los' },
     { x: 52, y: 9, text: 'Bandeiras salvam seu progresso', touchText: 'Bandeiras salvam seu progresso' },
-    { x: 61, y: 7, text: 'Shift ou X para dar dash', touchText: 'Toque em B para dar dash' },
+    { x: 61, y: 7, text: 'Shift, X ou S para dar dash', touchText: 'Toque em B para dar dash' },
   ],
 };

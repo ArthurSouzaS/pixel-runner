@@ -112,7 +112,7 @@ Todo o visual e o som são gerados por código, sem arquivos de imagem ou áudio
 | Correr | `←` `→` ou `A` `D` | Setas na tela | Analógico / direcional |
 | Pular / nadar | `Espaço`, `W`, `Z` ou `↑` | Botão **A** | **A** |
 | Pulo duplo | Pular de novo no ar | **A** no ar | **A** no ar |
-| Dash | `Shift`, `X` ou `K` | Botão **B** | **X** / **Y** / **RB** |
+| Dash | `Shift`, `X`, `K`, `S` ou `↓` | Botão **B** | **X** / **Y** / **RB** |
 | Planar* | Segurar o pulo caindo | Segurar **A** | Segurar **A** |
 | Escalar* | No ar, segurar a direção da parede | Idem | Idem |
 | Investida* | Segurar `C` ou `L` e soltar | Segurar **C** | Segurar **B** / **LB** |
