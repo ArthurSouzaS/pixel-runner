@@ -489,6 +489,7 @@ export const en: Dictionary = {
   "level.extraLife": "+1 LIFE",
   "level.playerOut": "P{p} out of lives!\nBack at checkpoint",
   "level.playerBack": "P{p} is back!",
+  "level.shieldBroken": "Shield broken!",
   "level.checkpoint": "CHECKPOINT!",
   "level.gameOver": "GAME OVER",
   "level.noLives": "You ran out of lives.",

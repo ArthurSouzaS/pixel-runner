@@ -97,6 +97,7 @@ Todo o visual e o som são gerados por código, sem arquivos de imagem ou áudio
 - 15 fases: Campos Verdes, Caverna de Cristal, Fábrica Enferrujada, Picos Gelados, Fortaleza do Núcleo, Lago Congelado, Recife Submerso, Ruínas Desmoronando, Penhasco dos Ventos, Olho da Tempestade, Base Lunar, Estação Orbital, Nebulosa Invertida, Cinturão de Asteroides e Cidadela do Eclipse
 - 7 tipos de inimigo: gosma, saltador, morcego, torreta, peixe-espinho, gosma blindada e drone
 - 3 chefes com padrões de ataque diferentes, várias fases de ataque e música própria
+- **Escudo de chefe**: ao começar a luta, cada jogador ganha uma bolha azul que aguenta um golpe e, ao quebrar, dá alguns segundos de invencibilidade
 - 5 vidas no início, moedas (vida extra a cada 50), checkpoints, plataformas móveis, espinhos, combos e bônus de tempo
 - 27 conquistas, 11 missões, 12 skins (4 exclusivas de missões) e 7 rastros
 - Tudo **salvo no `localStorage`** com save versionado e migração automática

@@ -105,6 +105,9 @@ export interface HudState {
 
 const NO_NUMBERS: number[] = [];
 
+/** Invencibilidade depois que o escudo do chefe quebra (ms). */
+const BOSS_SHIELD_PROTECT_MS = 2500;
+
 /** Zoom mínimo da câmera quando os dois jogadores se afastam. */
 const MIN_ZOOM = 0.6;
 
@@ -162,6 +165,8 @@ export class LevelScene extends Phaser.Scene {
 
   private elapsed = 0;
   private moverClock = 0;
+  /** Escudos da luta contra o chefe (bolha azul), um por jogador. */
+  private bossShields = new Map<Player, Phaser.GameObjects.Container>();
   private coinsCollected = 0;
   private finished = false;
   private deposited = false;
@@ -233,6 +238,7 @@ export class LevelScene extends Phaser.Scene {
     this.gateClosed = false;
     this.elapsed = 0;
     this.moverClock = 0;
+    this.bossShields = new Map();
     this.coinsCollected = 0;
     this.finished = false;
     this.deposited = false;
@@ -856,6 +862,8 @@ export class LevelScene extends Phaser.Scene {
       if (player.index === 0 && this.recorder && !this.finished && !player.dead) {
         this.recorder.push(input, dt, player.x, player.y, Number(player.frame.name) || 0, player.flipX);
       }
+      const shield = this.bossShields.get(player);
+      shield?.setPosition(player.x, player.y).setVisible(player.visible);
       const tag = player.getData('tag') as Phaser.GameObjects.Text | undefined;
       tag?.setPosition(player.x, player.y - 16).setVisible(player.visible && !player.dead);
       if (!player.dead && (player.y > worldBottom + 16 || player.y < -24)) this.killPlayer(player, true);
@@ -1160,10 +1168,53 @@ export class LevelScene extends Phaser.Scene {
     this.cameras.main.shake(400, 0.01);
     this.bossHud.visible = true;
     this.boss.wake();
+    // Cada jogador vivo ganha um escudo que aguenta um golpe, só durante a luta.
+    for (const p of this.players) if (!p.dead) this.giveBossShield(p);
+  }
+
+  /** Bolha azul que protege o jogador de um golpe durante a luta contra o chefe. */
+  private giveBossShield(player: Player): void {
+    if (this.bossShields.has(player)) return;
+    const bubble = this.add.container(player.x, player.y).setDepth(11);
+    const glow = this.add.circle(0, 0, 15, 0x41a6f6, 0.35).setStrokeStyle(2, 0x73eff7, 1);
+    const shine = this.add.circle(-5, -6, 3, 0xf4f4f4, 0.7);
+    bubble.add([glow, shine]);
+    bubble.setScale(0);
+    this.tweens.add({ targets: bubble, scale: 1, duration: 300, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: glow, alpha: 0.65, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.bossShields.set(player, bubble);
+    sfx.play('shieldUp');
+  }
+
+  /** O escudo absorve o golpe, estoura e deixa o jogador invencível por alguns segundos. */
+  private breakBossShield(player: Player): void {
+    const bubble = this.bossShields.get(player);
+    if (!bubble) return;
+    this.bossShields.delete(player);
+    this.tweens.killTweensOf(bubble.list);
+    this.tweens.add({ targets: bubble, scale: 1.8, alpha: 0, duration: 250, ease: 'Quad.easeOut', onComplete: () => bubble.destroy() });
+    this.fx.sparkle.explode(24, player.x, player.y);
+    sfx.play('shieldBreak');
+    this.cameras.main.shake(120, 0.006);
+    player.protect(BOSS_SHIELD_PROTECT_MS);
+    this.floatingText(player.x, player.y - 24, t('level.shieldBroken'), COLORS.cyan, 1500);
+  }
+
+  private removeBossShield(player: Player): void {
+    const bubble = this.bossShields.get(player);
+    if (!bubble) return;
+    this.bossShields.delete(player);
+    this.tweens.killTweensOf([bubble, ...bubble.list]);
+    bubble.destroy();
+  }
+
+  private clearBossShields(): void {
+    for (const player of [...this.bossShields.keys()]) this.removeBossShield(player);
   }
 
   private onBossDefeated(x: number, y: number): void {
     this.bossDefeated = true;
+    this.clearBossShields();
     this.bossHud.visible = false;
     sfx.playMusic(this.level.theme.key);
     saveManager.stat(this.level.boss === 'eclipse' ? 'bossEclipse' : this.level.boss === 'storm' ? 'bossStorm' : 'bossCore');
@@ -1178,6 +1229,14 @@ export class LevelScene extends Phaser.Scene {
 
   private killPlayer(player: Player, fell = false): void {
     if (player.dead || this.finished) return;
+    if (this.bossShields.has(player)) {
+      if (!fell) {
+        this.breakBossShield(player);
+        return;
+      }
+      // Cair no buraco não é "golpe": o escudo some junto com o jogador.
+      this.removeBossShield(player);
+    }
     if (this.shield && !fell) {
       // Escudo do modo Infinito: absorve um golpe.
       this.shield = false;
@@ -1231,6 +1290,7 @@ export class LevelScene extends Phaser.Scene {
       // Só reinicia um chefe em luta: durante a explosão final ele já foi vencido.
       if (this.boss?.active && this.boss.isActive && !this.bossDefeated) {
         this.boss.reset();
+        this.clearBossShields();
         this.bossHud.visible = false;
         this.setGate(false);
         sfx.playMusic(this.level.theme.key);

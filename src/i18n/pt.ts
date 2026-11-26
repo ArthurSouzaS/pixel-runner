@@ -287,6 +287,7 @@ export const pt: Dictionary = {
   "level.extraLife": "+1 VIDA",
   "level.playerOut": "P{p} sem vidas!\nVolta no checkpoint",
   "level.playerBack": "P{p} voltou!",
+  "level.shieldBroken": "Escudo quebrou!",
   "level.checkpoint": "CHECKPOINT!",
   "level.gameOver": "FIM DE JOGO",
   "level.noLives": "Suas vidas acabaram.",

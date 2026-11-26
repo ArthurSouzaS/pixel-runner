@@ -53,7 +53,9 @@ export type SfxName =
   | 'rush'
   | 'break'
   | 'clank'
-  | 'ability';
+  | 'ability'
+  | 'shieldUp'
+  | 'shieldBreak';
 
 // Notas (Hz) usadas nas melodias.
 const N: Record<string, number> = {
@@ -414,6 +416,17 @@ class SoundEngine {
       case 'break':
         this.noise({ duration: 0.35, volume: 0.35, filter: 2500, filterTo: 200 });
         this.tone({ freq: 160, to: 50, duration: 0.25, type: 'square', volume: 0.15 });
+        break;
+      case 'shieldUp':
+        // Brilho subindo: o escudo do chefe aparece.
+        this.arpeggio(['E5', 'G5', 'B5', 'E6'], 0.05, 0.12, 'triangle', 0.18);
+        this.tone({ freq: 300, to: 900, duration: 0.3, type: 'sine', volume: 0.12 });
+        break;
+      case 'shieldBreak':
+        // Vidro estilhaçando: o escudo absorveu o golpe.
+        this.noise({ duration: 0.35, volume: 0.3, filter: 6000, filterTo: 1500 });
+        this.tone({ freq: 1400, to: 300, duration: 0.3, type: 'triangle', volume: 0.16 });
+        this.tone({ freq: 1800, to: 500, duration: 0.2, type: 'square', volume: 0.06, delay: 0.04 });
         break;
       case 'clank':
         this.tone({ freq: 1200, to: 800, duration: 0.08, type: 'square', volume: 0.15 });
