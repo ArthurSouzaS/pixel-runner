@@ -45,10 +45,12 @@ export class AccessibilityScene extends Phaser.Scene {
       { label: () => t('access.speed', { n: Math.round(a().speed * 100) }), change: () => saveManager.setAccess({ speed: a().speed === 1 ? 0.75 : 1 }) },
       { label: () => t('access.text', { size: a().textScale > 1 ? t('access.large') : t('access.normal') }), change: () => saveManager.setAccess({ textScale: a().textScale > 1 ? 1 : 1.25 }) },
       { label: () => t('access.remap'), change: () => this.scene.start('Remap') },
+      { label: () => t('access.touch'), change: () => this.scene.start('TouchLayout') },
+      { label: () => t('access.rumble', { state: onOff(a().rumble) }), change: () => saveManager.setAccess({ rumble: !a().rumble }) },
       { label: () => t('common.back'), change: () => this.scene.start('Options') },
     ];
     this.texts = this.rows.map((row, i) => {
-      const txt = pixelText(this, GAME_WIDTH / 2, 50 + i * 22, '', { size: 10 }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      const txt = pixelText(this, GAME_WIDTH / 2, 44 + i * 18, '', { size: 10 }).setOrigin(0.5).setInteractive({ useHandCursor: true });
       txt.on('pointerdown', (p: Phaser.Input.Pointer) => {
         this.index = i;
         row.change(p.x < txt.x ? -1 : 1);

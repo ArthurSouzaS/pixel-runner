@@ -1140,6 +1140,7 @@ export class LevelScene extends Phaser.Scene {
 
   private hitBoss(boss: BossLike): void {
     if (!boss.hit()) return;
+    this.rumble(0.4, 120);
     // Golpe final: some com os tiros para ninguém morrer durante a explosão do chefe.
     if (boss.hp <= 0) this.bullets.clear(true, true);
     this.run = addPoints(this.run, POINTS.bossHit);
@@ -1159,6 +1160,9 @@ export class LevelScene extends Phaser.Scene {
       this.hitBoss(boss);
       this.fx.pop.explode(16, player.x, pb.bottom);
       player.bounce(true);
+      // Joga o jogador para o lado: não dá para ficar "morando" em cima do chefe.
+      const away = player.x === boss.x ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(player.x - boss.x);
+      player.knockback(away * 200, 320);
       player.setData('bossStompAt', this.time.now);
     } else if (this.time.now - ((player.getData('bossStompAt') as number | undefined) ?? -1e9) < BOSS_STOMP_GRACE_MS) {
       // Logo depois do pisão o jogador ainda encosta no chefe enquanto sobe: não é golpe.
@@ -1193,6 +1197,11 @@ export class LevelScene extends Phaser.Scene {
     for (const p of this.players) if (!p.dead) this.giveBossShield(p);
   }
 
+  /** Vibração do controle (se ligada nas opções de acessibilidade). */
+  private rumble(strength: number, ms: number): void {
+    if (saveManager.get().access.rumble) gamepads.rumble(strength, ms);
+  }
+
   /** Bolha azul que protege o jogador de um golpe durante a luta contra o chefe. */
   private giveBossShield(player: Player): void {
     if (this.bossShields.has(player)) return;
@@ -1216,6 +1225,7 @@ export class LevelScene extends Phaser.Scene {
     this.tweens.add({ targets: bubble, scale: 1.8, alpha: 0, duration: 250, ease: 'Quad.easeOut', onComplete: () => bubble.destroy() });
     this.fx.sparkle.explode(24, player.x, player.y);
     sfx.play('shieldBreak');
+    this.rumble(0.6, 200);
     this.cameras.main.shake(120, 0.006);
     player.protect(BOSS_SHIELD_PROTECT_MS);
     this.floatingText(player.x, player.y - 24, t('level.shieldBroken'), COLORS.cyan, 1500);
@@ -1268,6 +1278,7 @@ export class LevelScene extends Phaser.Scene {
       return;
     }
     player.die();
+    this.rumble(0.9, 300);
     this.deathsThisLevel++;
     saveManager.stat('deaths');
     saveManager.flush();

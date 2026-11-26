@@ -2,6 +2,7 @@
  * Opções de acessibilidade. Módulo puro (sem Phaser), coberto por testes.
  */
 import { tOr } from '../i18n';
+import { type TouchLayout, defaultTouchLayout, sanitizeTouchLayout } from './touchLayout';
 
 export type ColorblindMode = 'off' | 'protanopia' | 'deuteranopia' | 'tritanopia';
 export const COLORBLIND_MODES: readonly ColorblindMode[] = ['off', 'protanopia', 'deuteranopia', 'tritanopia'];
@@ -38,6 +39,10 @@ export interface AccessSettings {
   textScale: number;
   keys: KeyMap;
   pad: PadMap;
+  /** Posição e tamanho dos botões de toque. */
+  touch: TouchLayout;
+  /** Vibração do controle (gamepad) ao levar dano e acertar chefes. */
+  rumble: boolean;
 }
 
 export function defaultAccess(): AccessSettings {
@@ -49,6 +54,8 @@ export function defaultAccess(): AccessSettings {
     textScale: 1,
     keys: cloneKeys(DEFAULT_KEYS),
     pad: { jump: [...DEFAULT_PAD.jump], dash: [...DEFAULT_PAD.dash], charge: [...DEFAULT_PAD.charge], pause: [...DEFAULT_PAD.pause] },
+    touch: defaultTouchLayout(),
+    rumble: true,
   };
 }
 
@@ -129,6 +136,8 @@ export function sanitizeAccess(raw: unknown): AccessSettings {
     textScale: d.textScale === 1.25 ? 1.25 : 1,
     keys,
     pad,
+    touch: sanitizeTouchLayout(d.touch),
+    rumble: d.rumble !== false,
   };
 }
 

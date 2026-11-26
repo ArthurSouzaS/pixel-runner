@@ -48,6 +48,8 @@ export class Boss extends Phaser.Physics.Arcade.Sprite implements BossLike {
   private attackCount = 0;
   private invulnerable = 0;
   private dir: 1 | -1 = -1;
+  /** Depois de levar um pisão, contra-ataca: salta para longe e solta a onda de choque. */
+  private counter = false;
   private readonly home: Phaser.Math.Vector2;
 
   constructor(
@@ -84,6 +86,7 @@ export class Boss extends Phaser.Physics.Arcade.Sprite implements BossLike {
     this.state = 'sleep';
     this.attackCount = 0;
     this.invulnerable = 0;
+    this.counter = false;
     this.clearTint();
     this.setFrame(0);
     this.setAlpha(1);
@@ -105,7 +108,7 @@ export class Boss extends Phaser.Physics.Arcade.Sprite implements BossLike {
   hit(): boolean {
     if (!this.isVulnerable) return false;
     this.hp -= 1;
-    this.invulnerable = 900;
+    this.invulnerable = 1200;
     this.hooks.onHealthChange(this.hp, BOSS_MAX_HP);
     this.hooks.shake(180, 0.01);
     sfx.play('bossHit');
@@ -113,8 +116,11 @@ export class Boss extends Phaser.Physics.Arcade.Sprite implements BossLike {
     if (this.hp <= 0) {
       this.die();
     } else {
+      // Atordoamento curto e contra-ataque logo em seguida (antes ele ficava parado
+      // e dava para pisar de novo várias vezes sem sair de cima dele).
       this.state = 'stunned';
-      this.timer = 450;
+      this.timer = 220;
+      this.counter = true;
       this.setVelocityX(0);
     }
     return true;
@@ -224,7 +230,17 @@ export class Boss extends Phaser.Physics.Arcade.Sprite implements BossLike {
 
       case 'stunned':
         body.setVelocityX(0);
-        if (this.timer <= 0) this.toWalk();
+        if (this.timer <= 0) {
+          if (this.counter && onGround) {
+            // Contra-ataque: salta para longe do jogador e solta a onda de choque ao pousar.
+            this.counter = false;
+            this.dir = (toPlayer * -1) as 1 | -1;
+            this.state = 'leap';
+            this.timer = 200;
+            body.setVelocity(this.dir * 150, this.enraged ? -440 : -380);
+            this.hooks.shake(150, 0.006);
+          } else this.toWalk();
+        }
         break;
     }
   }

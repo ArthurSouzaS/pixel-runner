@@ -143,7 +143,7 @@ export class HUDScene extends Phaser.Scene {
   update(): void {
     // O botão da investida aparece assim que a habilidade é conquistada.
     if (this.touch && !this.touch.has('charge') && this.level.hasAbility('charge')) {
-      this.touch.add('charge', GAME_WIDTH - 150, GAME_HEIGHT - 26, 18, 'C');
+      this.touch.add('charge');
     }
     this.touch?.update();
     const s = this.level.getHudState();

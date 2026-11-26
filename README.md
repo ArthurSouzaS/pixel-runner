@@ -103,6 +103,8 @@ Todo o visual e o som são gerados por código, sem arquivos de imagem ou áudio
 - Tudo **salvo no `localStorage`** com save versionado e migração automática
 - Partículas, rastros, tremida de câmera e transições (com opção de desligar)
 - **Teclado**, **botões na tela** (celular/tablet) e **gamepad**, com controles remapeáveis
+- **Botões na tela configuráveis**: arraste cada botão para outro lugar e mude o tamanho em **Opções → Acessibilidade → Botões na tela**
+- **Controles de videogame** (Xbox, PlayStation, Switch Pro, 8BitDo e genéricos USB/Bluetooth) no computador e no celular, com vibração
 
 ## Controles
 
@@ -143,6 +145,10 @@ A primeira tecla completa a frase que está sendo digitada; a seguinte passa par
 | Investida | `E` | `Enter` |
 
 Com dois gamepads, cada um comanda um jogador; com apenas um, ele fica com o jogador 2.
+
+### Controle de videogame
+
+Conecte o controle (USB ou Bluetooth) e **aperte qualquer botão**: por segurança, os navegadores só mostram o controle ao jogo depois de um botão ser apertado. Aparece um aviso de "controle conectado", e **Opções** mostra o nome do controle. Funciona nos menus e no jogo, inclusive com controles genéricos (direcional "hat"), vibra ao levar dano e ao acertar chefes (dá para desligar em **Acessibilidade**) e os botões podem ser trocados em **Remapear controles**.
 
 ### Editor de fases
 

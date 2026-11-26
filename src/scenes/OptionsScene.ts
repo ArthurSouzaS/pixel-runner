@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
 import { COLORS, hex } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
+import { gamepads } from '../input/gamepad';
 import { usingTouch } from '../input/touchState';
 import { type VolumeChannel, volumeBar } from '../logic/audioSettings';
 import { saveManager } from '../systems/saveManager';
@@ -24,6 +25,8 @@ export class OptionsScene extends Phaser.Scene {
   private texts: Phaser.GameObjects.Text[] = [];
   private index = 0;
   private controls!: Phaser.GameObjects.Container;
+  private padText!: Phaser.GameObjects.Text;
+  private padFrame = 0;
 
   constructor() {
     super('Options');
@@ -55,7 +58,7 @@ export class OptionsScene extends Phaser.Scene {
       { label: () => t('common.back'), activate: () => this.scene.start('Menu') },
     ];
     this.texts = this.rows.map((row, i) => {
-      const t = pixelText(this, GAME_WIDTH / 2, 60 + i * 24, '', { size: 10 }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      const t = pixelText(this, GAME_WIDTH / 2, 56 + i * 22, '', { size: 10 }).setOrigin(0.5).setInteractive({ useHandCursor: true });
       t.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
         this.index = i;
         if (row.adjust && !row.activate) row.adjust(pointer.x < t.x ? -1 : 1);
@@ -65,6 +68,10 @@ export class OptionsScene extends Phaser.Scene {
       return t;
     });
     pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 14, t('options.hint'), { size: 8, color: COLORS.gray }).setOrigin(0.5);
+    // Status do controle: os navegadores só mostram o controle ao jogo depois que um botão é apertado.
+    this.padText = pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 30, '', { size: 8, color: COLORS.lightGreen }).setOrigin(0.5);
+    this.padFrame = 0;
+    this.updatePadText();
 
     this.controls = this.buildControlsPanel();
     const kb = this.input.keyboard;
@@ -128,7 +135,14 @@ export class OptionsScene extends Phaser.Scene {
     this.time.delayedCall(50, () => this.controls.setVisible(show));
   }
 
+  private updatePadText(): void {
+    const names = gamepads.names;
+    const text = names.length > 0 ? t('options.pad', { name: names.join(', ').slice(0, 44) }) : t('options.padNone');
+    if (this.padText.text !== text) this.padText.setText(text).setColor(hex(names.length > 0 ? COLORS.lightGreen : COLORS.gray));
+  }
+
   update(): void {
     this.tick();
+    if (++this.padFrame % 30 === 0) this.updatePadText();
   }
 }

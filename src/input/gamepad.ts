@@ -50,6 +50,21 @@ class GamepadManager {
     return this.order.length;
   }
 
+  /** Nomes dos controles conectados (sem o sufixo técnico de fabricante/produto). */
+  get names(): string[] {
+    const list = typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : [];
+    return [...list].filter((gp): gp is Gamepad => !!gp && gp.connected).map((gp) => gp.id.replace(/\s*\(.*\)\s*$/, '').trim() || gp.id);
+  }
+
+  /** Vibração em todos os controles conectados que suportam (intensidade 0..1). */
+  rumble(strength: number, ms: number): void {
+    const list = typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const gp of list) {
+      const actuator = (gp as (Gamepad & { vibrationActuator?: { playEffect?: (type: string, params: object) => Promise<unknown> } }) | null)?.vibrationActuator;
+      actuator?.playEffect?.('dual-rumble', { duration: ms, strongMagnitude: strength, weakMagnitude: Math.min(1, strength + 0.2) })?.catch?.(() => {});
+    }
+  }
+
   /** Chamado uma vez por quadro. `gameplay` = a fase está rodando (sem pausa). */
   update(gameplay: boolean, now: number): void {
     const wasPrimed = this.primed;
@@ -60,7 +75,7 @@ class GamepadManager {
       this.order.push(gp.index);
       const state = this.pads.get(gp.index) ?? { now: emptyButtons(), before: emptyButtons(), queued: { jump: false, dash: false, start: false }, repeatAt: 0, raw: [] };
       state.before = state.now;
-      state.now = readPadButtons(gp.buttons, gp.axes, this.mapping);
+      state.now = readPadButtons(gp.buttons, gp.axes, this.mapping, gp.mapping === 'standard');
       if (Object.values(state.now).some(Boolean)) setTouchMode(false);
       if (this.onAnyButton) {
         // Na primeira leitura só memoriza o que já estava apertado.

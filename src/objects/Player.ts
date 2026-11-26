@@ -193,6 +193,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.body.setAllowGravity(true);
   }
 
+  /** Empurrão horizontal: por `lockMs` o controle não anula a velocidade (ex.: ao pisar no chefe). */
+  knockback(vx: number, lockMs: number): void {
+    this.body.setVelocityX(vx);
+    this.wallJumpLock = Math.max(this.wallJumpLock, lockMs);
+  }
+
   /** Fica invulnerável por um tempo (escudo do modo Infinito). */
   protect(ms: number): void {
     this.invulnerableTimer = Math.max(this.invulnerableTimer, ms);
