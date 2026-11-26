@@ -9,6 +9,8 @@ export const level15: LevelData = {
   par: 240,
   gravity: 0.85,
   boss: 'eclipse',
+  // Orbes de energia nas plataformas da arena (um por vez).
+  bossAssist: { spots: [{ x: 96, y: 9 }, { x: 128, y: 9 }, { x: 111, y: 5 }] },
   theme: {
     key: 'citadel',
     skyTop: 0x1a1c2c,

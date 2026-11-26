@@ -26,7 +26,8 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   { id: 'coins-500', name: 'Tesouro', description: 'Colete 500 moedas.', check: (c) => c.stats.coins >= 500 },
   { id: 'enemies-25', name: 'Caçador', description: 'Derrote 25 inimigos.', check: (c) => c.stats.enemies >= 25 },
   { id: 'enemies-150', name: 'Exterminador', description: 'Derrote 150 inimigos.', check: (c) => c.stats.enemies >= 150 },
-  { id: 'combo-4', name: 'Combo quádruplo', description: 'Pise em 4 inimigos sem tocar o chão.', check: (c) => c.stats.maxCombo >= 4 },
+  // O id continua 'combo-4' para não mexer em saves antigos; o requisito caiu para 3 (4 inimigos juntos eram raros).
+  { id: 'combo-4', name: 'Combo triplo', description: 'Pise em 3 inimigos sem tocar o chão.', check: (c) => c.stats.maxCombo >= 3 },
   { id: 'boss-core', name: 'Núcleo desligado', description: 'Derrote o Núcleo Ancestral.', check: (c) => c.stats.bossCore >= 1 },
   { id: 'boss-storm', name: 'Céu limpo', description: 'Derrote a Tempestade Rubra.', check: (c) => c.stats.bossStorm >= 1 },
   { id: 'world-1', name: 'Terras de Pix', description: 'Conclua o Mundo 1.', check: (c) => c.unlockedLevels >= 6 },

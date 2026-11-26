@@ -1,3 +1,4 @@
+import type { BossAssistConfig } from '../logic/bossAssist';
 import type { AbilityId } from '../logic/abilities';
 
 /** Tipos das fases. As fases em si ficam em arquivos de dados (level1.ts ... level5.ts). */
@@ -130,6 +131,8 @@ export interface LevelData {
   winds?: WindZone[];
   /** Tipo de chefe, se a fase tiver um (`B` no mapa). */
   boss?: BossKind;
+  /** Orbes de energia na luta contra o chefe (lançados nele ao serem pegos). */
+  bossAssist?: BossAssistConfig;
   /** Habilidade concedida pelo orbe `A` desta fase. */
   ability?: AbilityId;
   /** Multiplicador da gravidade (1 = normal; < 1 = gravidade baixa). */

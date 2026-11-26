@@ -37,6 +37,7 @@ import {
   NPC_CAPTAIN_FRAMES,
   NPC_ASTRO_FRAMES,
   GEAR_ART,
+  BOSS_ORB_ART,
   SHELL_ART,
   SHARD_ITEM_ART,
 } from './sprites';
@@ -81,6 +82,7 @@ export function createSpriteTextures(scene: Phaser.Scene): void {
   createSheet(scene, 'npc-captain', NPC_CAPTAIN_FRAMES);
   createSheet(scene, 'npc-astro', NPC_ASTRO_FRAMES);
   createSheet(scene, 'item-gear', [GEAR_ART]);
+  createSheet(scene, 'boss-orb', [BOSS_ORB_ART]);
   createSheet(scene, 'item-shell', [SHELL_ART]);
   createSheet(scene, 'item-shard', [SHARD_ITEM_ART]);
 

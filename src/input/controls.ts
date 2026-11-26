@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import type { PlayerInput } from '../objects/Player';
-import { touchState } from './touchState';
+import { resetAllTouch, touchState, touchStates } from './touchState';
 
 export type GameMode = 'single' | 'coop' | 'race';
 
@@ -95,7 +95,7 @@ export class InputHub {
       q.jump = q.dash = false;
     });
     this.pauseQueued = false;
-    touchState.reset();
+    resetAllTouch();
   }
 
   /** Enfileira ações vindas de fora (gamepad). */
@@ -129,13 +129,15 @@ export class InputHub {
       chargeHeld: this.any(b.charge),
     };
     q.jump = q.dash = false;
-    if (index === 0) {
-      input.left ||= touchState.left;
-      input.right ||= touchState.right;
-      input.jumpHeld ||= touchState.jump;
-      input.chargeHeld ||= touchState.charge;
-      input.jumpPressed ||= touchState.consume('jumpQueued');
-      input.dashPressed ||= touchState.consume('dashQueued');
+    // Toque: cada jogador lê os próprios controles na tela.
+    const touch = touchStates[index];
+    if (touch && (index === 0 || this.bindings.length > 1)) {
+      input.left ||= touch.left;
+      input.right ||= touch.right;
+      input.jumpHeld ||= touch.jump;
+      input.chargeHeld ||= touch.charge;
+      input.jumpPressed ||= touch.consume('jumpQueued');
+      input.dashPressed ||= touch.consume('dashQueued');
     }
     for (const source of this.extraSources) {
       const extra = source.read(index);

@@ -41,6 +41,8 @@ export interface AccessSettings {
   pad: PadMap;
   /** Posição e tamanho dos botões de toque. */
   touch: TouchLayout;
+  /** Celular: joystick no lugar dos botões de esquerda/direita. */
+  touchStick: boolean;
   /** Vibração do controle (gamepad) ao levar dano e acertar chefes. */
   rumble: boolean;
 }
@@ -55,6 +57,7 @@ export function defaultAccess(): AccessSettings {
     keys: cloneKeys(DEFAULT_KEYS),
     pad: { jump: [...DEFAULT_PAD.jump], dash: [...DEFAULT_PAD.dash], charge: [...DEFAULT_PAD.charge], pause: [...DEFAULT_PAD.pause] },
     touch: defaultTouchLayout(),
+    touchStick: false,
     rumble: true,
   };
 }
@@ -137,6 +140,7 @@ export function sanitizeAccess(raw: unknown): AccessSettings {
     keys,
     pad,
     touch: sanitizeTouchLayout(d.touch),
+    touchStick: d.touchStick === true,
     rumble: d.rumble !== false,
   };
 }

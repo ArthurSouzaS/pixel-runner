@@ -103,3 +103,15 @@ describe('conquistas', () => {
     expect(save.stats.jumps).toBe(4);
   });
 });
+
+describe('combo de pisões', () => {
+  it('a conquista de combo pede 3 inimigos sem tocar o chão (antes 4)', async () => {
+    const { ACHIEVEMENTS } = await import('../src/logic/achievements');
+    const { emptyStats } = await import('../src/logic/stats');
+    const ach = ACHIEVEMENTS.find((a) => a.id === 'combo-4')!;
+    const ctx = (maxCombo: number) => ({ stats: { ...emptyStats(), maxCombo }, unlockedLevels: 1, abilities: [], ownedSkins: [], ownedTrails: [] }) as unknown as Parameters<typeof ach.check>[0];
+    expect(ach.check(ctx(2))).toBe(false);
+    expect(ach.check(ctx(3))).toBe(true);
+    expect(ach.description).toContain('3');
+  });
+});

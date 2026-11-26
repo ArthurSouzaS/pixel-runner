@@ -4,7 +4,6 @@ import { COLORS, hex } from '../gfx/palette';
 import { GAME_WIDTH } from '../gfx/textures';
 import { t } from '../i18n';
 import {
-  TOUCH_BUTTON_IDS,
   TOUCH_SCALE_STEP,
   TOUCH_TOP_LIMIT,
   type TouchButtonId,
@@ -13,6 +12,7 @@ import {
   moveTouchButton,
   resizeTouchButton,
   touchRadius,
+  visibleTouchIds,
 } from '../logic/touchLayout';
 import { saveManager } from '../systems/saveManager';
 import { drawTouchButton } from '../ui/TouchControls';
@@ -31,6 +31,8 @@ export class TouchLayoutScene extends Phaser.Scene {
   private ring!: Phaser.GameObjects.Arc;
   private sizeText!: Phaser.GameObjects.Text;
   private drag: { id: TouchButtonId; dx: number; dy: number } | null = null;
+  /** Botões do modo atual (com joystick, ele entra no lugar de esquerda/direita). */
+  private ids: TouchButtonId[] = [];
 
   constructor() {
     super('TouchLayout');
@@ -42,6 +44,7 @@ export class TouchLayoutScene extends Phaser.Scene {
     this.selected = 'jump';
     this.drag = null;
     this.gfx = new Map();
+    this.ids = visibleTouchIds(saveManager.get().access.touchStick);
 
     // Barra do HUD (os botões não podem ficar em cima dela).
     this.add.rectangle(0, 0, GAME_WIDTH, TOUCH_TOP_LIMIT, COLORS.ink, 0.7).setOrigin(0);
@@ -69,12 +72,12 @@ export class TouchLayoutScene extends Phaser.Scene {
 
     this.ring = this.add.circle(0, 0, 10).setStrokeStyle(2, COLORS.yellow).setDepth(5);
     this.tweens.add({ targets: this.ring, alpha: 0.4, duration: 400, yoyo: true, repeat: -1 });
-    for (const id of TOUCH_BUTTON_IDS) this.redraw(id);
+    for (const id of this.ids) this.redraw(id);
     this.refresh();
 
     // Arrastar com o dedo ou o mouse.
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
-      const hit = [...TOUCH_BUTTON_IDS].reverse().find((id) => Phaser.Math.Distance.Between(p.x, p.y, this.layout[id].x, this.layout[id].y) <= touchRadius(id, this.layout) * 1.2);
+      const hit = [...this.ids].reverse().find((id) => Phaser.Math.Distance.Between(p.x, p.y, this.layout[id].x, this.layout[id].y) <= touchRadius(id, this.layout) * 1.2);
       if (!hit) return;
       this.selected = hit;
       this.drag = { id: hit, dx: this.layout[hit].x - p.x, dy: this.layout[hit].y - p.y };
@@ -95,7 +98,7 @@ export class TouchLayoutScene extends Phaser.Scene {
     kb?.on('keydown-DOWN', nudge(0, 4));
     kb?.on('keydown-TAB', (e: KeyboardEvent) => {
       e.preventDefault();
-      this.selected = TOUCH_BUTTON_IDS[(TOUCH_BUTTON_IDS.indexOf(this.selected) + 1) % TOUCH_BUTTON_IDS.length];
+      this.selected = this.ids[(this.ids.indexOf(this.selected) + 1) % this.ids.length];
       sfx.play('select');
       this.refresh();
     });
@@ -128,7 +131,7 @@ export class TouchLayoutScene extends Phaser.Scene {
 
   private reset(): void {
     this.layout = defaultTouchLayout();
-    for (const id of TOUCH_BUTTON_IDS) this.redraw(id);
+    for (const id of this.ids) this.redraw(id);
     sfx.play('confirm');
     this.refresh();
   }

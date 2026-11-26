@@ -91,7 +91,8 @@ export class HUDScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.level.events.off('panel', this.showPanel, this));
     this.showLevelCard(info.custom ? t('hud.custom') : info.label, info.name, info.subtitle);
 
-    if (isTouchDevice() || usingTouch()) this.touch = new TouchControls(this);
+    // Dois jogadores no celular: cada um com joystick e botões no seu lado da tela.
+    if (isTouchDevice() || usingTouch()) this.touch = new TouchControls(this, {}, info.mode === 'single' ? 1 : 2);
   }
 
   /**

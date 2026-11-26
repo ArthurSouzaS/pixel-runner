@@ -925,18 +925,33 @@ export const NPC_ASTRO_FRAMES: PixelArt[] = [
 // Itens de missão (12x12)
 // ---------------------------------------------------------------------------
 
+/** Orbe de energia das lutas de chefe (10x10). */
+export const BOSS_ORB_ART: PixelArt = [
+  '...kkkk...',
+  '..kcwwck..',
+  '.kcwwwcBk.',
+  'kcwwcccBBk',
+  'kcwcccBBBk',
+  'kccccBBBbk',
+  'kcccBBBbbk',
+  '.kcBBBbbk.',
+  '..kBbbbk..',
+  '...kkkk...',
+];
+
+/** Engrenagem dourada (antes era cinza, girava e parecia uma serra). Quatro dentes largos. */
 export const GEAR_ART: PixelArt = [
   '....kkkk....',
-  '..k.kggk.k..',
-  '.kgkkggkkgk.',
-  '..kgggggggk.',
-  'kkggkkkkggkk',
-  'kgggk..kgggk',
-  'kgggk..kgggk',
-  'kkggkkkkggkk',
-  '..kgggggggk.',
-  '.kgkkGGkkgk.',
-  '..k.kGGk.k..',
+  '....kwyk....',
+  '..kkkyykkk..',
+  '.kwyyyyyyok.',
+  'kkwyykkyyokk',
+  'kwyyk..kyyok',
+  'kyyyk..kyook',
+  'kkyyykkyyokk',
+  '.kyyyyyyook.',
+  '..kkkyokkk..',
+  '....kook....',
   '....kkkk....',
 ];
 

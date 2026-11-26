@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { t } from '../i18n';
 import { COLORS } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
-import { touchState, usingTouch } from '../input/touchState';
+import { resetAllTouch, usingTouch } from '../input/touchState';
 import { ABILITIES, type AbilityId } from '../logic/abilities';
 import { pixelText } from '../ui/text';
 import { abilityText } from '../i18n/data';
@@ -35,7 +35,7 @@ export class TutorialScene extends Phaser.Scene {
       cont.setAlpha(1);
       this.tweens.add({ targets: cont, alpha: 0.3, duration: 400, yoyo: true, repeat: -1 });
       const close = (): void => {
-        touchState.reset();
+        resetAllTouch();
         this.scene.resume('Level');
         this.scene.stop();
       };

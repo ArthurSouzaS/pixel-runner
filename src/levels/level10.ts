@@ -8,6 +8,8 @@ export const level10: LevelData = {
   subtitle: 'Derrote a Tempestade Rubra',
   par: 200,
   boss: 'storm',
+  // Orbes de energia nas plataformas da arena (um por vez).
+  bossAssist: { spots: [{ x: 93.5, y: 9 }, { x: 113.5, y: 9 }, { x: 133.5, y: 9 }, { x: 104, y: 5 }, { x: 124, y: 5 }] },
   theme: {
     key: 'storm',
     skyTop: 0x1a1c2c,

@@ -3,7 +3,7 @@ import { t } from '../i18n';
 import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
-import { touchState } from '../input/touchState';
+import { resetAllTouch } from '../input/touchState';
 import { saveManager } from '../systems/saveManager';
 import { MenuList } from '../ui/MenuList';
 import { pixelText } from '../ui/text';
@@ -23,7 +23,7 @@ export class PauseScene extends Phaser.Scene {
     pixelText(this, cx, 78, t('pause.title'), { size: 16, color: COLORS.cyan }).setOrigin(0.5);
 
     const resume = (): void => {
-      touchState.reset();
+      resetAllTouch();
       this.scene.resume('Level');
       this.scene.stop();
     };

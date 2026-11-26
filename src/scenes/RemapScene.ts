@@ -39,6 +39,14 @@ export class RemapScene extends Phaser.Scene {
         activate: () => this.wait({ kind: 'pad', action }),
       })),
       {
+        // Celular: joystick no lugar dos botões de esquerda/direita.
+        label: () => t('remap.touchMove', { mode: access().touchStick ? t('remap.stick') : t('remap.buttons') }),
+        activate: () => {
+          saveManager.setAccess({ touchStick: !access().touchStick });
+          sfx.play('select');
+        },
+      },
+      {
         label: () => t('remap.reset'),
         activate: () => {
           saveManager.setAccess({ keys: structuredClone(DEFAULT_KEYS), pad: structuredClone(DEFAULT_PAD) });
@@ -48,7 +56,7 @@ export class RemapScene extends Phaser.Scene {
       { label: () => t('common.back'), activate: () => this.leave() },
     ];
     this.texts = this.items.map((item, i) => {
-      const txt = pixelText(this, 40, 38 + i * 17, '', { size: 8 }).setInteractive({ useHandCursor: true });
+      const txt = pixelText(this, 40, 36 + i * 16, '', { size: 8 }).setInteractive({ useHandCursor: true });
       txt.on('pointerdown', () => {
         this.index = i;
         item.activate();

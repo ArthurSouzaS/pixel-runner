@@ -1,29 +1,52 @@
 /**
- * Estado dos botões virtuais da tela de toque.
+ * Estado dos botões virtuais da tela de toque, um por jogador.
  * O HUD escreve aqui e a cena da fase lê junto com o teclado.
  */
-export const touchState = {
-  left: false,
-  right: false,
-  jump: false,
-  dash: false,
-  charge: false,
+export interface TouchState {
+  left: boolean;
+  right: boolean;
+  jump: boolean;
+  dash: boolean;
+  charge: boolean;
   /** Pressionamentos ainda não consumidos pela fase (para "acabou de apertar"). */
-  jumpQueued: false,
-  dashQueued: false,
-  pauseQueued: false,
+  jumpQueued: boolean;
+  dashQueued: boolean;
+  pauseQueued: boolean;
+  reset(): void;
+  consume(flag: 'jumpQueued' | 'dashQueued' | 'pauseQueued'): boolean;
+}
 
-  reset(): void {
-    this.left = this.right = this.jump = this.dash = this.charge = false;
-    this.jumpQueued = this.dashQueued = this.pauseQueued = false;
-  },
+function createTouchState(): TouchState {
+  return {
+    left: false,
+    right: false,
+    jump: false,
+    dash: false,
+    charge: false,
+    jumpQueued: false,
+    dashQueued: false,
+    pauseQueued: false,
+    reset(): void {
+      this.left = this.right = this.jump = this.dash = this.charge = false;
+      this.jumpQueued = this.dashQueued = this.pauseQueued = false;
+    },
+    consume(flag): boolean {
+      const value = this[flag];
+      this[flag] = false;
+      return value;
+    },
+  };
+}
 
-  consume(flag: 'jumpQueued' | 'dashQueued' | 'pauseQueued'): boolean {
-    const value = this[flag];
-    this[flag] = false;
-    return value;
-  },
-};
+/** Jogador 1 e jogador 2 (no multiplayer pelo celular cada um tem seus controles na tela). */
+export const touchStates: readonly TouchState[] = [createTouchState(), createTouchState()];
+
+/** Jogador 1 (e o botão de pausa). */
+export const touchState = touchStates[0];
+
+export function resetAllTouch(): void {
+  touchStates.forEach((s) => s.reset());
+}
 
 /** Detecta se o dispositivo é de toque (celular/tablet). */
 export function isTouchDevice(): boolean {

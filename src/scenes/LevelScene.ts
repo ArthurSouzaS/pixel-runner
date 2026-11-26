@@ -40,6 +40,7 @@ import { BASE_GRAVITY } from '../gfx/textures';
 import { saveManager } from '../systems/saveManager';
 import { cutsceneAfterLevel } from '../story/story';
 import { itemsToSpawn, type MissionItem } from '../logic/missions';
+import { type BossAssistSpot, BossAssistSchedule } from '../logic/bossAssist';
 import { generateDaily, generateRoom } from '../logic/procgen';
 import { type PowerUpId, powerUpEffects } from '../logic/powerups';
 import { todayString } from '../logic/daily';
@@ -164,6 +165,13 @@ export class LevelScene extends Phaser.Scene {
   /** Relógio da fase em ms (para lasers), que para na pausa. */
   private clockMs = 0;
   private bossDefeated = false;
+  /** Orbes de energia da luta contra o chefe (se a fase tiver). */
+  private bossAssist: BossAssistSchedule | null = null;
+  private assistOrb: Phaser.GameObjects.Container | null = null;
+  private assistShots: { sprite: Phaser.GameObjects.Image; age: number }[] = [];
+  private assistHintShown = false;
+  /** Seta na borda da tela apontando para o orbe quando ele está fora da vista. */
+  private assistPointer: Phaser.GameObjects.Container | null = null;
   private gateClosed = false;
 
   private elapsed = 0;
@@ -238,6 +246,11 @@ export class LevelScene extends Phaser.Scene {
     this.movers = [];
     this.boss = null;
     this.bossDefeated = false;
+    this.bossAssist = null;
+    this.assistOrb = null;
+    this.assistShots = [];
+    this.assistHintShown = false;
+    this.assistPointer = null;
     this.gateClosed = false;
     this.elapsed = 0;
     this.moverClock = 0;
@@ -457,7 +470,8 @@ export class LevelScene extends Phaser.Scene {
       if (item) {
         const sprite = this.physics.add.staticSprite(c.x, c.y, `item-${item.item}`).setDepth(5);
         this.tweens.add({ targets: sprite, y: c.y - 3, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-        this.tweens.add({ targets: sprite, angle: item.item === 'gear' ? 360 : 0, scale: 1.2, duration: 900, yoyo: item.item !== 'gear', repeat: -1 });
+        // Pulsa (sem girar: a engrenagem girando parecia uma serra).
+        this.tweens.add({ targets: sprite, scale: 1.2, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         sprite.setData('mission', item);
         this.missionSprites.push(sprite);
         return;
@@ -909,6 +923,7 @@ export class LevelScene extends Phaser.Scene {
       if (age > 4000) bullet.destroy();
     }
 
+    this.updateBossAssist(dt);
     if (this.boss?.active) {
       this.boss.think(this.nearestPlayer(this.boss.x), dt);
       if (!this.gateClosed && !this.bossDefeated && this.parsed.gate.length > 0) {
@@ -1193,8 +1208,128 @@ export class LevelScene extends Phaser.Scene {
     this.cameras.main.shake(400, 0.01);
     this.bossHud.visible = true;
     this.boss.wake();
+    // Orbes de energia: começam a aparecer nas plataformas da arena.
+    if (this.level.bossAssist) {
+      this.bossAssist ??= new BossAssistSchedule(this.level.bossAssist);
+      this.bossAssist.start(this.time.now);
+    }
     // Cada jogador vivo ganha um escudo que aguenta um golpe, só durante a luta.
     for (const p of this.players) if (!p.dead) this.giveBossShield(p);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Orbes de energia (lutas de chefe)
+  // ---------------------------------------------------------------------------
+
+  private updateBossAssist(dt: number): void {
+    const boss = this.boss;
+    if (!this.bossAssist?.isRunning || !boss?.active || this.bossDefeated) return;
+    const spot = this.bossAssist.update(this.time.now);
+    if (spot) this.spawnAssistOrb(spot);
+
+    // Pegar o orbe: basta encostar.
+    const orb = this.assistOrb;
+    this.updateAssistPointer();
+    if (orb) {
+      const taker = this.alivePlayers().find((p) => Phaser.Math.Distance.Between(p.x, p.y, orb.x, orb.y) < 16);
+      if (taker) this.collectAssistOrb(taker);
+    }
+
+    // Orbes lançados: perseguem o chefe e acertam quando ele pode levar dano.
+    const target = boss.body.center;
+    this.assistShots = this.assistShots.filter((shot) => {
+      shot.age += dt;
+      const s = shot.sprite;
+      const dist = Phaser.Math.Distance.Between(s.x, s.y, target.x, target.y);
+      if (dist < 14 && (boss.isVulnerable || shot.age > 4000)) {
+        this.fx.sparkle.explode(24, s.x, s.y);
+        this.cameras.main.shake(140, 0.008);
+        if (boss.isVulnerable) this.hitBoss(boss);
+        s.destroy();
+        return false;
+      }
+      if (dist < 30 && !boss.isVulnerable) {
+        // Enquanto o chefe está invencível (piscando), o orbe gira em volta dele esperando.
+        const around = Phaser.Math.Angle.Between(target.x, target.y, s.x, s.y) + (dt / 1000) * 6;
+        s.setPosition(target.x + Math.cos(around) * 24, target.y + Math.sin(around) * 24);
+      } else {
+        const toward = Phaser.Math.Angle.Between(s.x, s.y, target.x, target.y);
+        const step = Math.min(dist, (380 * dt) / 1000);
+        s.setPosition(s.x + Math.cos(toward) * step, s.y + Math.sin(toward) * step);
+      }
+      s.rotation += dt / 80;
+      if (Math.random() < 0.5) this.fx.sparkle.explode(1, s.x, s.y);
+      return true;
+    });
+  }
+
+  private spawnAssistOrb(spot: BossAssistSpot): void {
+    const x = spot.x * TILE_SIZE + 8;
+    const y = spot.y * TILE_SIZE + 6;
+    const orb = this.add.container(x, y).setDepth(8);
+    const glow = this.add.circle(0, 0, 11, 0x73eff7, 0.25);
+    orb.add([glow, this.add.image(0, 0, 'boss-orb').setScale(1.4)]);
+    orb.setScale(0);
+    this.tweens.add({ targets: orb, scale: 1, duration: 300, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: orb, y: y - 4, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.tweens.add({ targets: glow, scale: 1.5, alpha: 0, duration: 900, repeat: -1 });
+    this.fx.sparkle.explode(12, x, y);
+    sfx.play('checkpoint');
+    this.assistOrb = orb;
+    if (!this.assistHintShown) {
+      // O aviso vai no centro da tela: o orbe pode nascer fora da vista (arena larga).
+      this.assistHintShown = true;
+      const view = this.cameras.main.worldView;
+      this.floatingText(view.centerX, view.y + view.height * 0.3, t('level.orbHint'), COLORS.cyan, 2500);
+    }
+  }
+
+  private updateAssistPointer(): void {
+    const orb = this.assistOrb;
+    const view = this.cameras.main.worldView;
+    const offscreen = !!orb && !Phaser.Geom.Rectangle.Contains(view, orb.x, orb.y);
+    if (!offscreen) {
+      this.assistPointer?.setVisible(false);
+      return;
+    }
+    if (!this.assistPointer) {
+      const arrow = this.add.triangle(0, 0, 0, -5, 8, 0, 0, 5, 0x73eff7).setOrigin(0, 0.5);
+      this.assistPointer = this.add.container(0, 0, [this.add.image(-8, 0, 'boss-orb'), arrow]).setDepth(40);
+      this.tweens.add({ targets: this.assistPointer, alpha: 0.4, duration: 400, yoyo: true, repeat: -1 });
+    }
+    // Fica na borda da vista, na direção do orbe.
+    const margin = 18;
+    const px = Phaser.Math.Clamp(orb!.x, view.x + margin, view.right - margin);
+    const py = Phaser.Math.Clamp(orb!.y, view.y + margin + 20, view.bottom - margin);
+    const angle = Phaser.Math.Angle.Between(px, py, orb!.x, orb!.y);
+    this.assistPointer.setVisible(true).setPosition(px, py);
+    (this.assistPointer.list[1] as Phaser.GameObjects.Triangle).setRotation(angle).setPosition(Math.cos(angle) * 4, Math.sin(angle) * 4);
+  }
+
+  private collectAssistOrb(player: Player): void {
+    const orb = this.assistOrb;
+    if (!orb) return;
+    this.assistOrb = null;
+    this.bossAssist?.collected(this.time.now);
+    this.tweens.killTweensOf([orb, ...orb.list]);
+    orb.destroy();
+    const shot = this.add.image(player.x, player.y - 4, 'boss-orb').setScale(1.4).setDepth(12);
+    this.assistShots.push({ sprite: shot, age: 0 });
+    this.fx.sparkle.explode(16, player.x, player.y);
+    sfx.play('dash');
+    this.rumble(0.3, 100);
+  }
+
+  private clearBossAssist(): void {
+    this.bossAssist?.stop();
+    if (this.assistOrb) {
+      this.tweens.killTweensOf([this.assistOrb, ...this.assistOrb.list]);
+      this.assistOrb.destroy();
+      this.assistOrb = null;
+    }
+    this.assistShots.forEach((s) => s.sprite.destroy());
+    this.assistShots = [];
+    this.assistPointer?.setVisible(false);
   }
 
   /** Vibração do controle (se ligada nas opções de acessibilidade). */
@@ -1246,6 +1381,7 @@ export class LevelScene extends Phaser.Scene {
   private onBossDefeated(x: number, y: number): void {
     this.bossDefeated = true;
     this.clearBossShields();
+    this.clearBossAssist();
     this.bossHud.visible = false;
     sfx.playMusic(this.level.theme.key);
     saveManager.stat(this.level.boss === 'eclipse' ? 'bossEclipse' : this.level.boss === 'storm' ? 'bossStorm' : 'bossCore');
@@ -1323,6 +1459,7 @@ export class LevelScene extends Phaser.Scene {
       if (this.boss?.active && this.boss.isActive && !this.bossDefeated) {
         this.boss.reset();
         this.clearBossShields();
+        this.clearBossAssist();
         this.bossHud.visible = false;
         this.setGate(false);
         sfx.playMusic(this.level.theme.key);

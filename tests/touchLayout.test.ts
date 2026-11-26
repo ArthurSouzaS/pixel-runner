@@ -91,3 +91,58 @@ describe('controles genéricos (fora do mapeamento padrão)', () => {
     expect(readPadButtons(buttons, axes, undefined, true).right).toBe(false);
   });
 });
+
+describe('joystick virtual', async () => {
+  const { stickInput, STICK_DEADZONE, visibleTouchIds } = await import('../src/logic/touchLayout');
+
+  it('zona morta: deslocamentos pequenos não andam', () => {
+    expect(stickInput(5, 0, 32)).toMatchObject({ left: false, right: false });
+    expect(stickInput(32 * STICK_DEADZONE + 1, 0, 32).right).toBe(true);
+    expect(stickInput(-20, 3, 32).left).toBe(true);
+  });
+
+  it('o pino não passa da borda do joystick', () => {
+    const r = stickInput(300, 400, 32);
+    expect(Math.hypot(r.knobX, r.knobY)).toBeCloseTo(32);
+    expect(r.right).toBe(true);
+  });
+
+  it('o modo joystick troca esquerda/direita pelo joystick', () => {
+    expect(visibleTouchIds(true)).toContain('stick');
+    expect(visibleTouchIds(true)).not.toContain('left');
+    expect(visibleTouchIds(false)).toEqual(expect.arrayContaining(['left', 'right']));
+    expect(visibleTouchIds(false)).not.toContain('stick');
+  });
+
+  it('saves antigos ficam com botões (sem joystick) e ganham a posição padrão do joystick', () => {
+    const a = sanitizeAccess({ touch: { jump: { x: 300, y: 120, scale: 1 } } });
+    expect(a.touchStick).toBe(false);
+    expect(a.touch.stick).toEqual(defaultTouchLayout().stick);
+    expect(sanitizeAccess({ touchStick: true }).touchStick).toBe(true);
+  });
+});
+
+describe('controles de toque para 2 jogadores', async () => {
+  const { twoPlayerTouchLayout } = await import('../src/logic/touchLayout');
+  const [p1, p2] = twoPlayerTouchLayout();
+  const circles = (c: typeof p1) => [c.stick, c.jump, c.dash, c.charge];
+
+  it('cada jogador fica de um lado da tela, espelhados', () => {
+    for (const c of circles(p1)) expect(c.x).toBeLessThan(240);
+    for (const c of circles(p2)) expect(c.x).toBeGreaterThan(240);
+    expect(p2.stick.x).toBe(480 - p1.stick.x);
+    expect(p2.jump.y).toBe(p1.jump.y);
+  });
+
+  it('tudo cabe na tela, abaixo do HUD, sem botões sobrepostos', () => {
+    const all = [...circles(p1), ...circles(p2)];
+    for (const c of all) {
+      expect(c.x - c.r).toBeGreaterThanOrEqual(0);
+      expect(c.x + c.r).toBeLessThanOrEqual(480);
+      expect(c.y + c.r).toBeLessThanOrEqual(270);
+      expect(c.y - c.r).toBeGreaterThan(TOUCH_TOP_LIMIT);
+    }
+    for (let i = 0; i < all.length; i++)
+      for (let j = i + 1; j < all.length; j++) expect(Math.hypot(all[i].x - all[j].x, all[i].y - all[j].y)).toBeGreaterThan(all[i].r + all[j].r);
+  });
+});
