@@ -110,7 +110,8 @@ export class HubScene extends Phaser.Scene {
       const x = npcX[id] * TILE_SIZE + 8;
       const visible = id === 'elder' || id === 'lumi' || (id === 'captain' && save.unlockedLevels > 5) || (id === 'astro' && save.unlockedLevels > 10);
       if (!visible) continue;
-      this.add.sprite(x, 14 * TILE_SIZE, NPCS[id].texture, 0).setDepth(3).play(`npc-${id}-idle`);
+      // Ancorado pelos pés no chão da vila (topo da linha 15); com o centro na linha 14 eles flutuavam.
+      this.add.sprite(x, 15 * TILE_SIZE, NPCS[id].texture, 0).setOrigin(0.5, 1).setDepth(3).play(`npc-${id}-idle`);
       this.addItem('npc', x, 14 * TILE_SIZE, t(NPCS[id].nameKey), { npc: id });
       // Marcador: "!" = missão nova, "?" = missão concluída para entregar.
       const mark = pixelText(this, x, 14 * TILE_SIZE - 38, '', { size: 10, color: COLORS.yellow }).setOrigin(0.5).setDepth(5);
