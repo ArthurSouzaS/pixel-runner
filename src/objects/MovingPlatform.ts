@@ -41,9 +41,13 @@ export class MovingPlatform extends Phaser.Physics.Arcade.Image {
     return { x: this.startX + this.distX * k, y: this.startY + this.distY * k };
   }
 
-  step(seconds: number, delta: number): void {
-    const dt = Math.max(delta / 1000, 0.001);
-    const target = this.positionAt(seconds + dt);
-    this.body.setVelocity((target.x - this.x) / dt, (target.y - this.y) / dt);
+  /**
+   * Chamado a cada passo fixo da física: velocidade para chegar exatamente ao ponto
+   * da trajetória no fim do próximo passo (h em segundos). Usar o tempo do quadro
+   * desenhado fazia a plataforma passar do ponto e "teleportar".
+   */
+  physicsStep(seconds: number, h: number): void {
+    const target = this.positionAt(seconds + h);
+    this.body.setVelocity((target.x - this.body.center.x) / h, (target.y - this.body.center.y) / h);
   }
 }

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { t } from '../i18n';
 import { COLORS } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
-import { isTouchDevice, touchState } from '../input/touchState';
+import { touchState, usingTouch } from '../input/touchState';
 import { ABILITIES, type AbilityId } from '../logic/abilities';
 import { pixelText } from '../ui/text';
 import { abilityText } from '../i18n/data';
@@ -23,7 +23,7 @@ export class TutorialScene extends Phaser.Scene {
     panel.add(this.add.image(-118, -40, 'orb').setTint(info.color).setScale(1.5));
     panel.add(pixelText(this, 10, -40, abilityText(info.id, 'name', info.name).toUpperCase(), { size: 14, color: info.color }).setOrigin(0.5));
     panel.add(pixelText(this, 0, -6, abilityText(info.id, 'description', info.description), { size: 8, align: 'center', wrap: 330, scalable: true }).setOrigin(0.5).setLineSpacing(4));
-    const how = isTouchDevice() ? abilityText(info.id, 'touch', info.touch) : abilityText(info.id, 'keyboard', info.keyboard);
+    const how = usingTouch() ? abilityText(info.id, 'touch', info.touch) : abilityText(info.id, 'keyboard', info.keyboard);
     panel.add(pixelText(this, 0, 36, how, { size: 8, color: COLORS.cyan, align: 'center', wrap: 330, scalable: true }).setOrigin(0.5).setLineSpacing(4));
     const cont = pixelText(this, 0, 70, t('tutorial.continue'), { size: 8, color: COLORS.gray }).setOrigin(0.5).setAlpha(0);
     panel.add(cont);

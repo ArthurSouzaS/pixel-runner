@@ -30,3 +30,40 @@ export function isTouchDevice(): boolean {
   if (typeof window === 'undefined') return false;
   return 'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.matchMedia?.('(pointer: coarse)').matches;
 }
+
+/**
+ * Modo de toque: liga quando o jogador toca de verdade na tela e desliga ao usar
+ * teclado ou gamepad. Os botões virtuais só aparecem nesse modo — antes eles
+ * apareciam em qualquer PC com tela sensível ao toque, mesmo jogando no teclado.
+ */
+let touchMode = false;
+const touchModeListeners = new Set<(active: boolean) => void>();
+
+export function usingTouch(): boolean {
+  return touchMode;
+}
+
+export function setTouchMode(active: boolean): void {
+  if (touchMode === active) return;
+  touchMode = active;
+  for (const listener of touchModeListeners) listener(active);
+}
+
+export function onTouchModeChange(listener: (active: boolean) => void): () => void {
+  touchModeListeners.add(listener);
+  return () => touchModeListeners.delete(listener);
+}
+
+/** Liga a detecção (uma vez, no início do jogo). */
+export function installTouchModeDetection(): void {
+  if (typeof window === 'undefined') return;
+  const opts = { capture: true, passive: true };
+  window.addEventListener('touchstart', () => setTouchMode(true), opts);
+  window.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch') setTouchMode(true);
+  }, opts);
+  // Só teclas de verdade: o gamepad simula teclas nos menus (eventos não confiáveis).
+  window.addEventListener('keydown', (e) => {
+    if (e.isTrusted) setTouchMode(false);
+  }, opts);
+}

@@ -29,7 +29,7 @@ import { ToastScene } from './scenes/ToastScene';
 import { TutorialScene } from './scenes/TutorialScene';
 import { TwoPlayerScene } from './scenes/TwoPlayerScene';
 import { gamepads } from './input/gamepad';
-import { touchState } from './input/touchState';
+import { installTouchModeDetection, touchState } from './input/touchState';
 import { saveManager } from './systems/saveManager';
 import { installAccessibility } from './systems/accessibility';
 import { textSettings } from './ui/text';
@@ -99,6 +99,7 @@ async function start(): Promise<void> {
   });
   const game = new Phaser.Game(config);
   installAccessibility(game);
+  installTouchModeDetection();
   // Gamepads: lidos a cada quadro; fora da fase (ou com ela pausada) navegam pelos menus.
   game.events.on(Phaser.Core.Events.PRE_STEP, (time: number) => {
     gamepads.update(game.scene.isActive('Level') || game.scene.isActive('Hub'), time);

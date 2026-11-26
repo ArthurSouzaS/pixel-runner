@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
 import { COLORS, hex } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
-import { isTouchDevice } from '../input/touchState';
+import { usingTouch } from '../input/touchState';
 import { type VolumeChannel, volumeBar } from '../logic/audioSettings';
 import { saveManager } from '../systems/saveManager';
 import { pixelText } from '../ui/text';
@@ -115,7 +115,7 @@ export class OptionsScene extends Phaser.Scene {
     const c = this.add.container(0, 0).setDepth(20).setVisible(false);
     c.add(this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.ink, 0.94).setOrigin(0).setInteractive());
     c.add(pixelText(this, cx, 18, t('controls.title'), { size: 14, color: COLORS.yellow }).setOrigin(0.5));
-    const solo = isTouchDevice() ? t('controls.touch') : t('controls.keyboard');
+    const solo = usingTouch() ? t('controls.touch') : t('controls.keyboard');
     c.add(pixelText(this, 24, 40, solo, { size: 8 }).setLineSpacing(6));
     c.add(pixelText(this, 24, 182, t('controls.two'), { size: 8, color: COLORS.cyan }).setLineSpacing(4));
     c.add(pixelText(this, 24, 226, t('controls.pad'), { size: 8, color: COLORS.lightGreen }).setLineSpacing(4));

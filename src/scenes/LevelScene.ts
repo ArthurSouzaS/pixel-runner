@@ -7,7 +7,7 @@ import { createTrailEmitter } from './ShopScene';
 import { createBackgroundTextures, createMoverTexture, createTileset, GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
 import { InputHub, type GameMode } from '../input/controls';
 import { GamepadSource, gamepads } from '../input/gamepad';
-import { isTouchDevice } from '../input/touchState';
+import { usingTouch } from '../input/touchState';
 import { LEVELS, TOTAL_LEVELS, worldOfLevel, type LevelData } from '../levels';
 import { ABILITIES, type AbilityId } from '../logic/abilities';
 import { SOLID_TILES, TILE_SIZE, TileIndex, parseLevel, tileCenter, type ParsedLevel } from '../logic/levelParser';
@@ -22,6 +22,9 @@ import {
   formatTimePrecise,
   levelClearBonus,
   loseLife,
+  createCoopRun,
+  livesOf,
+  reviveOutPlayers,
   type RunState,
 } from '../logic/score';
 import { Boss, BOSS_MAX_HP, type BossHooks, type BossLike } from '../objects/Boss';
@@ -83,6 +86,8 @@ export interface HudState {
   levelNumber: number;
   levelName: string;
   lives: number;
+  /** Cooperativo: vidas do jogador 2 (null nos outros modos). */
+  lives2: number | null;
   score: number;
   coins: number;
   coinsTotal: number;
@@ -212,6 +217,11 @@ export class LevelScene extends Phaser.Scene {
     this.enemyScale = fx.enemyScale;
     this.mode = data.mode ?? 'single';
     this.run = data.run ? { ...data.run, levelIndex: this.levelIndex } : createRun(this.levelIndex);
+    if (this.mode === 'coop') {
+      // Cooperativo: vidas separadas. Quem terminou a fase anterior sem vidas volta com uma.
+      if (this.run.lives2 === undefined) this.run = data.run ? { ...this.run, lives2: this.run.lives } : createCoopRun(this.levelIndex);
+      this.run = reviveOutPlayers(this.run).run;
+    }
     this.runAtStart = { ...this.run };
     this.players = [];
     this.respawnPoints = [];
@@ -293,7 +303,11 @@ export class LevelScene extends Phaser.Scene {
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.autoPause, this);
     // Os eventos da cena sobrevivem a reinícios: tudo que é registrado aqui é removido no shutdown.
     this.events.on(Phaser.Scenes.Events.RESUME, this.onResume, this);
+    // Guarda a referência: no shutdown o plugin de física já pode ter desmontado o mundo.
+    const world = this.physics.world;
+    world.on(Phaser.Physics.Arcade.Events.WORLD_STEP, this.onWorldStep, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      world.off(Phaser.Physics.Arcade.Events.WORLD_STEP, this.onWorldStep, this);
       this.anims.globalTimeScale = 1;
       this.game.events.off(Phaser.Core.Events.BLUR, this.autoPause, this);
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.autoPause, this);
@@ -580,7 +594,7 @@ export class LevelScene extends Phaser.Scene {
 
   private updateSpace(dt: number): void {
     this.clockMs += dt;
-    for (const a of this.asteroids) a.step(this.moverClock, dt);
+    for (const a of this.asteroids) a.spinStep(dt);
     for (const l of this.lasers) l.update(this.clockMs);
     this.beams = this.beams.filter((b) => {
       if (this.clockMs >= b.until) {
@@ -722,7 +736,7 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private createHints(): void {
-    const touch = isTouchDevice();
+    const touch = usingTouch();
     (this.level.hints ?? []).forEach((hint, index) => {
       const label = touch && hint.touchText ? hintTouchText(this.level, index, hint.touchText) : hintText(this.level, index, hint.text);
       const text = pixelText(this, hint.x * TILE_SIZE, hint.y * TILE_SIZE, label, {
@@ -791,6 +805,22 @@ export class LevelScene extends Phaser.Scene {
     return list.reduce((best, p) => (Math.abs(p.x - x) < Math.abs(best.x - x) ? p : best), list[0]);
   }
 
+  /**
+   * A cada passo fixo da física (h em segundos): move o que segue trajetória
+   * (plataformas, asteroides, morcegos e peixes). Os passos têm sempre a mesma
+   * duração, então a velocidade calculada leva o corpo exatamente ao ponto certo,
+   * em qualquer taxa de quadros (60, 90, 120, 144 Hz) e mesmo após travadas.
+   */
+  private onWorldStep(h: number): void {
+    if (h <= 0) return;
+    this.moverClock += h;
+    for (const mover of this.movers) mover.physicsStep(this.moverClock, h);
+    for (const a of this.asteroids) a.physicsStep(this.moverClock, h);
+    for (const enemy of this.enemies) {
+      if (enemy.active && !enemy.dead && Math.abs(enemy.x - this.player.x) < GAME_WIDTH) enemy.physicsStep(h);
+    }
+  }
+
   update(_time: number, delta: number): void {
     // Limita o delta para evitar "teletransportes" após travadas (e aplica a velocidade do jogo).
     const dt = Math.min(delta, 50) * this.speed;
@@ -807,9 +837,7 @@ export class LevelScene extends Phaser.Scene {
       return;
     }
 
-    this.moverClock += dt / 1000;
     this.updateSpace(dt);
-    for (const mover of this.movers) mover.step(this.moverClock, dt);
     const worldBottom = this.parsed.height * TILE_SIZE;
     for (const f of this.fallers) f.step(dt, worldBottom);
 
@@ -931,7 +959,7 @@ export class LevelScene extends Phaser.Scene {
     this.raceCoins[player.index]++;
     saveManager.stat('coins');
     saveManager.missionEvent({ type: 'coin' });
-    const result = collectCoin(this.run);
+    const result = collectCoin(this.run, this.mode === 'coop' ? player.index : 0);
     this.run = result.run;
     sfx.play('coin');
     if (result.extraLife && this.mode !== 'race') {
@@ -951,6 +979,18 @@ export class LevelScene extends Phaser.Scene {
     } else {
       if (flag.getData('active')) return;
       this.respawnPoints = this.respawnPoints.map(() => ({ ...point }));
+      // Cooperativo: quem estava sem vidas volta no checkpoint com uma vida.
+      if (this.mode === 'coop') {
+        const { run, revived } = reviveOutPlayers(this.run);
+        this.run = run;
+        for (const i of revived) {
+          const out = this.players[i];
+          if (out?.dead) {
+            this.respawn(out, { x: point.x, y: point.y - 8 }, false);
+            this.floatingText(point.x, point.y - 34, t('level.playerBack', { p: i + 1 }), COLORS.lightGreen);
+          }
+        }
+      }
       this.run = addPoints(this.run, POINTS.checkpoint);
       this.floatingText(flag.x, flag.y - 20, t('level.checkpoint'), COLORS.lightGreen);
     }
@@ -1158,10 +1198,18 @@ export class LevelScene extends Phaser.Scene {
         this.respawn(player, this.respawnPoints[player.index]);
         return;
       }
-      const result = loseLife(this.run);
+      const result = loseLife(this.run, this.mode === 'coop' ? player.index : 0);
       this.run = result.run;
       if (result.gameOver) {
         this.gameOver();
+        return;
+      }
+      if (result.out) {
+        // Cooperativo: sem vidas, fica fora até o parceiro chegar ao próximo checkpoint.
+        player.setVisible(false).setVelocity(0, 0);
+        // Aviso no centro da tela (perto do parceiro ele podia sair cortado na borda).
+        const view = this.cameras.main.worldView;
+        this.floatingText(view.centerX, view.y + view.height * 0.3, t('level.playerOut', { p: player.index + 1 }), COLORS.red);
         return;
       }
       // Cooperativo: renasce ao lado do parceiro, se ele estiver vivo.
@@ -1452,7 +1500,8 @@ export class LevelScene extends Phaser.Scene {
       mode: this.mode,
       levelNumber: this.level.id,
       levelName: levelName(this.level),
-      lives: this.run.lives,
+      lives: livesOf(this.run, 0),
+      lives2: this.mode === 'coop' ? livesOf(this.run, 1) : null,
       score: this.run.score,
       coins: this.coinsCollected,
       coinsTotal: this.parsed.coins.length,

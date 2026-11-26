@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
-import { isTouchDevice, touchState } from '../input/touchState';
+import { isTouchDevice, touchState, usingTouch } from '../input/touchState';
 import { formatScore, formatTime, formatTimePrecise } from '../logic/score';
 import { pixelText } from '../ui/text';
 import { TouchControls } from '../ui/TouchControls';
@@ -41,10 +41,12 @@ export class HUDScene extends Phaser.Scene {
     const info = this.level.getLevelInfo();
     const race = info.mode === 'race';
     this.add.image(10, 10, race ? 'star' : 'heart').setScale(1.25);
-    this.livesText = pixelText(this, 18, 6, race ? t('hud.race') : 'x3', { size: 8, color: race ? COLORS.yellow : COLORS.white });
+    this.livesText = pixelText(this, 18, 6, race ? t('hud.race') : '', { size: 8, color: race ? COLORS.yellow : COLORS.white });
 
-    this.add.image(race ? 92 : 58, 10, 'coin', 0);
-    this.coinsText = pixelText(this, race ? 100 : 66, 6, '0/0', { size: 8, color: COLORS.yellow });
+    // No cooperativo as vidas de cada jogador aparecem lado a lado (P1x5 P2x5).
+    const wide = race || info.mode === 'coop';
+    this.add.image(wide ? 100 : 58, 10, 'coin', 0);
+    this.coinsText = pixelText(this, wide ? 108 : 66, 6, '0/0', { size: 8, color: COLORS.yellow });
     pixelText(this, GAME_WIDTH / 2, 6, info.label, { size: 8, color: COLORS.cyan }).setOrigin(0.5, 0);
     if (info.powerup) {
       const pu = POWERUPS.find((p) => p.id === info.powerup)!;
@@ -72,7 +74,7 @@ export class HUDScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.level.events.off('panel', this.showPanel, this));
     this.showLevelCard(info.custom ? t('hud.custom') : info.label, info.name, info.subtitle);
 
-    if (isTouchDevice()) this.touch = new TouchControls(this);
+    if (isTouchDevice() || usingTouch()) this.touch = new TouchControls(this);
   }
 
   private createBossBar(): void {
@@ -129,11 +131,13 @@ export class HUDScene extends Phaser.Scene {
     }
     this.touch?.update();
     const s = this.level.getHudState();
-    if (s.mode !== 'race' && s.lives !== this.last.lives) {
+    const livesKey = s.lives2 === null ? s.lives : s.lives * 100 + s.lives2;
+    if (s.mode !== 'race' && livesKey !== this.last.lives) {
       if (this.last.lives !== -1) {
-        this.tweens.add({ targets: this.livesText, scale: 1.4, duration: 120, yoyo: true });
+        // No cooperativo o texto é mais largo: pulsa menos para não cobrir as moedas.
+        this.tweens.add({ targets: this.livesText, scale: s.lives2 === null ? 1.4 : 1.1, duration: 120, yoyo: true });
       }
-      this.livesText.setText(`x${s.lives}`);
+      this.livesText.setText(s.lives2 === null ? `x${s.lives}` : `P1x${s.lives} P2x${s.lives2}`);
     }
     if (s.mode === 'race') {
       this.coinsText.setText(`P1 ${s.raceCoins[0]}  P2 ${s.raceCoins[1]}`);
@@ -151,7 +155,7 @@ export class HUDScene extends Phaser.Scene {
     }
     const t = Math.floor(s.time);
     if (t !== this.last.time && !s.speedrun) this.timeText.setText(formatTime(t));
-    this.last = { lives: s.lives, score: s.score, coins: s.coins, time: t };
+    this.last = { lives: livesKey, score: s.score, coins: s.coins, time: t };
 
     this.bossBar.setVisible(s.bossVisible);
     if (s.bossVisible) {

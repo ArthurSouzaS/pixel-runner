@@ -12,7 +12,11 @@ import {
   formatTime,
   levelClearBonus,
   loseLife,
+  createCoopRun,
+  livesOf,
+  reviveOutPlayers,
   timeBonus,
+  type RunState,
 } from '../src/logic/score';
 
 describe('createRun', () => {
@@ -132,5 +136,66 @@ describe('formatação', () => {
   it('formata pontuação com zeros à esquerda', () => {
     expect(formatScore(1234)).toBe('0001234');
     expect(formatScore(42, 3)).toBe('042');
+  });
+});
+
+describe('vidas', () => {
+  it('o jogo começa com 5 vidas', () => {
+    expect(START_LIVES).toBe(5);
+    expect(createRun().lives).toBe(5);
+    expect(createRun().lives2).toBeUndefined();
+  });
+});
+
+describe('vidas separadas no cooperativo', () => {
+  it('cada jogador começa com as próprias vidas', () => {
+    const run = createCoopRun();
+    expect(livesOf(run, 0)).toBe(START_LIVES);
+    expect(livesOf(run, 1)).toBe(START_LIVES);
+  });
+
+  it('perder vida só tira do jogador que morreu', () => {
+    const result = loseLife(createCoopRun(), 1);
+    expect(livesOf(result.run, 0)).toBe(START_LIVES);
+    expect(livesOf(result.run, 1)).toBe(START_LIVES - 1);
+    expect(result.out).toBe(false);
+    expect(result.gameOver).toBe(false);
+  });
+
+  it('quem zera fica fora, mas só é game over quando os dois zeram', () => {
+    let run: RunState = { ...createCoopRun(), lives: 1, lives2: 1 };
+    const first = loseLife(run, 0);
+    expect(first.out).toBe(true);
+    expect(first.gameOver).toBe(false);
+    run = first.run;
+    const second = loseLife(run, 1);
+    expect(second.out).toBe(true);
+    expect(second.gameOver).toBe(true);
+  });
+
+  it('a vida extra das moedas vai para quem pegou a moeda', () => {
+    let run: RunState = { ...createCoopRun(), coinBank: COINS_PER_EXTRA_LIFE - 1 };
+    const result = collectCoin(run, 1);
+    expect(result.extraLife).toBe(true);
+    expect(livesOf(result.run, 0)).toBe(START_LIVES);
+    expect(livesOf(result.run, 1)).toBe(START_LIVES + 1);
+    run = { ...createRun(), coinBank: COINS_PER_EXTRA_LIFE - 1 };
+    // Fora do cooperativo, o índice do jogador não cria vidas separadas.
+    expect(collectCoin(run, 1).run.lives).toBe(START_LIVES + 1);
+    expect(collectCoin(run, 1).run.lives2).toBeUndefined();
+  });
+
+  it('quem estava fora volta com uma vida no checkpoint', () => {
+    const { run, revived } = reviveOutPlayers({ ...createCoopRun(), lives: 3, lives2: 0 });
+    expect(revived).toEqual([1]);
+    expect(livesOf(run, 0)).toBe(3);
+    expect(livesOf(run, 1)).toBe(1);
+    expect(reviveOutPlayers(createRun()).revived).toEqual([]);
+  });
+
+  it('no modo solo perder a última vida é game over', () => {
+    const result = loseLife({ ...createRun(), lives: 1 });
+    expect(result.out).toBe(true);
+    expect(result.gameOver).toBe(true);
   });
 });

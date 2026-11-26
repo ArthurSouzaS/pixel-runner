@@ -487,6 +487,8 @@ export const en: Dictionary = {
   "hud.test": "TEST",
   "hud.level": "LEVEL {n}",
   "level.extraLife": "+1 LIFE",
+  "level.playerOut": "P{p} is out of lives! Back at the next checkpoint",
+  "level.playerBack": "P{p} is back!",
   "level.checkpoint": "CHECKPOINT!",
   "level.gameOver": "GAME OVER",
   "level.noLives": "You ran out of lives.",

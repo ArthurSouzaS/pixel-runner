@@ -1,4 +1,5 @@
 import type { PlayerInput } from '../objects/Player';
+import { setTouchMode } from './touchState';
 import type { GameMode, InputSource } from './controls';
 import { MENU_KEYS, type PadButtons, emptyButtons, justPressed, padForPlayer, readPadButtons } from './gamepadMapping';
 import { DEFAULT_PAD, type PadMap } from '../logic/accessibility';
@@ -60,6 +61,7 @@ class GamepadManager {
       const state = this.pads.get(gp.index) ?? { now: emptyButtons(), before: emptyButtons(), queued: { jump: false, dash: false, start: false }, repeatAt: 0, raw: [] };
       state.before = state.now;
       state.now = readPadButtons(gp.buttons, gp.axes, this.mapping);
+      if (Object.values(state.now).some(Boolean)) setTouchMode(false);
       if (this.onAnyButton) {
         // Na primeira leitura só memoriza o que já estava apertado.
         const pressed = this.primed ? gp.buttons.findIndex((b, i) => b.pressed && !state.raw[i]) : -1;

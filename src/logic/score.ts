@@ -13,7 +13,7 @@ export const POINTS = {
   levelClear: 1000,
 } as const;
 
-export const START_LIVES = 3;
+export const START_LIVES = 5;
 export const MAX_LIVES = 9;
 export const COINS_PER_EXTRA_LIFE = 50;
 export const TIME_BONUS_PER_SECOND = 20;
@@ -22,7 +22,10 @@ export const MAX_COMBO_MULTIPLIER = 8;
 export interface RunState {
   /** Índice (base 0) da fase atual. */
   levelIndex: number;
+  /** Vidas do jogador 1 (ou do único jogador). */
   lives: number;
+  /** Vidas do jogador 2 — só existe no modo cooperativo (vidas separadas). */
+  lives2?: number;
   score: number;
   /** Moedas acumuladas para a próxima vida extra. */
   coinBank: number;
@@ -54,10 +57,28 @@ export interface CoinResult {
   extraLife: boolean;
 }
 
-/** Coleta uma moeda; a cada {@link COINS_PER_EXTRA_LIFE} moedas o jogador ganha uma vida. */
-export function collectCoin(run: RunState): CoinResult {
+/** Partida cooperativa: cada jogador começa com as próprias vidas. */
+export function createCoopRun(levelIndex = 0, lives = START_LIVES): RunState {
+  const run = createRun(levelIndex, lives);
+  return { ...run, lives2: run.lives };
+}
+
+/** Vidas de um jogador (0 = jogador 1, 1 = jogador 2). */
+export function livesOf(run: RunState, player: number): number {
+  return player === 1 && run.lives2 !== undefined ? run.lives2 : run.lives;
+}
+
+function withLives(run: RunState, player: number, lives: number): RunState {
+  return player === 1 && run.lives2 !== undefined ? { ...run, lives2: clampLives(lives) } : { ...run, lives: clampLives(lives) };
+}
+
+/**
+ * Coleta uma moeda; a cada {@link COINS_PER_EXTRA_LIFE} moedas quem pegou a moeda
+ * ganha uma vida (no cooperativo, cada jogador tem as próprias vidas).
+ */
+export function collectCoin(run: RunState, player = 0): CoinResult {
   let coinBank = run.coinBank + 1;
-  let lives = run.lives;
+  let lives = livesOf(run, player);
   let extraLife = false;
   if (coinBank >= COINS_PER_EXTRA_LIFE) {
     coinBank -= COINS_PER_EXTRA_LIFE;
@@ -68,9 +89,8 @@ export function collectCoin(run: RunState): CoinResult {
   }
   return {
     run: {
-      ...run,
+      ...withLives(run, player, lives),
       coinBank,
-      lives,
       totalCoins: run.totalCoins + 1,
       score: run.score + POINTS.coin,
     },
@@ -93,9 +113,27 @@ export interface LifeResult {
   gameOver: boolean;
 }
 
-export function loseLife(run: RunState): LifeResult {
-  const lives = Math.max(0, run.lives - 1);
-  return { run: { ...run, lives }, gameOver: lives === 0 };
+export interface PlayerLifeResult extends LifeResult {
+  /** O jogador ficou sem vidas (no cooperativo, fica fora até o próximo checkpoint). */
+  out: boolean;
+}
+
+export function loseLife(run: RunState, player = 0): PlayerLifeResult {
+  const lives = Math.max(0, livesOf(run, player) - 1);
+  const next = withLives(run, player, lives);
+  const out = lives === 0;
+  // Cooperativo: só acaba quando os dois jogadores estão sem vidas.
+  const gameOver = next.lives2 !== undefined ? next.lives === 0 && next.lives2 === 0 : out;
+  return { run: next, gameOver, out };
+}
+
+/** Cooperativo: quem estava sem vidas volta com uma (no checkpoint ou na fase seguinte). */
+export function reviveOutPlayers(run: RunState): { run: RunState; revived: number[] } {
+  if (run.lives2 === undefined) return { run, revived: [] };
+  const revived = [run.lives, run.lives2].flatMap((l, i) => (l === 0 ? [i] : []));
+  let next = run;
+  for (const i of revived) next = withLives(next, i, 1);
+  return { run: next, revived };
 }
 
 /** Bônus por terminar antes do tempo de referência ("par") da fase. */

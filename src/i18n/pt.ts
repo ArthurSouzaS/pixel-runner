@@ -285,6 +285,8 @@ export const pt: Dictionary = {
   "hud.test": "TESTE",
   "hud.level": "FASE {n}",
   "level.extraLife": "+1 VIDA",
+  "level.playerOut": "P{p} ficou sem vidas! Volta no próximo checkpoint",
+  "level.playerBack": "P{p} voltou!",
   "level.checkpoint": "CHECKPOINT!",
   "level.gameOver": "FIM DE JOGO",
   "level.noLives": "Suas vidas acabaram.",

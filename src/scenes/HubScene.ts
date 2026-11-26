@@ -6,7 +6,7 @@ import { createBackgroundTextures, createTileset, GAME_HEIGHT, GAME_WIDTH } from
 import { t } from '../i18n';
 import { InputHub } from '../input/controls';
 import { GamepadSource, gamepads } from '../input/gamepad';
-import { isTouchDevice } from '../input/touchState';
+import { isTouchDevice, usingTouch } from '../input/touchState';
 import { LEVELS, WORLDS } from '../levels';
 import { SOLID_TILES, TILE_SIZE, parseLevel } from '../logic/levelParser';
 import { findSkin } from '../logic/shop';
@@ -152,7 +152,7 @@ export class HubScene extends Phaser.Scene {
     this.add.image(GAME_WIDTH - 130, 10, 'coin', 0).setScrollFactor(0).setDepth(101);
     pixelText(this, GAME_WIDTH - 122, 6, String(save.wallet), { size: 8, color: COLORS.yellow }).setScrollFactor(0).setDepth(101);
     // No celular não há Esc: o rótulo vira um botão de toque para voltar ao menu.
-    const touch = isTouchDevice();
+    const touch = usingTouch();
     const menuLabel = pixelText(this, GAME_WIDTH - 8, touch ? 3 : 6, t(touch ? 'hub.menuTouch' : 'hub.menu'), { size: 8, color: touch ? COLORS.white : COLORS.gray })
       .setOrigin(1, 0)
       .setScrollFactor(0)
@@ -165,7 +165,7 @@ export class HubScene extends Phaser.Scene {
     this.prompt.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.interact());
 
     this.dialogue = new DialogueBox(this);
-    if (isTouchDevice()) this.touch = new TouchControls(this, { dash: '!' });
+    if (isTouchDevice() || usingTouch()) this.touch = new TouchControls(this, { dash: '!' });
 
     const kb = this.input.keyboard;
     for (const key of ['keydown-DOWN', 'keydown-S', 'keydown-E', 'keydown-ENTER']) kb?.on(key, () => this.interact());
@@ -300,7 +300,7 @@ export class HubScene extends Phaser.Scene {
     for (const i of this.items) i.label.setAlpha(i === this.nearby ? 1 : 0.6);
     if (this.nearby && !frozen) {
       const verb = this.nearby.kind === 'npc' ? t('hub.talk') : t('hub.enter');
-      const key = isTouchDevice() || gamepads.connectedCount > 0 ? '!' : '↓';
+      const key = usingTouch() || gamepads.connectedCount > 0 ? '!' : '↓';
       this.prompt.setText(`${key} ${verb}`).setPosition(this.nearby.x, this.nearby.y - 40).setVisible(true);
     } else {
       this.prompt.setVisible(false);

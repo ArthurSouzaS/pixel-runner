@@ -30,6 +30,13 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   abstract think(ctx: EnemyContext, delta: number): void;
 
+  /**
+   * Chamado a cada passo fixo da física (h em segundos), para inimigos que seguem
+   * uma trajetória. Calcular a velocidade aqui, e não no quadro desenhado, evita
+   * que o corpo passe do ponto e "teleporte" em telas de 90/120/144 Hz ou após travadas.
+   */
+  physicsStep(_h: number): void {}
+
   /** Chamado ao ser derrotado (pisão ou dash). */
   kill(): void {
     if (this.dead) return;
@@ -137,16 +144,24 @@ export class Bat extends Enemy {
     this.body.setAllowGravity(false);
     this.body.setSize(12, 8).setOffset(2, 4);
     this.anims.play('bat-fly');
+    // Já nasce no ponto da trajetória: sem isso ele "pulava" até ela ao acordar.
+    this.setPosition(this.homeX + Math.sin(this.t) * 44, this.homeY + Math.sin(this.t * 2) * 14);
   }
 
-  think(ctx: EnemyContext, delta: number): void {
+  private rate = 1;
+
+  think(ctx: EnemyContext): void {
     if (this.dead) return;
-    const dt = Math.max(delta / 1000, 0.001);
-    this.t += dt * 1.1 * ctx.difficulty;
+    this.rate = ctx.difficulty;
+    this.setFlipX(Math.cos(this.t) > 0);
+  }
+
+  override physicsStep(h: number): void {
+    if (this.dead) return;
+    this.t += h * 1.1 * this.rate;
     const tx = this.homeX + Math.sin(this.t) * 44;
     const ty = this.homeY + Math.sin(this.t * 2) * 14;
-    this.body.setVelocity((tx - this.x) / dt, (ty - this.y) / dt);
-    this.setFlipX(Math.cos(this.t) > 0);
+    this.body.setVelocity((tx - this.body.center.x) / h, (ty - this.body.center.y) / h);
   }
 }
 
@@ -194,16 +209,23 @@ export class Fish extends Enemy {
     this.body.setAllowGravity(false);
     this.body.setSize(14, 8).setOffset(1, 5);
     this.anims.play('fish-swim');
+    this.setPosition(this.homeX + Math.sin(this.t) * 56, this.homeY + Math.sin(this.t * 3) * 4);
   }
 
-  think(ctx: EnemyContext, delta: number): void {
+  private rate = 1;
+
+  think(ctx: EnemyContext): void {
     if (this.dead) return;
-    const dt = Math.max(delta / 1000, 0.001);
-    this.t += dt * 0.8 * ctx.difficulty;
+    this.rate = ctx.difficulty;
+    this.setFlipX(Math.cos(this.t) > 0);
+  }
+
+  override physicsStep(h: number): void {
+    if (this.dead) return;
+    this.t += h * 0.8 * this.rate;
     const tx = this.homeX + Math.sin(this.t) * 56;
     const ty = this.homeY + Math.sin(this.t * 3) * 4;
-    this.body.setVelocity((tx - this.x) / dt, (ty - this.y) / dt);
-    this.setFlipX(Math.cos(this.t) > 0);
+    this.body.setVelocity((tx - this.body.center.x) / h, (ty - this.body.center.y) / h);
   }
 }
 

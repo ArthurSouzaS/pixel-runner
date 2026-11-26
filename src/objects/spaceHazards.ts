@@ -37,11 +37,15 @@ export class Asteroid extends Phaser.Physics.Arcade.Image {
     return { x: this.sx + this.dx * k, y: this.sy + this.dy * k };
   }
 
-  step(seconds: number, delta: number): void {
-    const dt = Math.max(delta / 1000, 0.001);
-    const target = this.positionAt(seconds + dt);
-    this.body.setVelocity((target.x - this.x) / dt, (target.y - this.y) / dt);
-    this.angle += this.spin * dt;
+  /** Movimento no passo fixo da física (h em segundos), como as plataformas móveis. */
+  physicsStep(seconds: number, h: number): void {
+    const target = this.positionAt(seconds + h);
+    this.body.setVelocity((target.x - this.body.center.x) / h, (target.y - this.body.center.y) / h);
+  }
+
+  /** Giro apenas visual, por quadro. */
+  spinStep(delta: number): void {
+    this.angle += (this.spin * delta) / 1000;
   }
 }
 

@@ -73,7 +73,7 @@ Todo o visual e o som são gerados por código, sem arquivos de imagem ou áudio
 - 🌍 **Mundo 2 — Arquipélago Celeste**: 5 fases com **gelo escorregadio**, **molas**, **plataformas que caem**, **vento** (empurrões e correntes de ar) e **água com nado**, além do peixe-espinho e do inimigo blindado.
 - ⛈️ **Chefe Tempestade Rubra**, com **3 fases de ataque**: chuva de gelo e rasantes, explosões radiais e mergulhos com onda de choque.
 - 🧗 **Habilidades desbloqueáveis** com tutorial: **escalar paredes**, **planar** e **investida** (quebra blocos rachados e derrota blindados).
-- 👥 **2 jogadores no mesmo teclado**: **cooperativo** (vidas compartilhadas) e **corrida**, com **câmera que acompanha os dois** e dá zoom.
+- 👥 **2 jogadores no mesmo teclado**: **cooperativo** (cada jogador com as próprias vidas; quem zera volta no próximo checkpoint) e **corrida**, com **câmera que acompanha os dois** e dá zoom.
 - 🛠️ **Editor de fases**: grade de tiles, inimigos, moedas e checkpoints; **3 slots**; **exportar/importar JSON**; **teste instantâneo**.
 - 🛍️ **Loja**: troque as moedas por **skins de cores** do Pix e **rastros de partícula**.
 - 🏆 **Conquistas**, **estatísticas do jogador** e **tela de créditos**.
@@ -97,7 +97,7 @@ Todo o visual e o som são gerados por código, sem arquivos de imagem ou áudio
 - 15 fases: Campos Verdes, Caverna de Cristal, Fábrica Enferrujada, Picos Gelados, Fortaleza do Núcleo, Lago Congelado, Recife Submerso, Ruínas Desmoronando, Penhasco dos Ventos, Olho da Tempestade, Base Lunar, Estação Orbital, Nebulosa Invertida, Cinturão de Asteroides e Cidadela do Eclipse
 - 7 tipos de inimigo: gosma, saltador, morcego, torreta, peixe-espinho, gosma blindada e drone
 - 3 chefes com padrões de ataque diferentes, várias fases de ataque e música própria
-- Moedas (vida extra a cada 50), checkpoints, plataformas móveis, espinhos, combos e bônus de tempo
+- 5 vidas no início, moedas (vida extra a cada 50), checkpoints, plataformas móveis, espinhos, combos e bônus de tempo
 - 27 conquistas, 11 missões, 12 skins (4 exclusivas de missões) e 7 rastros
 - Tudo **salvo no `localStorage`** com save versionado e migração automática
 - Partículas, rastros, tremida de câmera e transições (com opção de desligar)
