@@ -39,7 +39,7 @@ export const level1: LevelData = {
   ],
   hints: [
     { x: 8, y: 9, text: 'Setas ou A/D para correr', touchText: 'Use as setas da tela para correr' },
-    { x: 19, y: 9, text: 'Espaço, W ou Z para pular', touchText: 'Toque em A para pular' },
+    { x: 20, y: 7, text: 'Espaço, W ou Z para pular', touchText: 'Toque em A para pular' },
     { x: 29, y: 7, text: 'Pule de novo no ar: pulo duplo!', touchText: 'Toque em A no ar: pulo duplo!' },
     { x: 45, y: 7, text: 'Pise nos inimigos para derrotá-los', touchText: 'Pise nos inimigos para derrotá-los' },
     { x: 52, y: 9, text: 'Bandeiras salvam seu progresso', touchText: 'Bandeiras salvam seu progresso' },

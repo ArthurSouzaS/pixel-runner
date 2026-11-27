@@ -50,7 +50,7 @@ Todo o visual e o som são gerados por código, sem arquivos de imagem ou áudio
 
 - **Sprites** desenhados como pixel art em texto (`src/gfx/sprites.ts`) e convertidos em texturas na inicialização.
 - **Tiles e cenários** com parallax gerados proceduralmente para cada um dos 20 temas.
-- **Efeitos sonoros e trilha sonora** sintetizados em tempo real com a **Web Audio API** (uma música por tema, mais chefes, vila, mapa e créditos).
+- **Efeitos sonoros e trilha sonora** sintetizados em tempo real com a **Web Audio API**: uma trilha própria para cada mundo (com baixo, melodia, arpejos, acordes e bateria), uma para cada chefe, além de vila, mapa e créditos. As músicas ficam em `src/audio/songs.ts`, numa notação simples de notas.
 - **Ícone do jogo** feito a partir da arte do Pix em `art/pix-icon-source.png`; os tamanhos (aba do navegador, PWA, Android e iPhone) são gerados por `scripts/generate-icons.py`.
 
 ## Novidades do Pixel Runner 4
@@ -60,6 +60,8 @@ Todo o visual e o som são gerados por código, sem arquivos de imagem ou áudio
 - 🎬 Novas cenas de história (o vulcão acorda depois do final e a conclusão do Mundo 4) e novas falas dos personagens.
 - 🪐 **Um segredo**: há um lugar no mapa que não dá para alcançar com as setas... Siga as pistas dos personagens. Lá dentro, três portais selados guardam **chefes que estão por vir**.
 - 🏆 3 conquistas novas e categoria de speedrun do Mundo 4 (o "jogo completo" agora tem 20 fases).
+- 🎵 **Trilha nova**: uma música para cada mundo e uma para cada luta contra chefe (e uma já pronta para os chefes do planeta secreto).
+- 📱 Revisão de toda a interface no celular: as dicas de teclado (Esc, Enter, setas...) viram instruções de toque e toda tela tem um jeito de voltar tocando.
 
 ## Novidades do Pixel Runner 3
 

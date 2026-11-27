@@ -64,7 +64,7 @@ export class SecretPlanetScene extends Phaser.Scene {
     this.nearby = null;
     this.leaving = false;
     this.touch = null;
-    sfx.playMusic('nebula');
+    sfx.playMusic('world3');
 
     // Céu do espaço, estrelas e o planeta anelado gigante ao fundo.
     const keys = createBackgroundTextures(this, LEVELS[12].theme);

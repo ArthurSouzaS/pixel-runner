@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { t } from '../i18n';
+import { t, tk } from '../i18n';
 import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
 import { createTileset, GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
@@ -125,7 +125,7 @@ export class EditorScene extends Phaser.Scene {
     cam.scrollX = working?.scrollX ?? 0;
     this.input.mouse?.disableContextMenu();
     this.setupInput();
-    this.toast(t('editor.welcome'));
+    this.toast(tk('editor.welcome'));
   }
 
   // -------------------------------------------------------------------------
@@ -529,7 +529,7 @@ export class EditorScene extends Phaser.Scene {
     this.menuPanel.add(pixelText(this, cx, 18, t('editor.menuTitle'), { size: 12, color: COLORS.yellow }).setOrigin(0.5));
     const items = [
       { label: t('editor.test'), action: () => this.closeMenu(() => this.playTest()) },
-      { label: t('editor.save', { n: this.slot + 1 }), action: () => this.closeMenu(() => this.save()) },
+      { label: tk('editor.save', { n: this.slot + 1 }), action: () => this.closeMenu(() => this.save()) },
       ...Array.from({ length: EDITOR_SLOTS }, (_, i) => ({
         label: t('editor.open', { n: i + 1, name: this.slots[i]?.name ?? t('editor.empty') }),
         action: () => this.closeMenu(() => this.loadSlot(i)),
@@ -541,7 +541,7 @@ export class EditorScene extends Phaser.Scene {
       { label: t('editor.narrower'), action: () => this.closeMenu(() => this.resize(-10)) },
       { label: t('editor.export'), action: () => this.closeMenu(() => this.exportJson()) },
       { label: t('editor.import'), action: () => this.closeMenu(() => this.importJson()) },
-      { label: t('editor.undo'), action: () => this.closeMenu(() => this.undo()) },
+      { label: tk('editor.undo'), action: () => this.closeMenu(() => this.undo()) },
       { label: t('editor.exit'), action: () => this.exit() },
     ];
     this.menuList = new MenuList(this, cx, 38, items, 15, 8);

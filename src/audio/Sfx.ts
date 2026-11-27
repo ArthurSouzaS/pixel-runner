@@ -1,4 +1,5 @@
 import { type VolumeSettings, defaultVolumes } from '../logic/audioSettings';
+import { type Song, WORLD_SONGS, noteFreq, noteLength } from './songs';
 
 /**
  * Efeitos sonoros e música gerados em tempo real com a Web Audio API.
@@ -57,26 +58,7 @@ export type SfxName =
   | 'shieldUp'
   | 'shieldBreak';
 
-// Notas (Hz) usadas nas melodias.
-const N: Record<string, number> = {
-  C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.0, A3: 220.0, B3: 246.94,
-  C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.0, A4: 440.0, B4: 493.88,
-  C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880.0, C6: 1046.5,
-  Bb2: 116.54, B2: 123.47, Eb3: 155.56, 'F#3': 185.0, Ab3: 207.65, Bb3: 233.08,
-  'C#4': 277.18, Eb4: 311.13, 'F#4': 369.99, Ab4: 415.3, Bb4: 466.16, 'C#5': 554.37, Eb5: 622.25, 'F#5': 739.99, Ab5: 830.61, Bb5: 932.33, B5: 987.77, D6: 1174.66, E6: 1318.51,
-};
-
 type Pattern = (string | null)[];
-
-interface Song {
-  tempo: number;
-  bass: Pattern;
-  lead: Pattern;
-  /** Arpejo/contracanto opcional (onda triangular suave). */
-  arp?: Pattern;
-  /** Bumbo nos passos marcados com 1. */
-  kick?: number[];
-}
 
 const KICK_4 = [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0];
 const KICK_DRIVE = [1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0];
@@ -251,6 +233,8 @@ const SONGS: Record<string, Song> = {
     lead: ['E5', 'D5', 'C5', null, 'G5', null, 'E5', null, 'F5', 'E5', 'D5', null, 'C5', null, 'D5', null],
     arp: ['C4', 'E4', 'G4', 'C5', 'A3', 'C4', 'E4', 'A4', 'F3', 'A3', 'C4', 'F4', 'G3', 'B3', 'D4', 'G4'],
   },
+  // Trilhas dos mundos e dos chefes (substituem as antigas boss1-3).
+  ...WORLD_SONGS,
 };
 
 class SoundEngine {
@@ -354,7 +338,7 @@ class SoundEngine {
   }
 
   private arpeggio(notes: string[], gap: number, duration: number, type: Wave = 'square', volume = 0.22): void {
-    notes.forEach((n, i) => this.tone({ freq: N[n], duration, type, volume, delay: i * gap }));
+    notes.forEach((n, i) => this.tone({ freq: noteFreq(n), duration, type, volume, delay: i * gap }));
   }
 
   play(name: SfxName): void {
@@ -511,20 +495,42 @@ class SoundEngine {
     if (this.nextStepTime < this.ctx.currentTime - 0.5) this.nextStepTime = this.ctx.currentTime + 0.05;
     while (this.nextStepTime < this.ctx.currentTime + 0.2) {
       const delay = Math.max(0, this.nextStepTime - this.ctx.currentTime);
-      const i = this.step % 16;
-      const bass = song.bass[i];
-      const lead = song.lead[i];
+      const at = (p: readonly unknown[] | undefined) => (p && p.length ? p[this.step % p.length] : undefined);
+      const len = (p: Pattern) => noteLength(p, this.step % p.length) * stepDur;
       if (!this.muted) {
-        if (bass) this.tone({ freq: N[bass], duration: stepDur * 0.9, type: 'triangle', volume: 0.5, delay }, this.musicGain);
-        if (lead) this.tone({ freq: N[lead], duration: stepDur * 0.8, type: 'square', volume: 0.16, delay }, this.musicGain);
-        const arp = song.arp?.[i];
-        if (arp) this.tone({ freq: N[arp], duration: stepDur * 0.6, type: 'triangle', volume: 0.12, delay }, this.musicGain);
-        if (song.kick?.[i]) this.tone({ freq: 120, to: 40, duration: 0.12, type: 'sine', volume: 0.55, delay }, this.musicGain);
-        if (i % 4 === 2) this.hat(delay);
+        const bass = at(song.bass) as string | null | undefined;
+        const lead = at(song.lead) as string | null | undefined;
+        const arp = at(song.arp) as string | null | undefined;
+        const pad = at(song.pad) as string | null | undefined;
+        // '-' segura a nota anterior: não toca nada novo nesse passo.
+        if (bass && bass !== '-') this.tone({ freq: noteFreq(bass), duration: len(song.bass) * 0.9, type: song.bassWave ?? 'triangle', volume: song.bassWave === 'sawtooth' ? 0.2 : 0.5, delay }, this.musicGain);
+        if (lead && lead !== '-') this.tone({ freq: noteFreq(lead), duration: len(song.lead) * 0.85, type: song.leadWave ?? 'square', volume: song.leadVolume ?? 0.16, delay }, this.musicGain);
+        if (arp && arp !== '-') this.tone({ freq: noteFreq(arp), duration: len(song.arp!) * 0.6, type: 'triangle', volume: 0.12, delay }, this.musicGain);
+        if (pad && pad !== '-') for (const n of pad.split('+')) this.tone({ freq: noteFreq(n), duration: len(song.pad!) * 0.95, type: 'sine', volume: 0.06, delay }, this.musicGain);
+        if (at(song.kick)) this.tone({ freq: 120, to: 40, duration: 0.12, type: 'sine', volume: 0.55, delay }, this.musicGain);
+        if (at(song.snare)) this.snare(delay);
+        if (song.hat ? at(song.hat) : this.step % 4 === 2) this.hat(delay);
       }
       this.step++;
       this.nextStepTime += stepDur;
     }
+  }
+
+  /** Caixa: ruído com corpo médio. */
+  private snare(delay: number): void {
+    if (!this.ctx || !this.noiseBuffer || !this.musicGain) return;
+    const t = this.ctx.currentTime + delay;
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noiseBuffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1800;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.28, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+    src.connect(filter).connect(gain).connect(this.musicGain);
+    src.start(t);
+    src.stop(t + 0.13);
   }
 
   private hat(delay: number): void {

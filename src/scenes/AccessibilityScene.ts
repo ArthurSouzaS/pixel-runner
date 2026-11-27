@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
 import { COLORS, hex } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
-import { t } from '../i18n';
+import { t, tk } from '../i18n';
 import { COLORBLIND_MODES } from '../logic/accessibility';
 import { saveManager } from '../systems/saveManager';
 import { pixelText } from '../ui/text';
@@ -62,7 +62,7 @@ export class AccessibilityScene extends Phaser.Scene {
     const swatch = [0xb13e53, 0xef7d57, 0xffcd75, 0x38b764, 0x41a6f6, 0x5d275d];
     swatch.forEach((c, i) => this.add.rectangle(GAME_WIDTH / 2 - 75 + i * 30, 214, 24, 12, c).setStrokeStyle(1, COLORS.white));
     this.preview = pixelText(this, GAME_WIDTH / 2, 232, '', { size: 8, color: COLORS.gray, scalable: true, align: 'center' }).setOrigin(0.5);
-    pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 10, t('access.hint'), { size: 8, color: COLORS.gray }).setOrigin(0.5);
+    pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 10, tk('access.hint'), { size: 8, color: COLORS.gray }).setOrigin(0.5);
 
     const kb = this.input.keyboard;
     kb?.on('keydown-UP', () => this.move(-1));

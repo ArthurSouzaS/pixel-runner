@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { t } from '../i18n';
+import { t, tk } from '../i18n';
 import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
 import { ensurePixSkin, ensurePlayer2Skin } from '../gfx/skins';
@@ -47,9 +47,9 @@ export class TwoPlayerScene extends Phaser.Scene {
     const skin = findSkin(saveManager.get().equippedSkin);
     this.add.image(cx - 110, 160, ensurePixSkin(this, skin.id, skin.colors), 0).setScale(2);
     this.add.image(cx + 110, 160, ensurePlayer2Skin(this, skin.colors), 0).setScale(2);
-    pixelText(this, cx - 110, 186, t('two.p1'), { size: 8, align: 'center', color: COLORS.lightGreen }).setOrigin(0.5, 0).setLineSpacing(3);
-    pixelText(this, cx + 110, 186, t('two.p2'), { size: 8, align: 'center', color: COLORS.cyan }).setOrigin(0.5, 0).setLineSpacing(3);
-    pixelText(this, cx, GAME_HEIGHT - 10, t('two.hint'), { size: 8, color: COLORS.gray }).setOrigin(0.5);
+    pixelText(this, cx - 110, 186, tk('two.p1'), { size: 8, align: 'center', color: COLORS.lightGreen }).setOrigin(0.5, 0).setLineSpacing(3);
+    pixelText(this, cx + 110, 186, tk('two.p2'), { size: 8, align: 'center', color: COLORS.cyan }).setOrigin(0.5, 0).setLineSpacing(3);
+    pixelText(this, cx, GAME_HEIGHT - 10, tk('two.hint'), { size: 8, color: COLORS.gray }).setOrigin(0.5);
 
     const kb = this.input.keyboard;
     kb?.on('keydown-UP', () => this.moveRow(-1));
@@ -63,6 +63,11 @@ export class TwoPlayerScene extends Phaser.Scene {
     kb?.on('keydown-ENTER', () => this.start());
     kb?.on('keydown-SPACE', () => this.start());
     kb?.on('keydown-ESC', () => this.scene.start('Modes'));
+    // Voltar tocável (no celular não há Esc).
+    pixelText(this, GAME_WIDTH - 12, 8, t('common.backTag'), { size: 8, color: COLORS.gray })
+      .setOrigin(1, 0)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this.scene.start('Modes'));
 
     this.modeText.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
       this.row = 0;

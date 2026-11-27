@@ -71,7 +71,8 @@ export class GameOverScene extends Phaser.Scene {
     title.setScale(0.3);
     this.tweens.add({ targets: title, scale: 1, duration: 500, ease: 'Back.easeOut' });
 
-    const subtitle = data.victory ? t('over.saved') : t('over.reached', { n: data.levelIndex + 1 });
+    // Vitória depois do Mundo 4 (cooperativo) ou do final da história (Eclipse).
+    const subtitle = data.victory ? t(data.levelIndex >= 19 ? 'over.savedAll' : 'over.saved') : t('over.reached', { n: data.levelIndex + 1 });
     pixelText(this, cx, 84, subtitle, { size: 8 }).setOrigin(0.5);
     pixelText(this, cx, 106, t('over.points', { score: formatScore(data.score) }), { size: 10 }).setOrigin(0.5);
     pixelText(this, cx, 122, t('over.record', { score: formatScore(saveManager.get().highScore) }), { size: 10, color: COLORS.cyan }).setOrigin(0.5);

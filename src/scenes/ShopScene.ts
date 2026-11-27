@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { t } from '../i18n';
+import { t, tk } from '../i18n';
 import { sfx } from '../audio/Sfx';
 import { COLORS, hex } from '../gfx/palette';
 import { ensurePixSkin } from '../gfx/skins';
@@ -52,7 +52,7 @@ export class ShopScene extends Phaser.Scene {
     this.tweens.add({ targets: this.preview, x: { from: 290, to: 390 }, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', onYoyo: () => this.preview.setFlipX(true), onRepeat: () => this.preview.setFlipX(false) });
     this.infoText = pixelText(this, 340, 220, '', { size: 8, align: 'center', color: COLORS.cyan }).setOrigin(0.5);
 
-    pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 12, t('shop.hint'), { size: 8, color: COLORS.gray }).setOrigin(0.5);
+    pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 12, tk('shop.hint'), { size: 8, color: COLORS.gray }).setOrigin(0.5);
 
     const kb = this.input.keyboard;
     kb?.on('keydown-UP', () => this.move(-1));
@@ -150,7 +150,7 @@ export class ShopScene extends Phaser.Scene {
         owned
           ? isEquipped(save, this.category, selected.id)
             ? t('shop.isEquipped')
-            : t('shop.equip')
+            : tk('shop.equip')
           : (selected as { exclusive?: boolean }).exclusive
             ? t('shop.missionReward')
             : t('shop.cost', { n: selected.price }),

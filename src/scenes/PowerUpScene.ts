@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
-import { t } from '../i18n';
+import { t, tk } from '../i18n';
 import { type PowerUpId, POWERUPS, powerUpChoices } from '../logic/powerups';
 import { MAX_LIVES, type RunState } from '../logic/score';
 import { pixelText } from '../ui/text';
@@ -43,7 +43,7 @@ export class PowerUpScene extends Phaser.Scene {
       c.on('pointerdown', () => (this.index === i ? this.choose() : this.select(i)));
       this.cards.push(c);
     });
-    pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 16, t('power.hint', { lives: data.run.lives, score: data.run.score }), { size: 8, color: COLORS.gray }).setOrigin(0.5);
+    pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 16, tk('power.hint', { lives: data.run.lives, score: data.run.score }), { size: 8, color: COLORS.gray }).setOrigin(0.5);
     const kb = this.input.keyboard;
     kb?.on('keydown-LEFT', () => this.select(this.index - 1));
     kb?.on('keydown-A', () => this.select(this.index - 1));

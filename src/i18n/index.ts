@@ -2,6 +2,7 @@
  * Traduções do jogo. `t('chave', { nome: 'valor' })` devolve o texto no idioma atual,
  * trocando `{nome}` pelos parâmetros. Se faltar no idioma atual, usa o português.
  */
+import { usingTouch } from '../input/touchState';
 import { en } from './en';
 import { pt } from './pt';
 
@@ -33,6 +34,14 @@ export function t(key: string, params?: Record<string, string | number>): string
   const text = DICTS[current][key] ?? DICTS.pt[key] ?? key;
   if (!params) return text;
   return text.replace(/\{(\w+)\}/g, (match, name: string) => (name in params ? String(params[name]) : match));
+}
+
+/**
+ * Texto que fala de controles: no modo de toque usa a variante `<chave>.touch`, se existir
+ * (ex.: "Esc: voltar" vira "Toque para voltar" no celular).
+ */
+export function tk(key: string, params?: Record<string, string | number>): string {
+  return usingTouch() && `${key}.touch` in DICTS[current] ? t(`${key}.touch`, params) : t(key, params);
 }
 
 /** Traduz se a chave existir; senão devolve o texto original (útil para dados antigos). */

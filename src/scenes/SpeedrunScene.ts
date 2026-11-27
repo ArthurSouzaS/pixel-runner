@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
 import { COLORS, hex } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
-import { t } from '../i18n';
+import { t, tk } from '../i18n';
 import { LEVELS } from '../levels';
 import { availableCategories, categoryFor, sumOfBest } from '../logic/speedrun';
 import { formatTimePrecise } from '../logic/score';
@@ -55,7 +55,7 @@ export class SpeedrunScene extends Phaser.Scene {
     });
     this.ghostText = pixelText(this, 20, GAME_HEIGHT - 44, '', { size: 8, color: COLORS.white }).setInteractive({ useHandCursor: true });
     this.ghostText.on('pointerdown', () => this.toggleGhost());
-    pixelText(this, GAME_WIDTH - 20, GAME_HEIGHT - 28, t('speedrun.hint'), { size: 8, color: COLORS.gray }).setOrigin(1, 0);
+    pixelText(this, GAME_WIDTH - 20, GAME_HEIGHT - 28, tk('speedrun.hint'), { size: 8, color: COLORS.gray }).setOrigin(1, 0);
 
     const kb = this.input.keyboard;
     kb?.on('keydown-UP', () => this.move(-1));
@@ -66,6 +66,11 @@ export class SpeedrunScene extends Phaser.Scene {
     kb?.on('keydown-SPACE', () => this.start());
     kb?.on('keydown-G', () => this.toggleGhost());
     kb?.on('keydown-ESC', () => this.scene.start('Modes'));
+    // Voltar tocável (no celular não há Esc).
+    pixelText(this, GAME_WIDTH - 12, 8, t('common.backTag'), { size: 8, color: COLORS.gray })
+      .setOrigin(1, 0)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this.scene.start('Modes'));
     this.refresh();
   }
 

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { t } from '../i18n';
+import { t, tk } from '../i18n';
 import { sfx } from '../audio/Sfx';
 import { COLORS, hex } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
@@ -108,7 +108,7 @@ export class AchievementsScene extends Phaser.Scene {
 
   private refresh(): void {
     if (this.tab !== 'achievements') {
-      this.desc.setText(t('ach.statsHint'));
+      this.desc.setText(tk('ach.statsHint'));
       return;
     }
     const save = saveManager.get();

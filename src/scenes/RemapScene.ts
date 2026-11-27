@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
 import { COLORS, hex } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
-import { t } from '../i18n';
+import { t, tk } from '../i18n';
 import { gamepads } from '../input/gamepad';
 import { ACTIONS, type Action, DEFAULT_KEYS, DEFAULT_PAD, type PadMap, assignKey, assignPadButton, keyLabel } from '../logic/accessibility';
 import { saveManager } from '../systems/saveManager';
@@ -58,6 +58,12 @@ export class RemapScene extends Phaser.Scene {
     this.texts = this.items.map((item, i) => {
       const txt = pixelText(this, 40, 36 + i * 16, '', { size: 8 }).setInteractive({ useHandCursor: true });
       txt.on('pointerdown', () => {
+        // No celular não há Esc: tocar enquanto espera uma tecla cancela a espera.
+        if (this.waiting) {
+          this.stopWaiting();
+          this.refresh();
+          return;
+        }
         this.index = i;
         item.activate();
         this.refresh();
@@ -119,6 +125,6 @@ export class RemapScene extends Phaser.Scene {
 
   private refresh(): void {
     this.texts.forEach((txt, i) => txt.setText(`${i === this.index ? '>' : ' '} ${this.items[i].label()}`).setColor(hex(i === this.index ? COLORS.yellow : COLORS.white)));
-    this.status.setText(this.waiting ? (this.waiting.kind === 'key' ? t('remap.pressKey') : t('remap.pressButton')) : t('remap.hint'));
+    this.status.setText(this.waiting ? (this.waiting.kind === 'key' ? tk('remap.pressKey') : tk('remap.pressButton')) : tk('remap.hint'));
   }
 }

@@ -7,7 +7,7 @@ import { usingTouch } from '../input/touchState';
 import { type VolumeChannel, volumeBar } from '../logic/audioSettings';
 import { saveManager } from '../systems/saveManager';
 import { pixelText } from '../ui/text';
-import { t } from '../i18n';
+import { t, tk } from '../i18n';
 import { installPrompt, isStandalone, promptInstall } from '../systems/install';
 import { createMenuBackdrop } from './menuBackdrop';
 
@@ -67,7 +67,7 @@ export class OptionsScene extends Phaser.Scene {
       });
       return t;
     });
-    pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 14, t('options.hint'), { size: 8, color: COLORS.gray }).setOrigin(0.5);
+    pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 14, tk('options.hint'), { size: 8, color: COLORS.gray }).setOrigin(0.5);
     // Status do controle: os navegadores só mostram o controle ao jogo depois que um botão é apertado.
     this.padText = pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 30, '', { size: 8, color: COLORS.lightGreen }).setOrigin(0.5);
     this.padFrame = 0;
@@ -124,7 +124,7 @@ export class OptionsScene extends Phaser.Scene {
     c.add(pixelText(this, cx, 18, t('controls.title'), { size: 14, color: COLORS.yellow }).setOrigin(0.5));
     const solo = usingTouch() ? t('controls.touch') : t('controls.keyboard');
     c.add(pixelText(this, 24, 40, solo, { size: 8 }).setLineSpacing(6));
-    c.add(pixelText(this, 24, 182, t('controls.two'), { size: 8, color: COLORS.cyan }).setLineSpacing(4));
+    c.add(pixelText(this, 24, 182, tk('controls.two'), { size: 8, color: COLORS.cyan }).setLineSpacing(4));
     c.add(pixelText(this, 24, 226, t('controls.pad'), { size: 8, color: COLORS.lightGreen }).setLineSpacing(4));
     c.add(pixelText(this, GAME_WIDTH - 10, 18, t('controls.note'), { size: 8, color: COLORS.gray }).setOrigin(1, 0.5));
     c.list[0].on('pointerdown', () => this.toggleControls(false));

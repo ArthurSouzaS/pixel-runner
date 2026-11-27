@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
-import { t } from '../i18n';
+import { t, tk } from '../i18n';
 import { MISSIONS, missionStatus, objectiveTarget } from '../logic/missions';
 import { NPCS } from '../story/story';
 import { saveManager } from '../systems/saveManager';
@@ -38,7 +38,7 @@ export class MissionLogScene extends Phaser.Scene {
       const reward = t('mission.rewardShort', { coins: m.reward.coins }) + (m.reward.skin ? ' + skin' : '');
       pixelText(this, GAME_WIDTH - 18, y, reward, { size: 8, color: COLORS.ink, strokeThickness: 0 }).setOrigin(1, 0);
     });
-    pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 18, t('mission.back'), { size: 8, color: COLORS.ink, strokeThickness: 0 }).setOrigin(0.5);
+    pixelText(this, GAME_WIDTH / 2, GAME_HEIGHT - 18, tk('mission.back'), { size: 8, color: COLORS.ink, strokeThickness: 0 }).setOrigin(0.5);
     const leave = (): void => {
       this.scene.start(back);
     };

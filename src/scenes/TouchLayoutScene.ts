@@ -14,6 +14,7 @@ import {
   touchRadius,
   visibleTouchIds,
 } from '../logic/touchLayout';
+import { usingTouch } from '../input/touchState';
 import { saveManager } from '../systems/saveManager';
 import { drawTouchButton } from '../ui/TouchControls';
 import { pixelText } from '../ui/text';
@@ -68,7 +69,8 @@ export class TouchLayoutScene extends Phaser.Scene {
     button(330, t('touch.cancel'), () => this.leave(false), COLORS.gray);
     button(410, t('touch.done'), () => this.leave(true), COLORS.lightGreen);
     pixelText(this, GAME_WIDTH / 2, 60, t('touch.hint'), { size: 8, color: COLORS.cyan, align: 'center' }).setOrigin(0.5);
-    pixelText(this, GAME_WIDTH / 2, 74, t('touch.keys'), { size: 8, color: COLORS.gray, align: 'center' }).setOrigin(0.5);
+    // Atalhos de teclado: só aparecem para quem está no teclado.
+    if (!usingTouch()) pixelText(this, GAME_WIDTH / 2, 74, t('touch.keys'), { size: 8, color: COLORS.gray, align: 'center' }).setOrigin(0.5);
 
     this.ring = this.add.circle(0, 0, 10).setStrokeStyle(2, COLORS.yellow).setDepth(5);
     this.tweens.add({ targets: this.ring, alpha: 0.4, duration: 400, yoyo: true, repeat: -1 });

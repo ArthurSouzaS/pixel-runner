@@ -42,6 +42,7 @@ import { cutsceneAfterLevel } from '../story/story';
 import { itemsToSpawn, type MissionItem } from '../logic/missions';
 import { type BossAssistSpot, BossAssistSchedule } from '../logic/bossAssist';
 import { chaseWallX, tideSurfaceY } from '../logic/volcano';
+import { worldSongKey } from '../audio/songs';
 import { Conveyor, Geyser } from '../objects/volcanoHazards';
 import { generateDaily, generateRoom } from '../logic/procgen';
 import { type PowerUpId, powerUpEffects } from '../logic/powerups';
@@ -49,7 +50,7 @@ import { todayString } from '../logic/daily';
 import { GhostPlayback, GhostRecorder } from '../logic/ghost';
 import { categoryFor, splitDelta } from '../logic/speedrun';
 import { ghostStore } from '../systems/ghostStore';
-import { t } from '../i18n';
+import { t, tOr } from '../i18n';
 import { hintText, hintTouchText, levelName, levelSubtitle } from '../i18n/data';
 import { pixelText } from '../ui/text';
 
@@ -345,7 +346,7 @@ export class LevelScene extends Phaser.Scene {
     cam.fadeIn(350, 26, 28, 44);
 
     this.createColliders();
-    sfx.playMusic(this.level.theme.key);
+    sfx.playMusic(this.levelMusic);
 
     this.scene.launch('HUD', { level: this });
     this.game.events.on(Phaser.Core.Events.BLUR, this.autoPause, this);
@@ -870,8 +871,11 @@ export class LevelScene extends Phaser.Scene {
 
   private createHints(): void {
     const touch = usingTouch();
+    // Com joystick (opção ou multiplayer no celular), dicas que falam das setas da tela mudam.
+    const stick = touch && (saveManager.get().access.touchStick || this.mode !== 'single');
     (this.level.hints ?? []).forEach((hint, index) => {
-      const label = touch && hint.touchText ? hintTouchText(this.level, index, hint.touchText) : hintText(this.level, index, hint.text);
+      const stickLabel = stick ? tOr(`level.${this.level.id}.hintStick.${index}`, '') : '';
+      const label = stickLabel || (touch && hint.touchText ? hintTouchText(this.level, index, hint.touchText) : hintText(this.level, index, hint.text));
       const text = pixelText(this, hint.x * TILE_SIZE, hint.y * TILE_SIZE, label, {
         size: 8,
         scalable: true,
@@ -993,7 +997,10 @@ export class LevelScene extends Phaser.Scene {
       const shield = this.bossShields.get(player);
       shield?.setPosition(player.x, player.y).setVisible(player.visible);
       const tag = player.getData('tag') as Phaser.GameObjects.Text | undefined;
-      tag?.setPosition(player.x, player.y - 16).setVisible(player.visible && !player.dead);
+      // Com os dois juntos, a etiqueta do P2 sobe para não ficar em cima da do P1.
+      const other = this.players[1 - player.index];
+      const stacked = player.index === 1 && other && !other.dead && Math.abs(other.x - player.x) < 18 && Math.abs(other.y - player.y) < 12;
+      tag?.setPosition(player.x, player.y - (stacked ? 26 : 16)).setVisible(player.visible && !player.dead);
       // Sair por cima só mata com a gravidade invertida ("caindo" para o vazio). Com a gravidade
       // normal existe um teto invisível acima da tela, e um pulo alto não pode matar.
       const fellOff = player.y > worldBottom + 16 || (player.gravityDir < 0 && player.y < -24);
@@ -1315,7 +1322,7 @@ export class LevelScene extends Phaser.Scene {
     }
     this.setGate(true);
     sfx.play('gate');
-    sfx.playMusic(this.level.boss === 'eclipse' ? 'boss3' : this.level.boss === 'storm' ? 'boss2' : 'boss1');
+    sfx.playMusic(this.bossMusic);
     this.cameras.main.shake(400, 0.01);
     this.bossHud.visible = true;
     this.boss.wake();
@@ -1494,7 +1501,7 @@ export class LevelScene extends Phaser.Scene {
     this.clearBossShields();
     this.clearBossAssist();
     this.bossHud.visible = false;
-    sfx.playMusic(this.level.theme.key);
+    sfx.playMusic(this.levelMusic);
     saveManager.stat(this.level.boss === 'eclipse' ? 'bossEclipse' : this.level.boss === 'storm' ? 'bossStorm' : 'bossCore');
     this.run = addPoints(this.run, POINTS.boss);
     this.floatingText(x, y - 20, `+${POINTS.boss}`, COLORS.yellow);
@@ -1573,7 +1580,7 @@ export class LevelScene extends Phaser.Scene {
         this.clearBossAssist();
         this.bossHud.visible = false;
         this.setGate(false);
-        sfx.playMusic(this.level.theme.key);
+        sfx.playMusic(this.levelMusic);
       }
     }
     // Parede de lava: volta para trás do ponto de renascimento e espera de novo.
@@ -1832,6 +1839,21 @@ export class LevelScene extends Phaser.Scene {
       infinite: this.infinite ?? undefined,
       speedrun: this.speedrun ?? undefined,
     } satisfies LevelSceneData);
+  }
+
+  /**
+   * Música da fase: as oficiais tocam a trilha do seu mundo (uma por mundo); fases do editor,
+   * do Infinito e do desafio diário usam a música do tema visual.
+   */
+  private get levelMusic(): string {
+    const official = !this.custom && !this.infinite && LEVELS[this.levelIndex] === this.level;
+    return official ? worldSongKey(this.level.world) : this.level.theme.key;
+  }
+
+  /** Música da luta: cada chefe tem a sua; os chefes do planeta secreto usam a dos guardiões. */
+  private get bossMusic(): string {
+    if (this.secret) return 'bossSecret';
+    return this.level.boss === 'eclipse' ? 'boss3' : this.level.boss === 'storm' ? 'boss2' : 'boss1';
   }
 
   /** Para onde vai uma fase avulsa ao terminar: o planeta secreto ou o editor. */

@@ -107,7 +107,7 @@ async function start(): Promise<void> {
     gamepads.update(game.scene.isActive('Level') || game.scene.isActive('Hub') || game.scene.isActive('SecretPlanet'), time);
   });
   // Em desenvolvimento, expõe o jogo para depuração e testes automatizados no navegador.
-  if (import.meta.env.DEV) Object.assign(window, { game, touchState });
+  if (import.meta.env.DEV) Object.assign(window, { game, touchState, sfx });
 }
 
 void start();

@@ -41,10 +41,13 @@ export class DailyScene extends Phaser.Scene {
     if (state.entries.length === 0) pixelText(this, 30, 82, t('daily.noEntries'), { size: 8, color: COLORS.gray, wrap: 250 });
     state.entries.forEach((e, i) => {
       const highlight = data.result?.rank === i;
-      pixelText(this, 30, 80 + i * 13, `${String(i + 1).padStart(2, ' ')}. ${e.name.padEnd(8, ' ')} ${formatTimePrecise(e.time)}  ${e.coins}c`, {
+      const row = pixelText(this, 30, 80 + i * 13, `${String(i + 1).padStart(2, ' ')}. ${e.name.padEnd(8, ' ')} ${formatTimePrecise(e.time)}`, {
         size: 8,
         color: highlight ? COLORS.lightGreen : COLORS.white,
       });
+      // Moedas com o ícone (antes era um "12c" sem explicação).
+      this.add.image(row.x + row.width + 12, row.y + 4, 'coin', 0);
+      pixelText(this, row.x + row.width + 20, row.y, String(e.coins ?? 0), { size: 8, color: COLORS.yellow });
     });
     // Histórico
     pixelText(this, 300, 66, t('daily.history'), { size: 8, color: COLORS.yellow });

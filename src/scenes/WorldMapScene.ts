@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { t } from '../i18n';
+import { t, tk } from '../i18n';
 import { sfx } from '../audio/Sfx';
 import { COLORS, hex } from '../gfx/palette';
 import { ensurePixSkin } from '../gfx/skins';
@@ -11,6 +11,7 @@ import { findSkin } from '../logic/shop';
 import { formatScore, formatTime } from '../logic/score';
 import { saveManager } from '../systems/saveManager';
 import { pixelText } from '../ui/text';
+import { usingTouch } from '../input/touchState';
 import { abilityText, levelName, worldName } from '../i18n/data';
 
 /** Posição de cada fase no mapa (pixels da tela). */
@@ -101,12 +102,17 @@ export class WorldMapScene extends Phaser.Scene {
     this.hint = fixed(pixelText(this, GAME_WIDTH - 10, GAME_HEIGHT - 16, '', { size: 8, color: COLORS.lightGreen }).setOrigin(1, 0.5).setDepth(31));
     this.hint.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.play());
     fixed(
-      pixelText(this, GAME_WIDTH - 10, GAME_HEIGHT - 38, t('map.back'), { size: 8, color: COLORS.gray })
+      pixelText(this, GAME_WIDTH - 10, GAME_HEIGHT - 38, tk('map.back'), { size: 8, color: COLORS.gray })
         .setOrigin(1, 0.5)
         .setDepth(31)
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', () => this.back()),
     );
+    // No celular, "Vila" e "JOGAR" viram botões (sem Esc/Enter).
+    if (usingTouch()) {
+      this.hint.setPadding(4, 3, 4, 3).setBackgroundColor('#333c57');
+      (ui[ui.length - 1] as Phaser.GameObjects.Text).setPadding(4, 3, 4, 3).setBackgroundColor('#333c57').setColor('#f4f4f4');
+    }
     // Barras e textos ficam parados enquanto o mapa rola.
     ui.forEach((o) => (o as unknown as Phaser.GameObjects.Components.ScrollFactor).setScrollFactor(0));
 
@@ -318,7 +324,7 @@ export class WorldMapScene extends Phaser.Scene {
     if (level.ability) extras.push(t('map.orb', { name: abilityText(level.ability, 'name', ABILITIES[level.ability].name) }));
     if (level.boss) extras.push(t('map.boss'));
     this.info.setText(`${t('map.level', { n: level.id, name: levelName(level) })}\n${extras.join('  ·  ')}`).setColor(hex(COLORS.white));
-    this.hint.setText(t('map.play')).setColor(hex(COLORS.lightGreen));
+    this.hint.setText(tk('map.play')).setColor(hex(COLORS.lightGreen));
   }
 
   private play(): void {

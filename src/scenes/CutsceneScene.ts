@@ -3,7 +3,7 @@ import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
 import { ensurePixSkin } from '../gfx/skins';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
-import { t } from '../i18n';
+import { tk } from '../i18n';
 import { findSkin } from '../logic/shop';
 import { CUTSCENES, type CutsceneId, NPCS } from '../story/story';
 import { saveManager } from '../systems/saveManager';
@@ -51,7 +51,7 @@ export class CutsceneScene extends Phaser.Scene {
       this.tweens.add({ targets: sprite, alpha: 1, y: sprite.y, duration: 400, delay: 200 + i * 150 });
     });
 
-    const skip = pixelText(this, GAME_WIDTH - 8, 8, t('cutscene.skip'), { size: 8, color: COLORS.gray }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+    const skip = pixelText(this, GAME_WIDTH - 8, 8, tk('cutscene.skip'), { size: 8, color: COLORS.gray }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
     const finish = (): void => {
       this.cameras.main.fadeOut(400, 26, 28, 44);
       this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start(data.next.scene, data.next.data));

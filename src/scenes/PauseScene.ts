@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { t } from '../i18n';
+import { t, tk } from '../i18n';
 import { sfx } from '../audio/Sfx';
 import { COLORS } from '../gfx/palette';
 import { GAME_HEIGHT, GAME_WIDTH } from '../gfx/textures';
@@ -47,7 +47,7 @@ export class PauseScene extends Phaser.Scene {
       },
     ]);
 
-    pixelText(this, cx, GAME_HEIGHT - 24, t('pause.hint'), { size: 8, color: COLORS.gray }).setOrigin(0.5);
+    pixelText(this, cx, GAME_HEIGHT - 24, tk('pause.hint'), { size: 8, color: COLORS.gray }).setOrigin(0.5);
     this.input.keyboard?.on('keydown-ESC', resume);
     this.input.keyboard?.on('keydown-P', resume);
   }
