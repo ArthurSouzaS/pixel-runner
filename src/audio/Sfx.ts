@@ -245,6 +245,8 @@ class SoundEngine {
   private volumes: VolumeSettings = defaultVolumes();
   private noiseBuffer: AudioBuffer | null = null;
   private muted = false;
+  /** Página escondida (outra aba, app minimizado, tela bloqueada): todo o áudio fica pausado. */
+  private pageHidden = false;
 
   private songKey: string | null = null;
   private step = 0;
@@ -267,7 +269,19 @@ class SoundEngine {
       this.noiseBuffer = this.createNoise();
       if (this.songKey) this.startScheduler();
     }
-    if (this.ctx.state === 'suspended') void this.ctx.resume();
+    if (this.ctx.state === 'suspended' && !this.pageHidden) void this.ctx.resume();
+  }
+
+  /**
+   * Pausa a música (e os efeitos) enquanto o jogador está fora da página e retoma do mesmo
+   * ponto quando ele volta. Suspender o AudioContext congela o relógio do áudio, então a
+   * música continua exatamente de onde parou.
+   */
+  setPageHidden(hidden: boolean): void {
+    this.pageHidden = hidden;
+    if (!this.ctx) return;
+    if (hidden) void this.ctx.suspend();
+    else if (this.ctx.state !== 'closed') void this.ctx.resume().catch(() => {});
   }
 
   setMuted(muted: boolean): void {
@@ -342,7 +356,7 @@ class SoundEngine {
   }
 
   play(name: SfxName): void {
-    if (!this.ctx || this.muted) return;
+    if (!this.ctx || this.muted || this.pageHidden) return;
     switch (name) {
       case 'jump':
         this.tone({ freq: 260, to: 620, duration: 0.14, type: 'square', volume: 0.18 });

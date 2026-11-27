@@ -79,8 +79,14 @@ window.addEventListener('keydown', (event) => {
 setInterval(() => saveManager.flush(), 15000);
 window.addEventListener('pagehide', () => saveManager.flush());
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') saveManager.flush();
+  const hidden = document.visibilityState === 'hidden';
+  if (hidden) saveManager.flush();
+  // Música pausa fora da página e volta quando o jogador retorna (PC e celular).
+  sfx.setPageHidden(hidden);
 });
+// Safari/iOS ao sair e voltar do app (cache de navegação).
+window.addEventListener('pagehide', () => sfx.setPageHidden(true));
+window.addEventListener('pageshow', () => sfx.setPageHidden(document.visibilityState === 'hidden'));
 
 async function start(): Promise<void> {
   // Espera a fonte pixel carregar (com limite de tempo) para os textos não piscarem.
