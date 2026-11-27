@@ -41,6 +41,8 @@ import { saveManager } from '../systems/saveManager';
 import { cutsceneAfterLevel } from '../story/story';
 import { itemsToSpawn, type MissionItem } from '../logic/missions';
 import { type BossAssistSpot, BossAssistSchedule } from '../logic/bossAssist';
+import { chaseWallX, tideSurfaceY } from '../logic/volcano';
+import { Conveyor, Geyser } from '../objects/volcanoHazards';
 import { generateDaily, generateRoom } from '../logic/procgen';
 import { type PowerUpId, powerUpEffects } from '../logic/powerups';
 import { todayString } from '../logic/daily';
@@ -62,6 +64,11 @@ export interface LevelSceneData {
   infinite?: InfiniteRunData;
   /** Modo speedrun. */
   speedrun?: SpeedrunRunData;
+  /**
+   * Luta de um portal do planeta secreto (id do portal). A fase vem em `custom`;
+   * ao terminar, perder ou sair, volta para o planeta em vez do editor.
+   */
+  secret?: string;
 }
 
 export interface SpeedrunRunData {
@@ -106,6 +113,9 @@ export interface HudState {
 
 const NO_NUMBERS: number[] = [];
 
+/** Fase do chefe final da história (o Eclipse): ao vencer, vem a cena final. */
+const STORY_FINAL_LEVEL = 14;
+
 /** Invencibilidade depois que o escudo do chefe quebra (ms). */
 const BOSS_SHIELD_PROTECT_MS = 2500;
 
@@ -124,6 +134,7 @@ export class LevelScene extends Phaser.Scene {
   private runAtStart!: RunState;
   private mode: GameMode = 'single';
   private custom: LevelData | null = null;
+  private secret: string | null = null;
   private infinite: InfiniteRunData | null = null;
   private speedrun: SpeedrunRunData | null = null;
   private recorder: GhostRecorder | null = null;
@@ -160,6 +171,14 @@ export class LevelScene extends Phaser.Scene {
   private portals: { a: Phaser.GameObjects.Sprite; b: Phaser.GameObjects.Sprite }[] = [];
   private asteroids: Asteroid[] = [];
   private lasers: Laser[] = [];
+  // Mundo 4: Vale Vulcânico
+  private geysers: Geyser[] = [];
+  private conveyors: Conveyor[] = [];
+  private lavaZones: Phaser.Geom.Rectangle[] = [];
+  private lavaStrips: Phaser.GameObjects.TileSprite[] = [];
+  private tide: Phaser.GameObjects.TileSprite | null = null;
+  private tideY = Number.POSITIVE_INFINITY;
+  private chase: { wall: Phaser.GameObjects.Container; startX: number; since: number; x: number } | null = null;
   /** Varreduras de laser do chefe final. */
   private beams: { rect: Phaser.Geom.Rectangle; gfx: Phaser.GameObjects.Rectangle; warnUntil: number; until: number }[] = [];
   /** Relógio da fase em ms (para lasers), que para na pausa. */
@@ -214,6 +233,7 @@ export class LevelScene extends Phaser.Scene {
   init(data: LevelSceneData): void {
     this.levelIndex = Phaser.Math.Clamp(data.levelIndex ?? 0, 0, TOTAL_LEVELS - 1);
     this.custom = data.custom ?? null;
+    this.secret = data.secret ?? null;
     this.infinite = data.infinite ?? null;
     this.speedrun = data.speedrun ?? null;
     this.recorder = this.speedrun ? new GhostRecorder() : null;
@@ -274,6 +294,13 @@ export class LevelScene extends Phaser.Scene {
     this.portals = [];
     this.asteroids = [];
     this.lasers = [];
+    this.geysers = [];
+    this.conveyors = [];
+    this.lavaZones = [];
+    this.lavaStrips = [];
+    this.tide = null;
+    this.tideY = Number.POSITIVE_INFINITY;
+    this.chase = null;
     this.beams = [];
     this.clockMs = 0;
   }
@@ -605,6 +632,74 @@ export class LevelScene extends Phaser.Scene {
     }
     for (const ad of this.level.asteroids ?? []) this.asteroids.push(new Asteroid(this, ad));
     for (const ld of this.level.lasers ?? []) this.lasers.push(new Laser(this, ld));
+    this.createVolcano();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mundo 4: lava, gêiseres, esteiras, maré e parede de lava
+  // ---------------------------------------------------------------------------
+
+  private createVolcano(): void {
+    // Lava do mapa: faixas horizontais contínuas, animadas, que matam ao encostar.
+    const cells = new Set(this.parsed.lava.map((c) => `${c.x},${c.y}`));
+    for (const c of this.parsed.lava) {
+      if (cells.has(`${c.x - 1},${c.y}`)) continue;
+      let w = 1;
+      while (cells.has(`${c.x + w},${c.y}`)) w++;
+      const strip = this.add.tileSprite(c.x * TILE_SIZE, c.y * TILE_SIZE, w * TILE_SIZE, TILE_SIZE, 'lava').setOrigin(0).setDepth(5);
+      this.lavaStrips.push(strip);
+      // Margem de 4 px no topo: encostar na borda ondulada não mata.
+      this.lavaZones.push(new Phaser.Geom.Rectangle(c.x * TILE_SIZE, c.y * TILE_SIZE + 4, w * TILE_SIZE, TILE_SIZE - 4));
+    }
+    for (const gd of this.level.geysers ?? []) this.geysers.push(new Geyser(this, gd));
+    for (const cd of this.level.conveyors ?? []) this.conveyors.push(new Conveyor(this, cd));
+    const worldW = this.parsed.width * TILE_SIZE;
+    const worldH = this.parsed.height * TILE_SIZE;
+    if (this.level.lavaTide) {
+      this.tide = this.add.tileSprite(0, worldH, worldW, worldH + 64, 'lava').setOrigin(0).setDepth(13).setAlpha(0.95);
+    }
+    if (this.level.lavaChase) {
+      const wall = this.add.container(0, 0).setDepth(14);
+      wall.add(this.add.rectangle(-worldW, 0, worldW, worldH, 0xb13e53).setOrigin(0));
+      const edge = this.add.tileSprite(-16, 0, 16, worldH, 'lava').setOrigin(0).setAngle(0);
+      wall.add(edge);
+      wall.add(this.add.rectangle(0, 0, 3, worldH, 0xffcd75).setOrigin(0));
+      const startX = (this.respawnPoints[0]?.x ?? 0) - this.level.lavaChase.gap * TILE_SIZE;
+      this.chase = { wall, startX, since: 0, x: startX };
+      wall.setX(startX);
+    }
+  }
+
+  private updateVolcano(dt: number): void {
+    const t = this.clockMs;
+    for (const s of this.lavaStrips) s.tilePositionX += dt * 0.012;
+    for (const g of this.geysers) g.update(t);
+    for (const c of this.conveyors) c.update(dt);
+    if (this.tide && this.level.lavaTide) {
+      this.tideY = tideSurfaceY(this.level.lavaTide, t / 1000, TILE_SIZE);
+      this.tide.setY(this.tideY);
+      this.tide.tilePositionX += dt * 0.02;
+    }
+    if (this.chase && this.level.lavaChase && !this.finished) {
+      this.chase.since += dt / 1000;
+      this.chase.x = chaseWallX(this.level.lavaChase, this.chase.startX, this.chase.since);
+      this.chase.wall.setX(this.chase.x);
+      // Tremida leve de vez em quando para lembrar que a lava está vindo.
+      if (this.frame % 90 === 0) this.cameras.main.shake(200, 0.002);
+    }
+    for (const player of this.players) {
+      if (player.dead) continue;
+      const b = player.body;
+      const box = new Phaser.Geom.Rectangle(b.x + 1, b.y + 1, b.width - 2, b.height - 2);
+      const inLava = this.lavaZones.some((z) => Phaser.Geom.Rectangle.Overlaps(z, box)) || b.bottom > this.tideY + 6 || (this.chase !== null && b.left < this.chase.x);
+      if (inLava) {
+        // Lava é como cair: não há escudo que salve.
+        this.fx.pop.explode(16, player.x, player.y);
+        this.killPlayer(player, true);
+        continue;
+      }
+      if (!player.isInvulnerable && this.geysers.some((g) => g.hits(b))) this.killPlayer(player);
+    }
   }
 
   /** Varredura de laser horizontal do chefe final. */
@@ -617,6 +712,7 @@ export class LevelScene extends Phaser.Scene {
 
   private updateSpace(dt: number): void {
     this.clockMs += dt;
+    this.updateVolcano(dt);
     for (const a of this.asteroids) a.spinStep(dt);
     for (const l of this.lasers) l.update(this.clockMs);
     this.beams = this.beams.filter((b) => {
@@ -762,6 +858,8 @@ export class LevelScene extends Phaser.Scene {
     }
     env.windX = 0;
     env.windY = 0;
+    // Esteira: empurra quem está em cima (como um vento no chão).
+    for (const c of this.conveyors) if (c.carries(p.body)) env.windX += c.speed;
     for (const z of this.windZones) {
       if (z.rect.contains(p.x, p.y)) {
         env.windX += z.vx;
@@ -799,6 +897,7 @@ export class LevelScene extends Phaser.Scene {
     }
     for (const player of this.players) {
       this.physics.add.collider(player, this.layer);
+      for (const c of this.conveyors) this.physics.add.collider(player, c.sprite);
       this.physics.add.collider(player, this.movers);
       this.physics.add.collider(player, this.fallers, (_p, f) => {
         const faller = f as FallingPlatform;
@@ -1050,7 +1149,19 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private touchEnemy(player: Player, enemy: Enemy): void {
-    if (enemy.dead || player.dead || this.finished) return;
+    if (enemy.dead || enemy.hidden || player.dead || this.finished) return;
+    if (enemy.fiery) {
+      // Brasa: só a investida apaga; pisar ou encostar queima.
+      if (player.isRushing) {
+        enemy.kill();
+        this.fx.pop.explode(12, enemy.x, enemy.y);
+        sfx.play('stomp');
+        saveManager.stat('enemies');
+      } else if (!player.isInvulnerable) {
+        this.killPlayer(player);
+      }
+      return;
+    }
     const stomp = this.isStomp(player, enemy.body, 10);
     if (enemy.armored && !player.isRushing) {
       // Blindado: pisão e dash só ricocheteiam. Encostar de lado machuca.
@@ -1465,6 +1576,13 @@ export class LevelScene extends Phaser.Scene {
         sfx.playMusic(this.level.theme.key);
       }
     }
+    // Parede de lava: volta para trás do ponto de renascimento e espera de novo.
+    if (this.chase && this.level.lavaChase && this.alivePlayers().length === 0) {
+      this.chase.startX = point.x - this.level.lavaChase.gap * TILE_SIZE;
+      this.chase.since = 0;
+      this.chase.x = this.chase.startX;
+      this.chase.wall.setX(this.chase.x);
+    }
     player.setVisible(true);
     player.revive();
     player.respawn(point.x, point.y);
@@ -1489,8 +1607,8 @@ export class LevelScene extends Phaser.Scene {
       return;
     }
     if (this.custom) {
-      this.showPanel(t('level.gameOver'), [t('level.noLives'), t('level.fixLevel')], '', COLORS.red);
-      this.time.delayedCall(2500, () => this.fadeTo(() => this.scene.start('Editor')));
+      this.showPanel(t('level.gameOver'), this.secret ? [t('level.noLives')] : [t('level.noLives'), t('level.fixLevel')], '', COLORS.red);
+      this.time.delayedCall(2500, () => this.fadeTo(() => this.scene.start(this.customReturn)));
       return;
     }
     const isNewRecord = saveManager.submitScore(this.run.score);
@@ -1516,8 +1634,9 @@ export class LevelScene extends Phaser.Scene {
     this.tweens.add({ targets: player, x: this.goal.x, alpha: 0, scale: 0.4, angle: 360, duration: 700, ease: 'Quad.easeIn' });
 
     if (this.custom) {
-      this.showPanel(t('level.clear'), [t('level.time', { time: formatTime(this.elapsed) }), t('level.coins', { n: this.coinsCollected, total: this.parsed.coins.length })], t('level.backEditor'));
-      this.time.delayedCall(3000, () => this.fadeTo(() => this.scene.start('Editor')));
+      this.showPanel(t('level.clear'), [t('level.time', { time: formatTime(this.elapsed) }), t('level.coins', { n: this.coinsCollected, total: this.parsed.coins.length })], this.secret ? t('secret.back') : t('level.backEditor'));
+      if (this.secret) saveManager.markStory(`secret-cleared:${this.secret}`);
+      this.time.delayedCall(3000, () => this.fadeTo(() => this.scene.start(this.customReturn)));
       return;
     }
     if (this.speedrun) {
@@ -1560,8 +1679,16 @@ export class LevelScene extends Phaser.Scene {
     this.time.delayedCall(3400, () =>
       this.fadeTo(() => {
         const cutscene = cutsceneAfterLevel(this.levelIndex);
-        if (next === null) {
+        if (this.levelIndex === STORY_FINAL_LEVEL) {
+          // Eclipse vencido: final da história (o Mundo 4 abre depois, na vila).
           this.scene.start('Ending', { score: this.run.score, isNewRecord, mode: this.mode });
+        } else if (next === null) {
+          // Fim do Mundo 4: cena com a pista do planeta secreto; depois a vila (ou a vitória no cooperativo).
+          const after =
+            this.mode === 'coop'
+              ? { scene: 'GameOver', data: { victory: true, score: this.run.score, levelIndex: this.levelIndex, isNewRecord, mode: this.mode } }
+              : { scene: 'Hub' };
+          this.scene.start('Cutscene', { id: cutscene ?? 'world4', next: after });
         } else if (cutscene) {
           // Fim de mundo: cena de história. No modo solo volta para a vila; no cooperativo segue jogando.
           const after =
@@ -1701,9 +1828,15 @@ export class LevelScene extends Phaser.Scene {
       run: this.runAtStart,
       mode: this.mode,
       custom: this.custom ?? undefined,
+      secret: this.secret ?? undefined,
       infinite: this.infinite ?? undefined,
       speedrun: this.speedrun ?? undefined,
     } satisfies LevelSceneData);
+  }
+
+  /** Para onde vai uma fase avulsa ao terminar: o planeta secreto ou o editor. */
+  private get customReturn(): string {
+    return this.secret ? 'SecretPlanet' : 'Editor';
   }
 
   /** Sai para o menu, registrando a pontuação alcançada. */
@@ -1712,7 +1845,7 @@ export class LevelScene extends Phaser.Scene {
     saveManager.flush();
     sfx.stopMusic();
     if (this.custom) {
-      this.scene.start('Editor');
+      this.scene.start(this.customReturn);
       return;
     }
     if (this.infinite) {

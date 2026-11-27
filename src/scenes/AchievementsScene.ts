@@ -11,7 +11,8 @@ import { achievementDesc, achievementName, statLabel } from '../i18n/data';
 import { createMenuBackdrop } from './menuBackdrop';
 
 const COLS = 2;
-const ROW_H = 15;
+/** Altura da linha: encolhe se houver muitas conquistas, para a lista não encostar na descrição. */
+const ROW_H = Math.min(15, Math.floor((GAME_HEIGHT - 30 - 46) / Math.ceil(ACHIEVEMENTS.length / COLS)));
 
 /** Conquistas (com descrição) e estatísticas do jogador, em duas abas. */
 export class AchievementsScene extends Phaser.Scene {

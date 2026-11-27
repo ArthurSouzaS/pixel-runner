@@ -38,10 +38,10 @@ describe('parseLevel', () => {
 });
 
 describe('fases do jogo', () => {
-  it('possui 15 fases (3 mundos) com ids sequenciais', () => {
-    expect(TOTAL_LEVELS).toBe(15);
-    expect(LEVELS.map((l) => l.id)).toEqual(Array.from({ length: 15 }, (_, i) => i + 1));
-    expect(LEVELS.map((l) => l.world)).toEqual([1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]);
+  it('possui 20 fases (4 mundos) com ids sequenciais', () => {
+    expect(TOTAL_LEVELS).toBe(20);
+    expect(LEVELS.map((l) => l.id)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
+    expect(LEVELS.map((l) => l.world)).toEqual([1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4]);
   });
 
   it.each(LEVELS.map((l) => [l.name, l] as const))('%s é válida', (_name, data) => {
@@ -69,16 +69,45 @@ describe('fases do jogo', () => {
     expect(avgPar(2)).toBeGreaterThan(avgPar(1));
   });
 
-  it('apenas a última fase de cada mundo tem chefe e portão', () => {
+  it('nos mundos 1 a 3, só a última fase tem chefe e portão (o Mundo 4 termina com a fuga da lava)', () => {
     const bosses = LEVELS.map((l) => parseLevel(l.map).boss !== null);
-    expect(bosses).toEqual(LEVELS.map((_, i) => i % 5 === 4));
+    expect(bosses).toEqual(LEVELS.map((_, i) => i % 5 === 4 && i < 15));
     expect(LEVELS.filter((l) => l.boss).map((l) => l.boss)).toEqual(['core', 'storm', 'eclipse']);
     for (const i of [4, 9, 14]) expect(parseLevel(LEVELS[i].map).gate.length).toBeGreaterThan(0);
   });
 
   it('usa vários tipos de inimigo ao longo do jogo', () => {
     const kinds = new Set(LEVELS.flatMap((l) => parseLevel(l.map).enemies.map((e) => e.kind)));
-    expect([...kinds].sort()).toEqual(['armored', 'bat', 'drone', 'fish', 'hopper', 'turret', 'walker']);
+    expect([...kinds].sort()).toEqual(['armored', 'bat', 'drone', 'ember', 'fish', 'hopper', 'turret', 'walker']);
+  });
+
+  it('o Mundo 4 apresenta as mecânicas vulcânicas', () => {
+    const w4 = LEVELS.filter((l) => l.world === 4);
+    expect(w4).toHaveLength(5);
+    expect(w4.every((l) => parseLevel(l.map).lava.length > 0 || l.lavaTide)).toBe(true);
+    expect(w4.some((l) => (l.geysers ?? []).length > 0)).toBe(true);
+    expect(w4.some((l) => (l.conveyors ?? []).length > 0)).toBe(true);
+    expect(w4.some((l) => parseLevel(l.map).enemies.some((e) => e.kind === 'ember'))).toBe(true);
+    expect(w4.filter((l) => l.lavaTide).map((l) => l.id)).toEqual([19]);
+    expect(w4.filter((l) => l.lavaChase).map((l) => l.id)).toEqual([20]);
+  });
+
+  it('gêiseres, esteiras e brasas ficam em lugares coerentes', () => {
+    for (const l of LEVELS.filter((x) => x.world === 4)) {
+      const map = l.map;
+      for (const g of l.geysers ?? []) {
+        // Bico apoiado no chão, sem nada sólido no caminho do fogo.
+        expect(map[g.y + 1][g.x], `${l.name} gêiser ${g.x}`).toMatch(/[#X]/);
+        for (let y = g.y - g.height + 1; y <= g.y; y++) expect(map[y][g.x], `${l.name} gêiser ${g.x},${y}`).not.toMatch(/[#XI]/);
+      }
+      for (const c of l.conveyors ?? []) {
+        for (let x = c.x; x < c.x + c.width; x++) expect(map[c.y - 1][x], `${l.name} esteira ${x}`).not.toMatch(/[#XI]/);
+        expect(Math.abs(c.speed)).toBeLessThan(140);
+      }
+      const p = parseLevel(map);
+      for (const e of p.enemies.filter((x) => x.kind === 'ember')) expect(map[e.y + 1][e.x], `${l.name} brasa ${e.x}`).toBe('L');
+      if (l.lavaChase) expect(l.lavaChase.speed).toBeLessThan(100);
+    }
   });
 
   it('o Mundo 3 apresenta as mecânicas espaciais', () => {

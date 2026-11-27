@@ -38,6 +38,10 @@ import {
   NPC_ASTRO_FRAMES,
   GEAR_ART,
   BOSS_ORB_ART,
+  EMBER_FRAMES,
+  LAVA_ART,
+  VENT_ART,
+  CONVEYOR_ART,
   SHELL_ART,
   SHARD_ITEM_ART,
 } from './sprites';
@@ -83,6 +87,10 @@ export function createSpriteTextures(scene: Phaser.Scene): void {
   createSheet(scene, 'npc-astro', NPC_ASTRO_FRAMES);
   createSheet(scene, 'item-gear', [GEAR_ART]);
   createSheet(scene, 'boss-orb', [BOSS_ORB_ART]);
+  createSheet(scene, 'ember', EMBER_FRAMES);
+  createSheet(scene, 'lava', [LAVA_ART]);
+  createSheet(scene, 'vent', [VENT_ART]);
+  createSheet(scene, 'conveyor', [CONVEYOR_ART]);
   createSheet(scene, 'item-shell', [SHELL_ART]);
   createSheet(scene, 'item-shard', [SHARD_ITEM_ART]);
 
@@ -228,6 +236,32 @@ const TILE_COLORS: Record<ThemeKey, TileColors> = {
     top: PALETTE.y, topLight: PALETTE.w, topDark: PALETTE.o,
     fill: PALETTE.k, fillDark: PALETTE.n, fillLight: PALETTE.p,
     block: PALETTE.p, blockLight: PALETTE.r, blockDark: PALETTE.k,
+  },
+  // ---- Mundo 4: Vale Vulcânico ----
+  ash: {
+    top: PALETTE.g, topLight: PALETTE.w, topDark: PALETTE.G,
+    fill: PALETTE.d, fillDark: PALETTE.k, fillLight: PALETTE.G,
+    block: PALETTE.U, blockLight: PALETTE.u, blockDark: PALETTE.k,
+  },
+  forge: {
+    top: PALETTE.o, topLight: PALETTE.y, topDark: PALETTE.r,
+    fill: PALETTE.d, fillDark: PALETTE.k, fillLight: PALETTE.G,
+    block: PALETTE.G, blockLight: PALETTE.g, blockDark: PALETTE.d,
+  },
+  magma: {
+    top: PALETTE.r, topLight: PALETTE.o, topDark: PALETTE.p,
+    fill: PALETTE.U, fillDark: PALETTE.k, fillLight: PALETTE.r,
+    block: PALETTE.U, blockLight: PALETTE.u, blockDark: PALETTE.k,
+  },
+  obsidian: {
+    top: PALETTE.p, topLight: PALETTE.c, topDark: PALETTE.k,
+    fill: PALETTE.k, fillDark: PALETTE.n, fillLight: PALETTE.p,
+    block: PALETTE.n, blockLight: PALETTE.b, blockDark: PALETTE.k,
+  },
+  caldera: {
+    top: PALETTE.o, topLight: PALETTE.y, topDark: PALETTE.r,
+    fill: PALETTE.U, fillDark: PALETTE.k, fillLight: PALETTE.u,
+    block: PALETTE.r, blockLight: PALETTE.o, blockDark: PALETTE.U,
   },
 };
 
@@ -393,6 +427,11 @@ const STYLE_BY_THEME: Record<ThemeKey, [SilhouetteStyle, SilhouetteStyle]> = {
   nebula: ['stalactites', 'peaks'],
   belt: ['peaks', 'round'],
   citadel: ['towers', 'towers'],
+  ash: ['peaks', 'round'],
+  forge: ['blocks', 'towers'],
+  magma: ['peaks', 'stalactites'],
+  obsidian: ['stalactites', 'peaks'],
+  caldera: ['peaks', 'peaks'],
 };
 
 function drawSilhouette(

@@ -20,6 +20,12 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   readonly solid: boolean = true;
   /** Blindados resistem a pisões e dash: só a investida os derrota. */
   readonly armored: boolean = false;
+  /** Em chamas (brasa): não pode ser pisado; encostar machuca. Só a investida apaga. */
+  readonly fiery: boolean = false;
+  /** Escondido (ex.: brasa dentro da lava): não encosta em ninguém. */
+  get hidden(): boolean {
+    return !this.visible;
+  }
 
   constructor(scene: Phaser.Scene, x: number, y: number, texture: string) {
     super(scene, x, y, texture, 0);
@@ -268,6 +274,57 @@ export class Drone extends Enemy {
   }
 }
 
+/**
+ * Brasa: fica escondida na lava e salta de tempos em tempos, voltando para baixo.
+ * Está em chamas: não pode ser pisada (encostar machuca); a investida apaga.
+ */
+export class Ember extends Enemy {
+  readonly kind = 'ember';
+  override readonly solid = false;
+  override readonly fiery = true;
+  private readonly homeY: number;
+  private wait: number;
+  private jumping = false;
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y + 10, 'ember');
+    this.homeY = y + 10;
+    this.body.setSize(10, 10).setOffset(3, 3);
+    this.body.setAllowGravity(false);
+    this.setVisible(false);
+    // Brasas vizinhas não saltam juntas.
+    this.wait = 500 + ((x * 7 + y * 3) % 13) * 110;
+    this.anims.play('ember-burn');
+  }
+
+  think(_ctx: EnemyContext, delta: number): void {
+    if (this.dead) return;
+    if (!this.jumping) {
+      this.body.setVelocity(0, 0);
+      this.y = this.homeY;
+      this.wait -= delta;
+      if (this.wait <= 0) {
+        // Salta ~4,5 tiles de altura.
+        const g = this.scene.physics.world.gravity.y;
+        this.jumping = true;
+        this.setVisible(true);
+        this.body.setAllowGravity(true);
+        this.body.setVelocity(0, -Math.sqrt(2 * g * 72));
+      }
+      return;
+    }
+    this.setFlipY(this.body.velocity.y > 0);
+    if (this.body.velocity.y > 0 && this.y >= this.homeY) {
+      this.jumping = false;
+      this.setVisible(false);
+      this.body.setAllowGravity(false);
+      this.body.setVelocity(0, 0);
+      this.y = this.homeY;
+      this.wait = 1300 + Math.random() * 900;
+    }
+  }
+}
+
 export function createEnemy(scene: Phaser.Scene, kind: EnemyKind, x: number, y: number): Enemy {
   switch (kind) {
     case 'walker':
@@ -284,5 +341,7 @@ export function createEnemy(scene: Phaser.Scene, kind: EnemyKind, x: number, y: 
       return new Armored(scene, x, y);
     case 'drone':
       return new Drone(scene, x, y);
+    case 'ember':
+      return new Ember(scene, x, y);
   }
 }

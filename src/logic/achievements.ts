@@ -11,6 +11,8 @@ export interface AchievementContext {
   abilities: readonly string[];
   ownedSkins: readonly string[];
   ownedTrails: readonly string[];
+  /** Cenas de história vistas e segredos encontrados (opcional para testes antigos). */
+  storySeen?: readonly string[];
 }
 
 export interface Achievement {
@@ -34,6 +36,9 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   { id: 'world-2', name: 'Herói dos dois mundos', description: 'Conclua o Mundo 2.', check: (c) => c.stats.gameCompleted >= 1 || c.unlockedLevels >= 11 },
   { id: 'boss-eclipse', name: 'Salvador das estrelas', description: 'Derrote o Eclipse e termine o jogo.', check: (c) => c.stats.bossEclipse >= 1 },
   { id: 'world-3', name: 'Explorador estelar', description: 'Chegue à última fase do Mundo 3.', check: (c) => c.unlockedLevels >= 15 },
+  { id: 'world-4', name: 'Pés de fogo', description: 'Chegue à última fase do Mundo 4.', check: (c) => c.unlockedLevels >= 20 },
+  { id: 'volcano', name: 'Fuga do vulcão', description: 'Escape do Coração do Vulcão.', check: (c) => !!c.storySeen?.includes('world4') },
+  { id: 'secret-planet', name: 'Sinal misterioso', description: 'Encontre o planeta secreto.', check: (c) => !!c.storySeen?.includes('secret-planet') },
   { id: 'gravity', name: 'De cabeça para baixo', description: 'Use 20 inversores de gravidade.', check: (c) => c.stats.gravityFlips >= 20 },
   { id: 'warp', name: 'Teletransportado', description: 'Use 10 portais.', check: (c) => c.stats.portals >= 10 },
   { id: 'perfect', name: 'Perfeccionista', description: 'Pegue todas as moedas de uma fase.', check: (c) => c.stats.perfectLevels >= 1 },

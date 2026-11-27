@@ -2,7 +2,7 @@ import { LEVELS } from './index';
 import type { LevelTheme, ThemeKey } from './types';
 
 /** Temas disponíveis (na ordem em que aparecem no jogo) e seus nomes. */
-export const THEME_KEYS: readonly ThemeKey[] = ['grass', 'cave', 'factory', 'ice', 'castle', 'frost', 'reef', 'ruins', 'sky', 'storm', 'moon', 'station', 'nebula', 'belt', 'citadel'];
+export const THEME_KEYS: readonly ThemeKey[] = ['grass', 'cave', 'factory', 'ice', 'castle', 'frost', 'reef', 'ruins', 'sky', 'storm', 'moon', 'station', 'nebula', 'belt', 'citadel', 'ash', 'forge', 'magma', 'obsidian', 'caldera'];
 
 export const THEME_NAMES: Record<ThemeKey, string> = {
   grass: 'Campos',
@@ -20,6 +20,11 @@ export const THEME_NAMES: Record<ThemeKey, string> = {
   nebula: 'Nebulosa',
   belt: 'Asteroides',
   citadel: 'Cidadela',
+  ash: 'Cinzas',
+  forge: 'Forja',
+  magma: 'Magma',
+  obsidian: 'Obsidiana',
+  caldera: 'Caldeira',
 };
 
 /** Paleta completa de um tema, reaproveitando as cores das fases oficiais. */

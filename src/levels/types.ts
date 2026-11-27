@@ -18,7 +18,12 @@ export type ThemeKey =
   | 'station'
   | 'nebula'
   | 'belt'
-  | 'citadel';
+  | 'citadel'
+  | 'ash'
+  | 'forge'
+  | 'magma'
+  | 'obsidian'
+  | 'caldera';
 
 export type BossKind = 'core' | 'storm' | 'eclipse';
 
@@ -119,6 +124,7 @@ export interface LevelData {
    *  `I` bloco de gelo (escorregadio)  `S` mola  `F` plataforma que cai
    *  `Q` bloco rachado (quebra com a investida)  `a` inimigo blindado  `A` orbe de habilidade
    *  `V` inversor de gravidade  `d` drone
+   *  `L` lava (mata ao encostar)  `e` brasa (salta da lava; não pode ser pisada)
    *  `|` portão da arena do chefe (fecha quando o jogador entra)
    *  `.` vazio
    */
@@ -140,4 +146,49 @@ export interface LevelData {
   portals?: PortalData[];
   asteroids?: AsteroidData[];
   lasers?: LaserData[];
+  /** Gêiseres de fogo temporizados (Mundo 4). */
+  geysers?: GeyserData[];
+  /** Esteiras que empurram quem está em cima (Mundo 4). */
+  conveyors?: ConveyorData[];
+  /** Maré de lava que sobe e desce por toda a fase (Mundo 4). */
+  lavaTide?: LavaTideData;
+  /** Parede de lava que avança da esquerda para a direita (fuga da fase final do Mundo 4). */
+  lavaChase?: LavaChaseData;
+}
+
+/** Gêiser: jato de fogo que sobe a partir de `y` (linha do bico) por `height` tiles. */
+export interface GeyserData {
+  x: number;
+  y: number;
+  height: number;
+  /** Tempo ligado e desligado (ms); o aviso aparece pouco antes de ligar. */
+  on: number;
+  off: number;
+  offset: number;
+}
+
+/** Esteira de `width` tiles com o topo na linha `y`. `speed` em px/s (negativo = para a esquerda). */
+export interface ConveyorData {
+  x: number;
+  y: number;
+  width: number;
+  speed: number;
+}
+
+/** Superfície da lava oscilando entre as linhas `low` (mais baixa) e `high` (mais alta). */
+export interface LavaTideData {
+  low: number;
+  high: number;
+  /** Duração de um ciclo completo (s). */
+  period: number;
+  /** Atraso do ciclo (s). */
+  offset?: number;
+}
+
+/** Parede de lava: começa a andar depois de `delay` (s) a `speed` px/s. */
+export interface LavaChaseData {
+  speed: number;
+  delay: number;
+  /** Ao renascer num checkpoint, a parede volta para esta distância (tiles) atrás dele. */
+  gap: number;
 }

@@ -28,12 +28,14 @@ describe('speedrun: categorias e splits', () => {
   it('categorias por fase, mundo e jogo completo', () => {
     expect(categoryFor('level-3')?.levels).toEqual([3]);
     expect(categoryFor('world-2')?.levels).toEqual([5, 6, 7, 8, 9]);
-    expect(categoryFor('all')?.levels).toHaveLength(15);
+    expect(categoryFor('all')?.levels).toHaveLength(20);
+    expect(categoryFor('world-4')?.levels).toEqual([15, 16, 17, 18, 19]);
     expect(categoryFor('world-9')).toBeNull();
     expect(categoryFor('level-99')).toBeNull();
     expect(availableCategories(1)).toEqual(['level-0']);
     expect(availableCategories(6)).toEqual(['world-1', 'level-0', 'level-1', 'level-2', 'level-3', 'level-4', 'level-5']);
-    expect(availableCategories(15)).toContain('all');
+    expect(availableCategories(15)).not.toContain('all');
+    expect(availableCategories(20)).toContain('all');
   });
 
   it('calcula splits acumulados e a diferença para o recorde', () => {
@@ -59,8 +61,18 @@ describe('speedrun: categorias e splits', () => {
 
   it('o save guarda os recordes e ignora categorias inválidas', () => {
     expect(defaultSave().speedrun).toEqual({});
-    const s = sanitizeSpeedrun({ 'world-1': { pb: 90, splits: [10, 'x', 20], bestSegments: [-1, 5] }, xyz: { pb: 1 } });
-    expect(s).toEqual({ 'world-1': { pb: 90, splits: [10, 20], bestSegments: [5] } });
+    const s = sanitizeSpeedrun({ 'world-1': { pb: 90, splits: [10, 'x', 20, 40, 60, 90], bestSegments: [-1, 5] }, xyz: { pb: 1 } });
+    expect(s).toEqual({ 'world-1': { pb: 90, splits: [10, 20, 40, 60, 90], bestSegments: [5] } });
+  });
+
+  it('o recorde antigo do jogo completo (15 fases) perde o tempo total, mas mantém os melhores trechos', () => {
+    const old15 = { pb: 900, splits: Array.from({ length: 15 }, (_, i) => (i + 1) * 60), bestSegments: Array.from({ length: 15 }, () => 55) };
+    const s = sanitizeSpeedrun({ all: old15, 'world-3': { pb: 300, splits: [60, 120, 180, 240, 300], bestSegments: [] } });
+    expect(s.all.pb).toBeNull();
+    expect(s.all.splits).toEqual([]);
+    expect(s.all.bestSegments).toHaveLength(15);
+    // Categorias que não mudaram de tamanho ficam intactas.
+    expect(s['world-3'].pb).toBe(300);
     expect(sanitizeSave({ speedrun: { 'level-0': { pb: 0 } } }, 15).speedrun['level-0'].pb).toBeNull();
   });
 });

@@ -28,7 +28,7 @@ export const NPCS: Record<NpcId, NpcInfo> = {
   astro: { id: 'astro', nameKey: 'npc.astro', texture: 'npc-astro' },
 };
 
-export type CutsceneId = 'intro' | 'world1' | 'world2';
+export type CutsceneId = 'intro' | 'world1' | 'world2' | 'world3' | 'world4';
 
 export interface Cutscene {
   id: CutsceneId;
@@ -77,12 +77,39 @@ export const CUTSCENES: Record<CutsceneId, Cutscene> = {
       line('astro', 'story.world2.5'),
     ],
   },
+  // Depois do final da história (Eclipse vencido): o vulcão acorda e o Mundo 4 se abre.
+  world3: {
+    id: 'world3',
+    backdrop: 15,
+    cast: ['pix', 'elder', 'captain', 'astro'],
+    lines: [
+      line('elder', 'story.world3.1'),
+      line('captain', 'story.world3.2'),
+      line('astro', 'story.world3.3'),
+      line('pix', 'story.world3.4'),
+      line('elder', 'story.world3.5'),
+    ],
+  },
+  // Fim do Mundo 4: a pista do planeta secreto.
+  world4: {
+    id: 'world4',
+    backdrop: 19,
+    cast: ['pix', 'astro', 'elder'],
+    lines: [
+      line('astro', 'story.world4.1'),
+      line('elder', 'story.world4.2'),
+      line('astro', 'story.world4.3'),
+      line('astro', 'story.world4.4'),
+      line('pix', 'story.world4.5'),
+    ],
+  },
 };
 
 /** Cena que acontece depois de concluir a fase `levelIndex` (fim de mundo), se houver. */
 export function cutsceneAfterLevel(levelIndex: number): CutsceneId | null {
   if (levelIndex === 4) return 'world1';
   if (levelIndex === 9) return 'world2';
+  if (levelIndex === 19) return 'world4';
   return null;
 }
 
@@ -90,8 +117,9 @@ export function cutsceneAfterLevel(levelIndex: number): CutsceneId | null {
  * Fala de um NPC na vila conforme o progresso (fases liberadas).
  * Cada NPC tem falas por etapa: antes do Mundo 2, antes do Mundo 3 e depois.
  */
-export function hubChatter(npc: NpcId, unlockedLevels: number, finished: boolean): DialogueLine[] {
-  const stage = finished ? 3 : unlockedLevels > 10 ? 2 : unlockedLevels > 5 ? 1 : 0;
+export function hubChatter(npc: NpcId, unlockedLevels: number, finished: boolean, volcanoDone = false): DialogueLine[] {
+  // Estágio 4: depois do Mundo 4 os NPCs dão pistas do planeta secreto.
+  const stage = volcanoDone ? 4 : finished ? 3 : unlockedLevels > 10 ? 2 : unlockedLevels > 5 ? 1 : 0;
   return [line(npc, `story.hub.${npc}.${stage}`)];
 }
 
@@ -101,7 +129,7 @@ export function allStoryKeys(): string[] {
   for (const c of Object.values(CUTSCENES)) c.lines.forEach((l) => keys.add(l.key));
   for (const npc of Object.keys(NPCS) as NpcId[]) {
     keys.add(NPCS[npc].nameKey);
-    for (let stage = 0; stage <= 3; stage++) keys.add(`story.hub.${npc}.${stage}`);
+    for (let stage = 0; stage <= 4; stage++) keys.add(`story.hub.${npc}.${stage}`);
   }
   return [...keys];
 }

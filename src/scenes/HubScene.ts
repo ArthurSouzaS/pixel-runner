@@ -19,7 +19,8 @@ import { DialogueBox } from '../ui/DialogueBox';
 import { pixelText } from '../ui/text';
 import { TouchControls } from '../ui/TouchControls';
 
-const W = 72;
+/** Largura da vila em tiles (cresceu para caber o portal do Mundo 4). */
+const W = 86;
 
 /** Mapa da vila: chão com uma colina e algumas plataformas. */
 function villageMap(): string[] {
@@ -72,6 +73,12 @@ export class HubScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Depois do final da história, o vulcão acorda: cena de abertura do Mundo 4 (uma vez).
+    const progress = saveManager.get();
+    if (progress.unlockedLevels > WORLDS[3].firstLevel && !progress.storySeen.includes('world3')) {
+      this.scene.start('Cutscene', { id: 'world3', next: { scene: 'Hub' } });
+      return;
+    }
     this.items = [];
     this.markers = new Map();
     this.nearby = null;
@@ -97,7 +104,7 @@ export class HubScene extends Phaser.Scene {
     const save = saveManager.get();
 
     // Portais dos mundos
-    const portalX = [6, 48, 66];
+    const portalX = [6, 48, 66, 80];
     WORLDS.forEach((world, i) => {
       const x = portalX[i] * TILE_SIZE + 8;
       const open = save.unlockedLevels > world.firstLevel;
@@ -198,7 +205,7 @@ export class HubScene extends Phaser.Scene {
     house(27 * TILE_SIZE, 80, 54, 0xffcd75, 0x3b5dc9);
     house(53 * TILE_SIZE, 64, 50, 0x94b0c2, 0x5d275d);
     pixelText(this, 27 * TILE_SIZE + 40, ground - 40, t('shop.title'), { size: 8, color: COLORS.ink, strokeThickness: 0 }).setOrigin(0.5).setDepth(-4);
-    for (const tx of [3, 20, 44, 61, 69]) {
+    for (const tx of [3, 20, 44, 61, 69, 75, 83]) {
       const x = tx * TILE_SIZE;
       g.fillStyle(0x5e3a28).fillRect(x - 3, ground - 26, 6, 26);
       g.fillStyle(0x38b764).fillCircle(x, ground - 34, 14);
@@ -266,7 +273,7 @@ export class HubScene extends Phaser.Scene {
       const prog = save.missions.missions[active.id];
       return [{ speaker: npc, key: 'mission.reminder', params: { title: t(`mission.${active.id}.title`), progress: `${prog.progress}/${objectiveTarget(active.objective)}` } }];
     }
-    return hubChatter(npc, save.unlockedLevels, save.stats.bossEclipse > 0);
+    return hubChatter(npc, save.unlockedLevels, save.stats.bossEclipse > 0, save.storySeen.includes('world4'));
   }
 
   private refreshMarkers(): void {

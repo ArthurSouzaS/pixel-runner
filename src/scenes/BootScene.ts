@@ -21,6 +21,7 @@ export class BootScene extends Phaser.Scene {
     anims.create({ key: 'pix-run', frames: frames('pix', [2, 3, 4, 5]), frameRate: 12, repeat: -1 });
     anims.create({ key: 'walker-move', frames: frames('walker', [0, 1]), frameRate: 4, repeat: -1 });
     anims.create({ key: 'bat-fly', frames: frames('bat', [0, 1]), frameRate: 8, repeat: -1 });
+    anims.create({ key: 'ember-burn', frames: frames('ember', [0, 1]), frameRate: 10, repeat: -1 });
     anims.create({ key: 'coin-spin', frames: frames('coin', [0, 1, 2, 3]), frameRate: 8, repeat: -1 });
     anims.create({ key: 'checkpoint-wave', frames: frames('checkpoint', [1, 2]), frameRate: 4, repeat: -1 });
     anims.create({ key: 'armored-move', frames: frames('armored', [0, 1]), frameRate: 3, repeat: -1 });

@@ -30,7 +30,18 @@ const NODES: { x: number; y: number }[] = [
   { x: 412, y: 172 },
   { x: 436, y: 124 },
   { x: 446, y: 70 },
+  // Mundo 4: Vale Vulcânico (à direita; o mapa rola até ele)
+  { x: 504, y: 186 },
+  { x: 530, y: 150 },
+  { x: 562, y: 180 },
+  { x: 590, y: 142 },
+  { x: 604, y: 96 },
 ];
+
+/** Largura total do mapa (a câmera rola para mostrar o Mundo 4). */
+const MAP_W = 640;
+/** Planeta anelado: esconde a fase secreta (só abre clicando ou tocando nele). */
+const PLANET = { x: 372, y: 82 };
 
 /** Mapa de seleção de mundos e fases. */
 export class WorldMapScene extends Phaser.Scene {
@@ -68,25 +79,36 @@ export class WorldMapScene extends Phaser.Scene {
     const key = ensurePixSkin(this, skin.id, skin.colors);
     this.pix = this.add.sprite(NODES[this.index].x, NODES[this.index].y - 14, key, 0).setDepth(20);
     this.pix.play(`${key}-idle`);
+    this.cameras.main.setBounds(0, 0, MAP_W, GAME_HEIGHT);
+    this.cameras.main.setScroll(this.cameraXFor(NODES[this.index].x), 0);
+    const ui: Phaser.GameObjects.GameObject[] = [];
+    const fixed = <T extends Phaser.GameObjects.GameObject>(o: T): T => {
+      ui.push(o);
+      return o;
+    };
 
     // Barra superior
-    this.add.rectangle(0, 0, GAME_WIDTH, 20, COLORS.ink, 0.75).setOrigin(0).setDepth(30);
-    pixelText(this, 8, 6, t('map.title'), { size: 8, color: COLORS.yellow }).setDepth(31);
-    pixelText(this, GAME_WIDTH / 2, 6, t('menu.record', { score: formatScore(save.highScore) }), { size: 8, color: COLORS.cyan }).setOrigin(0.5, 0).setDepth(31);
-    this.add.image(GAME_WIDTH - 60, 10, 'coin', 0).setDepth(31);
-    pixelText(this, GAME_WIDTH - 52, 6, String(save.wallet), { size: 8, color: COLORS.yellow }).setDepth(31);
+    fixed(this.add.rectangle(0, 0, GAME_WIDTH, 20, COLORS.ink, 0.75).setOrigin(0).setDepth(30));
+    fixed(pixelText(this, 8, 6, t('map.title'), { size: 8, color: COLORS.yellow }).setDepth(31));
+    fixed(pixelText(this, GAME_WIDTH / 2, 6, t('menu.record', { score: formatScore(save.highScore) }), { size: 8, color: COLORS.cyan }).setOrigin(0.5, 0).setDepth(31));
+    fixed(this.add.image(GAME_WIDTH - 60, 10, 'coin', 0).setDepth(31));
+    fixed(pixelText(this, GAME_WIDTH - 52, 6, String(save.wallet), { size: 8, color: COLORS.yellow }).setDepth(31));
 
     // Painel inferior
-    this.add.rectangle(0, GAME_HEIGHT - 48, GAME_WIDTH, 48, COLORS.ink, 0.85).setOrigin(0).setDepth(30);
-    this.title = pixelText(this, 10, GAME_HEIGHT - 42, '', { size: 8, color: COLORS.cyan }).setDepth(31);
-    this.info = pixelText(this, 10, GAME_HEIGHT - 28, '', { size: 8 }).setDepth(31).setLineSpacing(4);
-    this.hint = pixelText(this, GAME_WIDTH - 10, GAME_HEIGHT - 16, '', { size: 8, color: COLORS.lightGreen }).setOrigin(1, 0.5).setDepth(31);
+    fixed(this.add.rectangle(0, GAME_HEIGHT - 48, GAME_WIDTH, 48, COLORS.ink, 0.85).setOrigin(0).setDepth(30).setInteractive());
+    this.title = fixed(pixelText(this, 10, GAME_HEIGHT - 42, '', { size: 8, color: COLORS.cyan }).setDepth(31));
+    this.info = fixed(pixelText(this, 10, GAME_HEIGHT - 28, '', { size: 8 }).setDepth(31).setLineSpacing(4));
+    this.hint = fixed(pixelText(this, GAME_WIDTH - 10, GAME_HEIGHT - 16, '', { size: 8, color: COLORS.lightGreen }).setOrigin(1, 0.5).setDepth(31));
     this.hint.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.play());
-    pixelText(this, GAME_WIDTH - 10, GAME_HEIGHT - 38, t('map.back'), { size: 8, color: COLORS.gray })
-      .setOrigin(1, 0.5)
-      .setDepth(31)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => this.back());
+    fixed(
+      pixelText(this, GAME_WIDTH - 10, GAME_HEIGHT - 38, t('map.back'), { size: 8, color: COLORS.gray })
+        .setOrigin(1, 0.5)
+        .setDepth(31)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => this.back()),
+    );
+    // Barras e textos ficam parados enquanto o mapa rola.
+    ui.forEach((o) => (o as unknown as Phaser.GameObjects.Components.ScrollFactor).setScrollFactor(0));
 
     const kb = this.input.keyboard;
     kb?.on('keydown-LEFT', () => this.select(this.index - 1));
@@ -112,11 +134,11 @@ export class WorldMapScene extends Phaser.Scene {
     const bands = [0x29366f, 0x2e4588, 0x3b5dc9, 0x3b6bd4];
     bands.forEach((c, i) => {
       g.fillStyle(c);
-      g.fillRect(0, (i * GAME_HEIGHT) / bands.length, GAME_WIDTH, GAME_HEIGHT / bands.length + 1);
+      g.fillRect(0, (i * GAME_HEIGHT) / bands.length, MAP_W, GAME_HEIGHT / bands.length + 1);
     });
     // Ondinhas animadas
-    for (let i = 0; i < 26; i++) {
-      const wave = this.add.rectangle(Phaser.Math.Between(0, GAME_WIDTH), Phaser.Math.Between(26, GAME_HEIGHT - 52), 6, 1, 0x73eff7, 0.6);
+    for (let i = 0; i < 34; i++) {
+      const wave = this.add.rectangle(Phaser.Math.Between(0, MAP_W), Phaser.Math.Between(26, GAME_HEIGHT - 52), 6, 1, 0x73eff7, 0.6);
       this.tweens.add({ targets: wave, x: wave.x + 10, alpha: 0.1, duration: Phaser.Math.Between(1200, 2400), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     }
   }
@@ -152,12 +174,61 @@ export class WorldMapScene extends Phaser.Scene {
     this.blob(g, 404, 128, 70, 82, 0x1a1c2c, 3);
     this.blob(g, 404, 128, 62, 74, 0x29366f, 3);
     for (let i = 0; i < 30; i++) g.fillStyle(0xf4f4f4).fillRect(Phaser.Math.Between(346, 462), Phaser.Math.Between(58, 200), 1, 1);
-    g.fillStyle(0xef7d57).fillCircle(372, 82, 10);
-    g.fillStyle(0xffcd75).fillCircle(369, 79, 4);
-    g.lineStyle(1, 0xffcd75).strokeEllipse(372, 82, 30, 8);
+    this.drawPlanet();
+    // Mundo 4: vulcão com rios de lava
+    this.blob(g, 556, 140, 66, 70, 0x1a1c2c, 6);
+    this.blob(g, 556, 140, 58, 62, 0x5e3a28, 6);
+    this.blob(g, 548, 156, 34, 22, 0x8b5a3c, 9);
+    g.fillStyle(0x333c57).fillTriangle(578, 118, 604, 66, 630, 118);
+    g.fillStyle(0xb13e53).fillTriangle(597, 80, 604, 66, 611, 80);
+    g.fillStyle(0xef7d57).fillRect(601, 78, 6, 4);
+    g.fillStyle(0xef7d57);
+    for (const [x0, y0, x1, y1] of [[600, 84, 584, 132], [606, 84, 618, 124], [520, 120, 548, 176]]) {
+      for (let s = 0; s <= 1; s += 0.04) g.fillRect(Math.round(x0 + (x1 - x0) * s), Math.round(y0 + (y1 - y0) * s + Math.sin(s * 9) * 3), 3, 2);
+    }
     pixelText(this, 70, 36, worldName(1, WORLDS[0].name), { size: 8, color: COLORS.white }).setOrigin(0.5);
     pixelText(this, 250, 176, worldName(2, WORLDS[1].name), { size: 8, color: COLORS.white }).setOrigin(0.5);
     pixelText(this, 404, 212, worldName(3, WORLDS[2].name), { size: 8, color: COLORS.white }).setOrigin(0.5);
+    pixelText(this, 556, 214, worldName(4, WORLDS[3].name), { size: 8, color: COLORS.white }).setOrigin(0.5);
+  }
+
+  /**
+   * Planeta anelado do Mundo 3. Esconde a fase secreta: só abre clicando com o mouse
+   * ou tocando com o dedo (as setas nunca chegam nele).
+   */
+  private drawPlanet(): void {
+    const planet = this.add.container(PLANET.x, PLANET.y).setDepth(5);
+    const g = this.add.graphics();
+    g.fillStyle(0xef7d57).fillCircle(0, 0, 10);
+    g.fillStyle(0xffcd75).fillCircle(-3, -3, 4);
+    g.lineStyle(1, 0xffcd75).strokeEllipse(0, 0, 30, 8);
+    planet.add(g);
+    planet.setSize(34, 24).setInteractive();
+    planet.on('pointerdown', () => this.openSecret(planet));
+  }
+
+  private openSecret(planet: Phaser.GameObjects.Container): void {
+    if (this.starting) return;
+    // O sinal só aparece depois de chegar à Fronteira Estelar.
+    if (saveManager.get().unlockedLevels <= WORLDS[2].firstLevel) {
+      this.tweens.add({ targets: planet, angle: { from: -8, to: 8 }, duration: 60, yoyo: true, repeat: 2, onComplete: () => planet.setAngle(0) });
+      return;
+    }
+    this.starting = true;
+    sfx.unlock();
+    sfx.play('ability');
+    const ring = this.add.circle(PLANET.x, PLANET.y, 6, 0xffcd75, 0).setStrokeStyle(2, 0xffcd75).setDepth(40);
+    this.tweens.add({ targets: ring, radius: 60, alpha: 0, duration: 700 });
+    this.tweens.add({ targets: planet, scale: 1.8, duration: 700, ease: 'Back.easeIn' });
+    this.time.delayedCall(450, () => {
+      this.cameras.main.fadeOut(400, 255, 255, 255);
+      this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('SecretPlanet'));
+    });
+  }
+
+  /** A câmera centraliza o Pix, sem passar das bordas do mapa. */
+  private cameraXFor(x: number): number {
+    return Phaser.Math.Clamp(x - GAME_WIDTH / 2, 0, MAP_W - GAME_WIDTH);
   }
 
   private drawPaths(unlocked: number): void {
@@ -229,6 +300,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.nodes.forEach((n, i) => n.setScale(i === this.index ? 1.2 : 1));
     if (animate) {
       this.tweens.killTweensOf(this.pix);
+      this.tweens.add({ targets: this.cameras.main, scrollX: this.cameraXFor(node.x), duration: 300, ease: 'Sine.easeInOut' });
       this.pix.setFlipX(node.x < this.pix.x);
       this.tweens.add({ targets: this.pix, x: node.x, duration: 260, ease: 'Sine.easeInOut' });
       this.tweens.add({ targets: this.pix, y: node.y - 26, duration: 130, yoyo: true, ease: 'Quad.easeOut', onComplete: () => this.pix.setY(node.y - 14) });

@@ -63,7 +63,7 @@ const N: Record<string, number> = {
   C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.0, A4: 440.0, B4: 493.88,
   C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880.0, C6: 1046.5,
   Bb2: 116.54, B2: 123.47, Eb3: 155.56, 'F#3': 185.0, Ab3: 207.65, Bb3: 233.08,
-  Eb4: 311.13, 'F#4': 369.99, Ab4: 415.3, Bb4: 466.16, 'C#5': 554.37, Eb5: 622.25, 'F#5': 739.99, Ab5: 830.61, Bb5: 932.33, B5: 987.77, D6: 1174.66, E6: 1318.51,
+  'C#4': 277.18, Eb4: 311.13, 'F#4': 369.99, Ab4: 415.3, Bb4: 466.16, 'C#5': 554.37, Eb5: 622.25, 'F#5': 739.99, Ab5: 830.61, Bb5: 932.33, B5: 987.77, D6: 1174.66, E6: 1318.51,
 };
 
 type Pattern = (string | null)[];
@@ -177,6 +177,40 @@ const SONGS: Record<string, Song> = {
     lead: ['G4', 'C5', 'Eb5', null, 'D5', null, 'C5', 'B4', 'C5', null, 'Ab4', null, 'G4', null, 'B4', null],
     arp: ['C4', 'Eb4', 'G4', 'Eb4', 'Ab3', 'C4', 'Eb4', 'C4', 'F3', 'Ab3', 'C4', 'Ab3', 'G3', 'B3', 'D4', 'B3'],
     kick: KICK_4,
+  },
+  // ---- Mundo 4: Vale Vulcânico (graves pesados, escalas menores) ----
+  ash: {
+    tempo: 112,
+    bass: ['E3', null, 'E3', null, 'G3', null, 'E3', null, 'C3', null, 'C3', null, 'D3', null, 'B2', null],
+    lead: ['B4', null, 'E5', null, 'D5', 'B4', null, 'A4', 'G4', null, 'A4', 'B4', null, 'F#4', null, null],
+    arp: ['E4', 'G4', 'B4', 'G4', 'E4', 'G4', 'B4', 'G4', 'C4', 'E4', 'G4', 'E4', 'D4', 'F#4', 'A4', 'F#4'],
+    kick: KICK_4,
+  },
+  forge: {
+    tempo: 132,
+    bass: ['A3', 'A3', null, 'A3', 'G3', null, 'F3', null, 'A3', 'A3', null, 'C3', 'B2', null, 'E3', null],
+    lead: ['A4', null, 'C5', 'E5', null, 'D5', 'C5', null, 'B4', null, 'C5', 'A4', null, 'Ab4', null, null],
+    kick: KICK_DRIVE,
+  },
+  magma: {
+    tempo: 124,
+    bass: ['D3', null, 'D3', 'F3', null, 'D3', 'C3', null, 'Bb2', null, 'Bb2', 'C3', null, 'A3', 'A3', null],
+    lead: ['D5', 'F5', null, 'A5', 'G5', null, 'F5', null, 'E5', null, 'F5', 'D5', null, 'C#5', null, null],
+    arp: ['D4', 'F4', 'A4', 'F4', 'D4', 'F4', 'A4', 'F4', 'Bb3', 'D4', 'F4', 'D4', 'A3', 'C#4', 'E4', 'C#4'],
+    kick: KICK_4,
+  },
+  obsidian: {
+    tempo: 100,
+    bass: ['C3', null, null, 'C3', 'Ab3', null, null, 'Ab3', 'F3', null, null, 'F3', 'G3', null, 'G3', null],
+    lead: ['Eb5', null, 'G5', null, 'F5', 'Eb5', 'C5', null, 'D5', null, 'Bb4', 'C5', 'D5', null, 'B4', null],
+    arp: ['C4', 'Eb4', 'G4', 'C5', 'Ab3', 'C4', 'Eb4', 'Ab4', 'F3', 'Ab3', 'C4', 'F4', 'G3', 'B3', 'D4', 'G4'],
+  },
+  caldera: {
+    tempo: 156,
+    bass: ['E3', 'E3', 'G3', 'E3', 'C3', 'C3', 'D3', 'B2', 'E3', 'E3', 'G3', 'A3', 'Bb3', 'A3', 'G3', 'F#3'],
+    lead: ['E5', null, 'G5', 'B5', null, 'A5', 'G5', null, 'F#5', null, 'G5', 'E5', null, 'Eb5', null, 'B4'],
+    arp: ['E4', 'B4', 'E5', 'B4', 'C4', 'G4', 'C5', 'G4', 'D4', 'A4', 'D5', 'A4', 'B3', 'F#4', 'B4', 'F#4'],
+    kick: KICK_DRIVE,
   },
   boss3: {
     tempo: 180,

@@ -984,3 +984,91 @@ export const SHARD_ITEM_ART: PixelArt = [
   '....kcck....',
   '.....kk.....',
 ];
+
+// ---------------------------------------------------------------------------
+// Mundo 4: Vale Vulcânico
+// ---------------------------------------------------------------------------
+
+/** Brasa (16x16, 2 quadros): bola de fogo que salta da lava. */
+export const EMBER_FRAMES: PixelArt[] = [
+  [
+    '................',
+    '......y.........',
+    '.....yoy....y...',
+    '....yooy........',
+    '...yoowwoy......',
+    '..yoowwwwoy.....',
+    '..yowwwwwwoy....',
+    '.yoowwwwwwooy...',
+    '.yorwwwwwwroy...',
+    '.yorrwwwwrroy...',
+    '..yorrrrrroy....',
+    '...yorrrroy.....',
+    '....yyrryy......',
+    '......yy........',
+    '................',
+    '................',
+  ],
+  [
+    '................',
+    '........y.......',
+    '...y...yoy......',
+    '.......yooy.....',
+    '....yowwooy.....',
+    '...yowwwwooy....',
+    '..yowwwwwwoy....',
+    '.yoowwwwwwooy...',
+    '.yorwwwwwwroy...',
+    '.yorrwwwwrroy...',
+    '..yorrrrrroy....',
+    '...yorrrroy.....',
+    '....yyrryy......',
+    '.....yyyy.......',
+    '................',
+    '................',
+  ],
+];
+
+/** Lava (16x16), repetida em faixas animadas. O topo ondulado fica transparente. */
+export const LAVA_ART: PixelArt = [
+  '..yy.....yyy....',
+  '.yyyy...yyyyy..y',
+  'yyooyyyyyooyyyyy',
+  'oooooyyoooooyooo',
+  'oooroooooooroooo',
+  'oorroooyoooorroo',
+  'orrrooooooooorro',
+  'rrrrrooooyoooorr',
+  'rrorrrooooooorrr',
+  'rrrrrrrooorrrrrr',
+  'rrrrrrrrrrrrorrr',
+  'rrUrrrrrrrrrrrrr',
+  'rrrrrrrUrrrrrrUr',
+  'rUrrrrrrrrrUrrrr',
+  'rrrrUrrrrrrrrrrr',
+  'rrrrrrrrrUrrrrrr',
+];
+
+/** Bico do gêiser (16x8). */
+export const VENT_ART: PixelArt = [
+  '..kkkkkkkkkkkk..',
+  '.kGGGGGGGGGGGGk.',
+  '.kGkkkkkkkkkkGk.',
+  'kGGkUUUUUUUUkGGk',
+  'kGGkUrrrrrrUkGGk',
+  'kGGGkkkkkkkkGGGk',
+  'kGGGGGGGGGGGGGGk',
+  'kkkkkkkkkkkkkkkk',
+];
+
+/** Esteira (16x8), repetida e rolada conforme a velocidade. */
+export const CONVEYOR_ART: PixelArt = [
+  'kkkkkkkkkkkkkkkk',
+  'yGGGyGGGyGGGyGGG',
+  'GyGGGyGGGyGGGyGG',
+  'kkkkkkkkkkkkkkkk',
+  'dGdGdGdGdGdGdGdG',
+  'GdGdGdGdGdGdGdGd',
+  'dddddddddddddddd',
+  'kkkkkkkkkkkkkkkk',
+];

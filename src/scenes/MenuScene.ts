@@ -29,7 +29,7 @@ export class MenuScene extends Phaser.Scene {
     const cx = GAME_WIDTH / 2;
     const title = pixelText(this, cx, 38, 'PIXEL RUNNER', { size: 28, color: COLORS.yellow, strokeThickness: 6 }).setOrigin(0.5);
     title.setShadow(3, 3, '#5d275d', 0, true, true);
-    const two = pixelText(this, cx + 196, 26, '3', { size: 20, color: COLORS.red, strokeThickness: 5 }).setOrigin(0.5).setAngle(12);
+    const two = pixelText(this, cx + 196, 26, '4', { size: 20, color: COLORS.red, strokeThickness: 5 }).setOrigin(0.5).setAngle(12);
     this.tweens.add({ targets: [title], y: 42, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.tweens.add({ targets: two, scale: 1.15, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     pixelText(this, cx, 66, t('menu.tagline'), { size: 8, color: COLORS.white }).setOrigin(0.5);

@@ -99,10 +99,15 @@ export function sanitizeSpeedrun(raw: unknown): SpeedrunRecords {
   for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
     if (!categoryFor(id) || !value || typeof value !== 'object') continue;
     const v = value as Partial<Record<keyof PersonalBest, unknown>>;
+    const pb = typeof v.pb === 'number' && Number.isFinite(v.pb) && v.pb > 0 ? v.pb : null;
+    const splits = nums(v.splits);
+    // Se a categoria mudou de tamanho (ex.: "jogo completo" passou de 15 para 20 fases), o tempo
+    // total antigo não é comparável: fica só o melhor trecho de cada fase.
+    const sameLength = splits.length === categoryFor(id)!.levels.length;
     out[id] = {
-      pb: typeof v.pb === 'number' && Number.isFinite(v.pb) && v.pb > 0 ? v.pb : null,
-      splits: nums(v.splits),
-      bestSegments: nums(v.bestSegments),
+      pb: sameLength ? pb : null,
+      splits: sameLength ? splits : [],
+      bestSegments: nums(v.bestSegments).slice(0, categoryFor(id)!.levels.length),
     };
   }
   return out;

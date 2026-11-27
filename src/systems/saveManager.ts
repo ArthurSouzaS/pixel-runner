@@ -86,7 +86,7 @@ class SaveManager {
 
   private context(): AchievementContext {
     const d = this.data;
-    return { stats: d.stats, unlockedLevels: d.unlockedLevels, abilities: d.abilities, ownedSkins: d.ownedSkins, ownedTrails: d.ownedTrails };
+    return { stats: d.stats, unlockedLevels: d.unlockedLevels, abilities: d.abilities, ownedSkins: d.ownedSkins, ownedTrails: d.ownedTrails, storySeen: d.storySeen };
   }
 
   private checkAchievements(): void {

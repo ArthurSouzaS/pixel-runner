@@ -1,4 +1,4 @@
-# Pixel Runner 3
+# Pixel Runner 4
 
 Jogo de plataforma 2D em pixel art feito para o navegador com **Phaser 3**, **TypeScript** e **Vite**.
 Projeto de portfólio de **Arthur Souza Soares**.
@@ -44,14 +44,22 @@ Funciona no computador e no celular, em **português e inglês**, e pode ser **i
 
 ## Sobre o jogo
 
-Você controla **Pix**, um pequeno robô corredor de capacete verde e cachecol laranja. Partindo da **Vila das Estrelas**, ele atravessa **3 mundos e 15 fases** — da terra firme ao espaço — e enfrenta o **Núcleo Ancestral**, a **Tempestade Rubra** e o **Eclipse**.
+Você controla **Pix**, um pequeno robô corredor de capacete verde e cachecol laranja. Partindo da **Vila das Estrelas**, ele atravessa **4 mundos e 20 fases** — da terra firme ao espaço e ao coração de um vulcão — e enfrenta o **Núcleo Ancestral**, a **Tempestade Rubra** e o **Eclipse**. E dizem que um planeta do mapa esconde um segredo...
 
 Todo o visual e o som são gerados por código, sem arquivos de imagem ou áudio externos:
 
 - **Sprites** desenhados como pixel art em texto (`src/gfx/sprites.ts`) e convertidos em texturas na inicialização.
-- **Tiles e cenários** com parallax gerados proceduralmente para cada um dos 15 temas.
+- **Tiles e cenários** com parallax gerados proceduralmente para cada um dos 20 temas.
 - **Efeitos sonoros e trilha sonora** sintetizados em tempo real com a **Web Audio API** (uma música por tema, mais chefes, vila, mapa e créditos).
 - **Ícone do jogo** feito a partir da arte do Pix em `art/pix-icon-source.png`; os tamanhos (aba do navegador, PWA, Android e iPhone) são gerados por `scripts/generate-icons.py`.
+
+## Novidades do Pixel Runner 4
+
+- 🌋 **Mundo 4 — Vale Vulcânico**: 5 fases novas (16 a 20) com **lava**, **gêiseres de fogo** que borbulham antes de disparar, **esteiras** que empurram, **brasas** que saltam da lava (não dá para pisar nelas — só a investida apaga), a **maré de lava** que sobe e desce nas Cavernas de Obsidiana e uma **fuga da parede de lava** no Coração do Vulcão.
+- 🗺️ **Mapa maior**, que rola até a nova ilha do vulcão, e um **portal do Mundo 4** na vila.
+- 🎬 Novas cenas de história (o vulcão acorda depois do final e a conclusão do Mundo 4) e novas falas dos personagens.
+- 🪐 **Um segredo**: há um lugar no mapa que não dá para alcançar com as setas... Siga as pistas dos personagens. Lá dentro, três portais selados guardam **chefes que estão por vir**.
+- 🏆 3 conquistas novas e categoria de speedrun do Mundo 4 (o "jogo completo" agora tem 20 fases).
 
 ## Novidades do Pixel Runner 3
 
@@ -94,13 +102,13 @@ Todo o visual e o som são gerados por código, sem arquivos de imagem ou áudio
 ## Recursos
 
 - Correr, pular (altura variável, *coyote time* e *buffer* de pulo), **pulo duplo**, **dash** e as 3 habilidades
-- 15 fases: Campos Verdes, Caverna de Cristal, Fábrica Enferrujada, Picos Gelados, Fortaleza do Núcleo, Lago Congelado, Recife Submerso, Ruínas Desmoronando, Penhasco dos Ventos, Olho da Tempestade, Base Lunar, Estação Orbital, Nebulosa Invertida, Cinturão de Asteroides e Cidadela do Eclipse
-- 7 tipos de inimigo: gosma, saltador, morcego, torreta, peixe-espinho, gosma blindada e drone
+- 20 fases: Campos Verdes, Caverna de Cristal, Fábrica Enferrujada, Picos Gelados, Fortaleza do Núcleo, Lago Congelado, Recife Submerso, Ruínas Desmoronando, Penhasco dos Ventos, Olho da Tempestade, Base Lunar, Estação Orbital, Nebulosa Invertida, Cinturão de Asteroides, Cidadela do Eclipse, Encosta de Cinzas, Forja Antiga, Rio de Magma, Cavernas de Obsidiana e Coração do Vulcão
+- 8 tipos de inimigo: gosma, saltador, morcego, torreta, peixe-espinho, gosma blindada, drone e brasa
 - 3 chefes com padrões de ataque diferentes, várias fases de ataque e música própria
 - **Orbes de energia** nas lutas das fases 10 e 15: aparecem de tempos em tempos numa plataforma da arena e, ao serem pegos, voam até o chefe causando o dano de um pisão
 - **Escudo de chefe**: ao começar a luta, cada jogador ganha uma bolha azul que aguenta um golpe e, ao quebrar, dá alguns segundos de invencibilidade
 - 5 vidas no início, moedas (vida extra a cada 50), checkpoints, plataformas móveis, espinhos, combos e bônus de tempo
-- 27 conquistas, 11 missões, 12 skins (4 exclusivas de missões) e 7 rastros
+- 30 conquistas, 11 missões, 12 skins (4 exclusivas de missões) e 7 rastros
 - Tudo **salvo no `localStorage`** com save versionado e migração automática
 - Partículas, rastros, tremida de câmera e transições (com opção de desligar)
 - **Teclado**, **botões na tela** (celular/tablet) e **gamepad**, com controles remapeáveis
@@ -189,8 +197,9 @@ src/
 ├── main.ts               # Configuração do Phaser, idioma, acessibilidade, gamepad e service worker
 ├── scenes/               # Boot, Menu, Hub (vila), Cutscene, MissionLog, WorldMap, Level (Fase), HUD,
 │                         # Pause, Tutorial, GameOver, Ending, Modes, Infinite, PowerUp, Daily, Speedrun,
-│                         # TwoPlayer, Editor, Shop, Achievements, Options, Accessibility, Remap, Credits, Toast
-├── levels/               # As 15 fases em arquivos de dados + blocos do modo Infinito (chunks.ts)
+│                         # TwoPlayer, Editor, Shop, Achievements, Options, Accessibility, Remap, TouchLayout,
+│                         # SecretPlanet, Credits, Toast
+├── levels/               # As 20 fases em arquivos de dados + blocos do modo Infinito (chunks.ts)
 ├── logic/                # Lógica pura, sem Phaser (testada com Vitest)
 │   ├── score.ts          #   pontuação, vidas, combos, bônus e formatação de tempo
 │   ├── progress.ts       #   desbloqueio e sequência de fases
@@ -204,10 +213,13 @@ src/
 │   ├── missions.ts       #   missões, itens e recompensas
 │   ├── accessibility.ts  #   filtros de daltonismo, controles remapeados e opções
 │   ├── laser.ts          #   ciclo dos lasers temporizados
+│   ├── volcano.ts        #   gêiseres, maré e parede de lava (Mundo 4)
+│   ├── bossAssist.ts     #   orbes de energia das lutas de chefe
+│   ├── touchLayout.ts    #   botões de toque, joystick e layout de 2 jogadores
 │   ├── abilities.ts, editor.ts, shop.ts, stats.ts, achievements.ts, audioSettings.ts
-├── story/                # NPCs, cenas e falas do modo história
+├── story/                # NPCs, cenas, falas e os portais do planeta secreto (secretBosses.ts)
 ├── i18n/                 # Dicionários pt/en e traduções dos dados do jogo
-├── objects/              # Player, inimigos, 3 chefes, perigos espaciais, molas e plataformas
+├── objects/              # Player, inimigos, 3 chefes, perigos espaciais e vulcânicos, molas e plataformas
 ├── gfx/                  # Paleta, sprites em pixel art, skins e geração de texturas
 ├── audio/                # Efeitos e músicas com Web Audio (barramentos de volume separados)
 ├── input/                # Teclado por jogador (remapeável), toque e gamepad
@@ -217,7 +229,7 @@ build/serviceWorker.ts    # Plugin do Vite que gera o service worker no build
 scripts/generate-icons.py # Gera os ícones a partir de art/pix-icon-source.png
 art/                      # Arte original do Pix usada no ícone
 public/                   # Manifest do PWA e ícones
-tests/                    # 207 testes do Vitest
+tests/                    # Testes do Vitest
 ```
 
 ### Formato das fases
@@ -232,11 +244,12 @@ Cada fase é um arquivo em `src/levels/` com um mapa ASCII de 17 linhas (o mesmo
 | `^` / `S` / `V` | Espinhos / mola / inversor de gravidade |
 | `o` | Moeda (algumas viram itens de missão quando a missão está ativa) |
 | `P` / `G` / `K` | Início / chegada / checkpoint |
-| `w` `h` `b` `t` `f` `a` `d` | Gosma, saltador, morcego, torreta, peixe, blindado, drone |
+| `w` `h` `b` `t` `f` `a` `d` `e` | Gosma, saltador, morcego, torreta, peixe, blindado, drone, brasa |
+| `L` | Lava (mata ao encostar) |
 | `A` | Orbe de habilidade |
 | `B` / `\|` | Chefe / portão da arena |
 
-Gravidade, água, vento, plataformas móveis, portais, asteroides, lasers e dicas ficam em listas separadas no mesmo arquivo. Os testes verificam que todas as fases são válidas.
+Gravidade, água, vento, plataformas móveis, portais, asteroides, lasers, gêiseres, esteiras, maré e parede de lava, orbes de energia dos chefes e dicas ficam em listas separadas no mesmo arquivo. Os testes verificam que todas as fases são válidas.
 
 ### Formato do JSON exportado pelo editor
 
@@ -256,7 +269,7 @@ O deploy é automático no **GitHub Pages** pelo workflow `.github/workflows/dep
 
 > Na primeira vez, ative em **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 
-O planejamento está em [PLANO_V2.md](PLANO_V2.md) e [PLANO_V3.md](PLANO_V3.md), e as decisões de design em [DECISOES.md](DECISOES.md).
+O planejamento está em [PLANO_V2.md](PLANO_V2.md), [PLANO_V3.md](PLANO_V3.md) e [PLANO_V4.md](PLANO_V4.md), e as decisões de design em [DECISOES.md](DECISOES.md).
 
 ## Créditos
 
