@@ -42,6 +42,10 @@ import {
   LAVA_ART,
   VENT_ART,
   CONVEYOR_ART,
+  GOAL_ICON_ART,
+  BOSS_ICON_CORE,
+  BOSS_ICON_STORM,
+  BOSS_ICON_ECLIPSE,
   SHELL_ART,
   SHARD_ITEM_ART,
 } from './sprites';
@@ -91,6 +95,10 @@ export function createSpriteTextures(scene: Phaser.Scene): void {
   createSheet(scene, 'lava', [LAVA_ART]);
   createSheet(scene, 'vent', [VENT_ART]);
   createSheet(scene, 'conveyor', [CONVEYOR_ART]);
+  createSheet(scene, 'goal-icon', [GOAL_ICON_ART]);
+  createSheet(scene, 'boss-icon-core', [BOSS_ICON_CORE]);
+  createSheet(scene, 'boss-icon-storm', [BOSS_ICON_STORM]);
+  createSheet(scene, 'boss-icon-eclipse', [BOSS_ICON_ECLIPSE]);
   createSheet(scene, 'item-shell', [SHELL_ART]);
   createSheet(scene, 'item-shard', [SHARD_ITEM_ART]);
 

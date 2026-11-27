@@ -43,12 +43,19 @@ export class ToastScene extends Phaser.Scene {
     this.showing = true;
     this.scene.bringToTop();
     sfx.play('checkpoint');
-    const w = 200;
-    const c = this.add.container(GAME_WIDTH + w / 2, 40).setDepth(100);
-    c.add(this.add.rectangle(0, 0, w, 34, COLORS.ink, 0.92).setStrokeStyle(2, COLORS.yellow));
+    // A caixa cresce com o texto (nomes de conquista longos não podem ficar cortados);
+    // se nem a largura máxima bastar, o nome quebra em mais linhas.
+    const maxW = GAME_WIDTH - 12;
+    const title = pixelText(this, 0, 0, item.title, { size: 8, color: COLORS.yellow });
+    const text = pixelText(this, 0, 0, item.text, { size: 8, wrap: maxW - 40 });
+    const w = Math.min(maxW, Math.max(200, Math.max(title.width, text.width) + 42));
+    const h = Math.max(34, 22 + text.height);
+    const c = this.add.container(GAME_WIDTH + w / 2, 24 + h / 2).setDepth(100);
+    c.add(this.add.rectangle(0, 0, w, h, COLORS.ink, 0.92).setStrokeStyle(2, COLORS.yellow));
     c.add(this.add.image(-w / 2 + 16, 0, item.icon).setScale(2));
-    c.add(pixelText(this, -w / 2 + 30, -9, item.title, { size: 8, color: COLORS.yellow }));
-    c.add(pixelText(this, -w / 2 + 30, 3, item.text, { size: 8 }));
+    title.setPosition(-w / 2 + 30, -h / 2 + 8);
+    text.setPosition(-w / 2 + 30, -h / 2 + 20);
+    c.add([title, text]);
     this.tweens.add({
       targets: c,
       x: GAME_WIDTH - w / 2 - 6,

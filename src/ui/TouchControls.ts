@@ -50,8 +50,9 @@ export function drawTouchButton(scene: Phaser.Scene, id: TouchButtonId, x: numbe
   c.add(scene.add.circle(0, 0, r, COLORS.white, 0.18).setStrokeStyle(2, tint, 0.5));
   const text = label ?? (id === 'jump' ? 'A' : id === 'dash' ? 'B' : id === 'charge' ? 'C' : null);
   const k = r / 24;
-  if (text) c.add(pixelText(scene, 0, 1, text, { size: 12 }).setOrigin(0.5).setAlpha(0.85).setScale(Math.max(0.7, k)));
-  else c.add(scene.add.image(0, 0, 'button-arrow').setScale(1.6 * k).setRotation(id === 'left' ? -Math.PI / 2 : Math.PI / 2).setAlpha(0.85));
+  // Tamanhos inteiros: escalas quebradas deixavam letras e setas com pixels desiguais.
+  if (text) c.add(pixelText(scene, 0, 1, text, { size: k < 0.9 ? 8 : k < 1.35 ? 12 : 16 }).setOrigin(0.5).setAlpha(0.85));
+  else c.add(scene.add.image(0, 0, 'button-arrow').setScale(Math.max(1, Math.round(1.6 * k))).setRotation(id === 'left' ? -Math.PI / 2 : Math.PI / 2).setAlpha(0.85));
   return c;
 }
 

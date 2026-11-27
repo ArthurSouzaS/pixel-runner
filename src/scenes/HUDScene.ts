@@ -58,7 +58,7 @@ export class HUDScene extends Phaser.Scene {
       this.coinsText = pixelText(this, GAME_WIDTH / 2 - 46, 6, '0/0', { size: 8, color: COLORS.yellow }).setOrigin(1, 0);
       this.coinIcon = this.add.image(0, 10, 'coin', 0);
     } else {
-      if (race) this.add.image(10, 10, 'star').setScale(1.25);
+      if (race) this.add.image(10, 10, 'star');
       else this.heartIcon(10);
       this.livesText = pixelText(this, 18, 6, race ? t('hud.race') : '', { size: 8, color: race ? COLORS.yellow : COLORS.white });
       this.coinIcon = this.add.image(race ? 100 : 58, 10, 'coin', 0);
@@ -100,7 +100,7 @@ export class HUDScene extends Phaser.Scene {
    * então a origem vai para o centro do desenho e ele desce até a linha média dos textos.
    */
   private heartIcon(x: number): void {
-    this.add.image(x, 11, 'heart').setOrigin(3.5 / 8, 3.5 / 8).setScale(1.25);
+    this.add.image(x, 11, 'heart').setOrigin(3.5 / 8, 3.5 / 8);
   }
 
   private createBossBar(): void {
@@ -118,10 +118,10 @@ export class HUDScene extends Phaser.Scene {
     const x0 = 120;
     const w = GAME_WIDTH - 240;
     this.add.rectangle(x0, y, w, 4, COLORS.ink, 0.7).setOrigin(0, 0.5).setStrokeStyle(1, COLORS.white, 0.6);
-    this.add.image(x0 + w + 8, y - 4, 'portal', 0).setScale(0.5);
+    this.add.image(x0 + w + 8, y - 4, 'goal-icon');
     const [t1, t2] = this.level.playerTextures();
-    const p1 = this.add.image(x0, y - 6, t1 ?? 'pix', 0).setScale(0.75);
-    const p2 = this.add.image(x0, y - 6, t2 ?? 'pix', 0).setScale(0.75);
+    const p1 = this.add.image(x0, y - 9, t1 ?? 'pix', 0);
+    const p2 = this.add.image(x0, y - 9, t2 ?? 'pix', 0);
     this.raceMarkers = [p1, p2];
     this.raceMarkers.forEach((m) => m.setData('x0', x0).setData('w', w));
   }

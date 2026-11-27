@@ -151,10 +151,10 @@ export class SecretPlanetScene extends Phaser.Scene {
     const ready = secretBossReady(slot);
     const glow = this.add.circle(x, y, 18, slot.color, 0.25).setDepth(1);
     this.tweens.add({ targets: glow, scale: 1.3, alpha: 0.08, duration: 1100, yoyo: true, repeat: -1 });
-    this.add.sprite(x, y, 'warp').setDepth(2).setScale(1.3).setTint(slot.color).play('warp-spin');
+    this.add.sprite(x, y, 'warp').setDepth(2).setTint(slot.color).play('warp-spin');
     if (!ready) {
       // Selado: cadeado e a placa "EM BREVE".
-      this.add.image(x, y, 'lock').setDepth(3).setScale(1.5);
+      this.add.image(x, y, 'lock').setDepth(3).setScale(2);
       const badge = pixelText(this, x, y - 48, t('secret.soon'), { size: 8, color: COLORS.ink, strokeThickness: 0 })
         .setOrigin(0.5)
         .setDepth(5)

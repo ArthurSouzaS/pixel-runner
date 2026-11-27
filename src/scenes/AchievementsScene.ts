@@ -77,7 +77,7 @@ export class AchievementsScene extends Phaser.Scene {
         const unlocked = save.achievements.includes(a.id);
         const x = 30 + (i % COLS) * 226;
         const y = 46 + Math.floor(i / COLS) * ROW_H;
-        this.content.add(this.add.image(x, y + 4, unlocked ? 'star' : 'lock').setScale(unlocked ? 1.4 : 0.8));
+        this.content.add(this.add.image(x, y + 4, unlocked ? 'star' : 'lock'));
         const cell = pixelText(this, x + 12, y, unlocked ? achievementName(a.id, a.name) : '???', { size: 8, color: unlocked ? COLORS.white : COLORS.gray }).setInteractive({ useHandCursor: true });
         cell.on('pointerdown', () => {
           this.index = i;

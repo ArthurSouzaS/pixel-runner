@@ -53,6 +53,7 @@ export class WorldMapScene extends Phaser.Scene {
   private info!: Phaser.GameObjects.Text;
   private hint!: Phaser.GameObjects.Text;
   private starting = false;
+  private selRing!: Phaser.GameObjects.Arc;
 
   constructor() {
     super('WorldMap');
@@ -75,6 +76,8 @@ export class WorldMapScene extends Phaser.Scene {
     this.drawIslands();
     this.drawPaths(save.unlockedLevels);
     LEVELS.forEach((_, i) => this.nodes.push(this.drawNode(i)));
+    this.selRing = this.add.circle(0, 0, 13).setStrokeStyle(2, COLORS.white).setDepth(9);
+    this.tweens.add({ targets: this.selRing, alpha: 0.35, duration: 450, yoyo: true, repeat: -1 });
 
     const skin = findSkin(save.equippedSkin);
     const key = ensurePixSkin(this, skin.id, skin.colors);
@@ -266,8 +269,8 @@ export class WorldMapScene extends Phaser.Scene {
     if (unlocked) c.add(pixelText(this, 0, 1, String(i + 1), { size: 8, color: COLORS.ink, strokeThickness: 0 }).setOrigin(0.5));
     else c.add(this.add.image(0, 0, 'lock'));
     if (cleared) c.add(this.add.image(r - 2, -r + 2, 'star'));
-    const bossKey = LEVELS[i].boss === 'eclipse' ? 'eclipse' : LEVELS[i].boss === 'storm' ? 'storm' : 'boss';
-    if (boss && unlocked) c.add(this.add.image(0, -r - 10, bossKey, 0).setScale(0.4));
+    // Rosto do chefe desenhado no tamanho certo (encolher o sprite grande deixava ele borrado).
+    if (boss && unlocked) c.add(this.add.image(0, -r - 8, `boss-icon-${LEVELS[i].boss}`));
     c.setSize(r * 2 + 6, r * 2 + 6).setInteractive({ useHandCursor: true });
     c.on('pointerdown', () => {
       if (this.index === i) this.play();
@@ -303,7 +306,9 @@ export class WorldMapScene extends Phaser.Scene {
     const world = worldOfLevel(this.index);
     const unlocked = isLevelUnlocked(this.index, save.unlockedLevels);
     const node = NODES[this.index];
-    this.nodes.forEach((n, i) => n.setScale(i === this.index ? 1.2 : 1));
+    // Seleção por anel (aumentar a bolinha distorcia o número dentro dela).
+    const sel = this.nodes[this.index];
+    this.selRing.setPosition(sel.x, sel.y).setRadius((LEVELS[this.index].boss ? 11 : 9) + 4);
     if (animate) {
       this.tweens.killTweensOf(this.pix);
       this.tweens.add({ targets: this.cameras.main, scrollX: this.cameraXFor(node.x), duration: 300, ease: 'Sine.easeInOut' });

@@ -36,7 +36,7 @@ export class ShopScene extends Phaser.Scene {
     this.trail = null;
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.ink, 0.6).setOrigin(0);
     pixelText(this, 20, 14, t('shop.title'), { size: 16, color: COLORS.yellow });
-    this.add.image(GAME_WIDTH - 110, 22, 'coin', 0).setScale(1.5);
+    this.add.image(GAME_WIDTH - 110, 22, 'coin', 0);
     this.walletText = pixelText(this, GAME_WIDTH - 98, 16, '', { size: 10, color: COLORS.yellow });
 
     (['skin', 'trail'] as ShopCategory[]).forEach((cat, i) => {

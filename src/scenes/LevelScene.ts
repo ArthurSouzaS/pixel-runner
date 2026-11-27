@@ -880,7 +880,8 @@ export class LevelScene extends Phaser.Scene {
         size: 8,
         scalable: true,
         align: 'center',
-        wrap: 170,
+        // Largura limitada: dicas vizinhas (9 tiles = 144 px) não se encostam.
+        wrap: 128,
         color: COLORS.white,
       })
         .setOrigin(0.5)
@@ -1386,7 +1387,7 @@ export class LevelScene extends Phaser.Scene {
     const y = spot.y * TILE_SIZE + 6;
     const orb = this.add.container(x, y).setDepth(8);
     const glow = this.add.circle(0, 0, 11, 0x73eff7, 0.25);
-    orb.add([glow, this.add.image(0, 0, 'boss-orb').setScale(1.4)]);
+    orb.add([glow, this.add.image(0, 0, 'boss-orb').setScale(2)]);
     orb.setScale(0);
     this.tweens.add({ targets: orb, scale: 1, duration: 300, ease: 'Back.easeOut' });
     this.tweens.add({ targets: orb, y: y - 4, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -1431,7 +1432,7 @@ export class LevelScene extends Phaser.Scene {
     this.bossAssist?.collected(this.time.now);
     this.tweens.killTweensOf([orb, ...orb.list]);
     orb.destroy();
-    const shot = this.add.image(player.x, player.y - 4, 'boss-orb').setScale(1.4).setDepth(12);
+    const shot = this.add.image(player.x, player.y - 4, 'boss-orb').setScale(2).setDepth(12);
     this.assistShots.push({ sprite: shot, age: 0 });
     this.fx.sparkle.explode(16, player.x, player.y);
     sfx.play('dash');

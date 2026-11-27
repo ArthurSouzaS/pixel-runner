@@ -12,9 +12,9 @@ SRC = ROOT / 'art' / 'pix-icon-source.png'
 OUT = ROOT / 'public' / 'icons'
 
 # Recorte quadrado justo no personagem (fica legível em tamanhos pequenos).
-TIGHT = (115, 149, 675, 709)
+TIGHT = (215, 240, 975, 1000)
 # Recorte mais aberto para o ícone "maskable" (o Android pode cortar até 20% das bordas).
-WIDE = (40, 0, 749, 709)
+WIDE = (59, 0, 1131, 1072)
 
 
 def save(img: Image.Image, size: int, name: str) -> None:

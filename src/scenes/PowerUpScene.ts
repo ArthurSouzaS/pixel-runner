@@ -34,6 +34,7 @@ export class PowerUpScene extends Phaser.Scene {
     this.choices.forEach((id, i) => {
       const pu = POWERUPS.find((p) => p.id === id)!;
       const c = this.add.container(GAME_WIDTH / 2 + (i - 1) * 150, 140);
+      c.setData('y0', 140);
       c.add(this.add.rectangle(0, 0, 136, 140, COLORS.ink, 0.9).setStrokeStyle(2, COLORS.white, 0.5));
       c.add(this.add.circle(0, -38, 18, pu.color).setStrokeStyle(2, COLORS.white));
       c.add(pixelText(this, 0, -38, t(`power.${id}.icon`), { size: 12, color: COLORS.ink, strokeThickness: 0 }).setOrigin(0.5));
@@ -62,7 +63,8 @@ export class PowerUpScene extends Phaser.Scene {
 
   private refresh(): void {
     this.cards.forEach((c, i) => {
-      c.setScale(i === this.index ? 1.08 : 0.95);
+      // Sem mudar a escala (distorcia os textos do cartão): o escolhido sobe um pouco.
+      c.setY(c.getData('y0') - (i === this.index ? 4 : 0));
       (c.list[0] as Phaser.GameObjects.Rectangle).setStrokeStyle(2, i === this.index ? COLORS.yellow : COLORS.white, i === this.index ? 1 : 0.4);
     });
   }

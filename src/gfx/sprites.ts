@@ -1072,3 +1072,69 @@ export const CONVEYOR_ART: PixelArt = [
   'dddddddddddddddd',
   'kkkkkkkkkkkkkkkk',
 ];
+
+// ---------------------------------------------------------------------------
+// Ícones pequenos (desenhados no tamanho certo em vez de encolher sprites grandes)
+// ---------------------------------------------------------------------------
+
+/** Chegada (10x12): mini portal para a paleta do editor e a barra da corrida. */
+export const GOAL_ICON_ART: PixelArt = [
+  '..kkkkkk..',
+  '.kyyyyyyk.',
+  'kykcccckyk',
+  'kykcBBckyk',
+  'kykcwBckyk',
+  'kykcBBckyk',
+  'kykcBwckyk',
+  'kykcBBckyk',
+  'kykcccckyk',
+  'kyyyyyyyyk',
+  'kGGGGGGGGk',
+  'kkkkkkkkkk',
+];
+
+/** Rostos dos chefes (12x12) para o mapa dos mundos. */
+export const BOSS_ICON_CORE: PixelArt = [
+  '...kkkkkk...',
+  '..kGGGGGGk..',
+  '.kGggggggGk.',
+  'kGgkkggkkgGk',
+  'kGgkrggkrgGk',
+  'kGggggggggGk',
+  'kGggkkkkggGk',
+  'kGgkyyyykgGk',
+  'kGggkkkkggGk',
+  '.kGggggggGk.',
+  '..kGGGGGGk..',
+  '...kkkkkk...',
+];
+
+export const BOSS_ICON_STORM: PixelArt = [
+  '....kkkk....',
+  '..kkrrrrkk..',
+  '.krrrrrrrrk.',
+  'krrwkrrwkrrk',
+  'krrkkrrkkrrk',
+  'krrrrrrrrrrk',
+  '.krrkkkkrrk.',
+  '.kkrrrrrrkk.',
+  '...ky....ky.',
+  '....ky....ky',
+  '...ky....ky.',
+  '............',
+];
+
+export const BOSS_ICON_ECLIPSE: PixelArt = [
+  '...yyyyyy...',
+  '..ykkkkkky..',
+  '.ykppppppky.',
+  'ykppwppwppky',
+  'ykppppppppky',
+  'ykpppkkpppky',
+  'ykppkppkppky',
+  'ykppppppppky',
+  '.ykppppppky.',
+  '..ykkkkkky..',
+  '...yyyyyy...',
+  '............',
+];

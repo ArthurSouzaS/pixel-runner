@@ -54,7 +54,7 @@ const ICONS: Record<string, { key: string; frame?: number | string; scale?: numb
   t: { key: 'turret', frame: 0 },
   a: { key: 'armored', frame: 0 },
   P: { key: 'pix', frame: 0 },
-  G: { key: 'portal', frame: 0, dy: -8 },
+  G: { key: 'goal-icon' },
 };
 
 const TERRAIN: Record<string, number> = { '#': TileIndex.Top, X: TileIndex.Block, '-': TileIndex.Platform, I: TileIndex.Ice, Q: TileIndex.Breakable };
@@ -290,7 +290,7 @@ export class EditorScene extends Phaser.Scene {
       return this.add.image(x, y, key, frame);
     }
     const icon = ICONS[tool.char];
-    if (icon) return this.add.image(x, y, icon.key, icon.frame).setScale(tool.char === 'G' ? 0.5 : 1);
+    if (icon) return this.add.image(x, y, icon.key, icon.frame);
     return pixelText(this, x, y, 'X', { size: 12, color: COLORS.red }).setOrigin(0.5);
   }
 

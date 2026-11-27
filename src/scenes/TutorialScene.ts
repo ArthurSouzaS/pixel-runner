@@ -20,7 +20,7 @@ export class TutorialScene extends Phaser.Scene {
     const panel = this.add.container(cx, GAME_HEIGHT / 2);
     panel.add(this.add.rectangle(0, 0, 360, 170, COLORS.ink, 0.95).setStrokeStyle(2, info.color));
     panel.add(pixelText(this, 0, -66, t('tutorial.new'), { size: 8, color: COLORS.yellow }).setOrigin(0.5));
-    panel.add(this.add.image(-118, -40, 'orb').setTint(info.color).setScale(1.5));
+    panel.add(this.add.image(-118, -40, 'orb').setTint(info.color).setScale(2));
     panel.add(pixelText(this, 10, -40, abilityText(info.id, 'name', info.name).toUpperCase(), { size: 14, color: info.color }).setOrigin(0.5));
     panel.add(pixelText(this, 0, -6, abilityText(info.id, 'description', info.description), { size: 8, align: 'center', wrap: 330, scalable: true }).setOrigin(0.5).setLineSpacing(4));
     const how = usingTouch() ? abilityText(info.id, 'touch', info.touch) : abilityText(info.id, 'keyboard', info.keyboard);
